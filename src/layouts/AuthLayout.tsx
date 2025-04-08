@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import headerImage from '@/assets/images/header-kids.png';
 import footerImage from '@/assets/images/footer-kids.png';
 import logoSaica from '@/assets/images/logo-saica.png';
+import diagramaSaica from '@/assets/images/diagrama-saica.png';
 import Login from '@/features/auth/pages/Login';
 
 export const AuthLayout = () => {
@@ -48,10 +49,21 @@ export const AuthLayout = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <Outlet />
-      </main>
+      {/* Diagrama SAICA */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex">
+          <div className="w-1/2">
+            <img 
+              src={diagramaSaica}
+              alt="Diagrama de integração SAICA"
+              className="w-full max-w-[500px] h-auto"
+            />
+          </div>
+          <div className="w-1/2">
+            <Outlet />
+          </div>
+        </div>
+      </div>
 
       {/* Footer */}
       <footer className="w-full mt-auto">
