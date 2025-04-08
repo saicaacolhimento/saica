@@ -2,7 +2,6 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import headerImage from '@/assets/images/header-kids.png';
-import footerImage from '@/assets/images/footer-kids.png';
 import logoSaica from '@/assets/images/logo-saica.png';
 import diagramaSaica from '@/assets/images/diagrama-saica.png';
 import Login from '@/features/auth/pages/Login';
@@ -63,7 +62,7 @@ export const AuthLayout = () => {
           </div>
           <div className="w-1/2">
             <div className="bg-white rounded-lg shadow-lg p-6 max-w-[500px]">
-              <h2 className="text-[#6366F1] text-2xl font-bold mb-4 text-center">O QUE É A PLATAFORMA SAICA?</h2>
+              <h2 className="text-[#6366F1] text-2xl font-bold mb-4 text-center">O QUE É O SISTEMA SAICA?</h2>
               <div className="space-y-4 text-gray-600 text-lg mb-8">
                 <p>É uma plataforma onde o Abrigo cadastro o acolhido com todas informações pessoais.</p>
                 <p>Os órgãos como CREAS, CRAS, CAPS, Conselho Tutelar acessam estas informações e podem também fazer a inserção de qualquer evolução por parte destas instituições no cadastro do respectivo acolhido.</p>
@@ -120,12 +119,10 @@ export const AuthLayout = () => {
       </div>
 
       {/* Footer */}
-      <footer className="w-full mt-auto">
-        <img 
-          src={footerImage} 
-          alt="Crianças brincando" 
-          className="w-full h-auto object-cover"
-        />
+      <footer className="w-full mt-auto bg-gray-100 py-8">
+        <div className="container mx-auto px-4 text-center text-gray-600">
+          © 2024 SAICA - Sistema de Acompanhamento Integrado de Crianças e Adolescentes
+        </div>
       </footer>
     </div>
   );
