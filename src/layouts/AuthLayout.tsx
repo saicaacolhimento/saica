@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState } from 'react';
 import headerImage from '@/assets/images/header-kids.png';
 import footerImage from '@/assets/images/footer-kids.png';
 import logoSaica from '@/assets/images/logo-saica.png';
@@ -8,6 +9,7 @@ import Login from '@/features/auth/pages/Login';
 
 export const AuthLayout = () => {
   const { user } = useAuth();
+  const [showForm, setShowForm] = useState(false);
 
   if (user) {
     return <Navigate to="/dashboard" />;
@@ -49,10 +51,10 @@ export const AuthLayout = () => {
         </div>
       </div>
 
-      {/* Diagrama SAICA */}
+      {/* Diagrama SAICA e Card Informativo */}
       <div className="container mx-auto px-4 py-8">
-        <div className="flex">
-          <div className="w-1/2">
+        <div className="flex gap-8">
+          <div className="w-1/2 pl-20">
             <img 
               src={diagramaSaica}
               alt="Diagrama de integração SAICA"
@@ -60,7 +62,59 @@ export const AuthLayout = () => {
             />
           </div>
           <div className="w-1/2">
-            <Outlet />
+            <div className="bg-white rounded-lg shadow-lg p-6 max-w-[500px]">
+              <h2 className="text-[#6366F1] text-2xl font-bold mb-4 text-center">O QUE É A PLATAFORMA SAICA?</h2>
+              <div className="space-y-4 text-gray-600 text-lg mb-8">
+                <p>É uma plataforma onde o Abrigo cadastro o acolhido com todas informações pessoais.</p>
+                <p>Os órgãos como CREAS, CRAS, CAPS, Conselho Tutelar acessam estas informações e podem também fazer a inserção de qualquer evolução por parte destas instituições no cadastro do respectivo acolhido.</p>
+                <p>Desta forma, as informações são unificadas, com segurança e facilidade, criando assim uma rede de informações com históricos a nível nacional.</p>
+                <p>Nossa plataforma tem além do cadastro completo do acolhido um sistema de agenda e mensagem integrado entre todos e um sistema único.</p>
+              </div>
+              
+              <div className="text-center">
+                <button
+                  onClick={() => setShowForm(!showForm)}
+                  className="bg-[#6366F1] hover:bg-[#4F46E5] text-white py-2 px-8 rounded transition-colors font-semibold"
+                >
+                  FALE CONOSCO
+                </button>
+              </div>
+
+              {/* Formulário de Contato */}
+              {showForm && (
+                <form className="space-y-4 mt-6">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="NOME"
+                      className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="email"
+                      placeholder="E-MAIL"
+                      className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <textarea
+                      placeholder="MENSAGEM"
+                      rows={4}
+                      className="w-full p-2 border border-gray-300 rounded bg-gray-50 resize-none"
+                    ></textarea>
+                  </div>
+                  <div>
+                    <button
+                      type="submit"
+                      className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white py-2 px-4 rounded transition-colors"
+                    >
+                      ENVIAR MENSAGEM
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </div>
