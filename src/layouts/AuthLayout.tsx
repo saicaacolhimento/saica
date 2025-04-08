@@ -36,7 +36,7 @@ export const AuthLayout = () => {
       </header>
 
       {/* Title Bar */}
-      <div className="w-full bg-[#4267B2] text-white h-[80px] flex items-center mt-[50px]">
+      <div className="w-full bg-[#6366F1] text-white h-[80px] flex items-center mt-[50px]">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-[2.5em] font-semibold text-center mb-0">
             Sistema de Acompanhamento Integrado de Crianças e Adolescentes

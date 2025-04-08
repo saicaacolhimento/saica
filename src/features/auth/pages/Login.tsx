@@ -75,7 +75,7 @@ export default function Login() {
       </div>
       <Button
         type="submit"
-        className="bg-[#4267B2] hover:bg-[#365899] min-w-[35px] h-[35px] p-0"
+        className="bg-[#6366F1] hover:bg-[#4F46E5] min-w-[35px] h-[35px] p-0"
         disabled={loading}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
