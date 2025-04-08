@@ -1,7 +1,12 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-export default function PrivateRoute() {
+interface PrivateRouteProps {
+  roles?: string[];
+  children?: React.ReactNode;
+}
+
+export default function PrivateRoute({ roles, children }: PrivateRouteProps) {
   const { user } = useAuth();
   const location = useLocation();
 
@@ -9,5 +14,9 @@ export default function PrivateRoute() {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <Outlet />;
+  if (roles && !roles.includes(user.role)) {
+    return <Navigate to="/" />;
+  }
+
+  return children ? <>{children}</> : <Outlet />;
 } 

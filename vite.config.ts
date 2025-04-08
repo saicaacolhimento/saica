@@ -7,9 +7,8 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig({
   plugins: [
     react(),
-    mode === 'development' &&
     componentTagger(),
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -45,5 +44,13 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    watch: {
+      usePolling: true,
+      interval: 1000,
+    },
+    hmr: {
+      overlay: true,
+      port: 5173,
+    },
   },
 });
