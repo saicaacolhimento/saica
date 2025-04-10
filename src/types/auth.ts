@@ -1,20 +1,27 @@
 export type UserRole = 'admin' | 'master' | 'padrao' | 'orgao';
-export type UserStatus = 'active' | 'blocked';
 
-export interface User {
+export interface BaseUser {
   id: string;
   email: string;
   nome: string;
-  role: UserRole;
+  created_at: string;
+  updated_at: string;
+  last_sign_in_at?: string;
+  status: 'active' | 'blocked';
+}
+
+export interface MasterAdmin extends BaseUser {
+  role: 'master';
+}
+
+export interface RegularUser extends BaseUser {
+  role: 'admin' | 'padrao' | 'orgao';
   abrigo_id?: string;
   orgao_id?: string;
   funcao?: string;
-  status: UserStatus;
-  created_at: string;
-  updated_at: string;
-  ultimo_login?: string;
-  tentativas_login: number;
 }
+
+export type User = MasterAdmin | RegularUser;
 
 export interface AuthState {
   user: User | null;
@@ -31,7 +38,7 @@ export interface CreateUserData {
   email: string;
   password: string;
   nome: string;
-  role: UserRole;
+  role: Exclude<UserRole, 'master'>;
   abrigo_id?: string;
   orgao_id?: string;
   funcao?: string;
@@ -39,10 +46,9 @@ export interface CreateUserData {
 
 export interface UpdateUserData {
   nome?: string;
-  email?: string;
-  role?: UserRole;
+  role?: Exclude<UserRole, 'master'>;
+  status?: 'active' | 'blocked';
   abrigo_id?: string;
   orgao_id?: string;
   funcao?: string;
-  status?: UserStatus;
 } 

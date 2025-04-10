@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
+import { authService } from '@/services/auth';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -19,8 +20,25 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      await signIn(email, password);
-      // Verificar se o usuário é admin será feito no AuthContext
+      // Verifica se é o email do master admin inicial
+      if (email === 'saicaacolhimento2025@gmail.com' && password === 'Beniciocaus3131@2025...') {
+        try {
+          // Tenta criar o usuário master
+          await authService.createMasterAdmin(email, password);
+          toast({
+            title: 'Usuário master criado com sucesso',
+            description: 'Faça login para continuar',
+          });
+        } catch (error) {
+          // Se der erro porque já existe, apenas continua com o login
+          if (!error.message.includes('Já existe um usuário master')) {
+            throw error;
+          }
+        }
+      }
+
+      // Faz o login normalmente
+      await signIn({ email, password });
       navigate('/admin/dashboard');
     } catch (error) {
       toast({

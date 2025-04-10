@@ -1,103 +1,55 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
-import { AuthLayout } from '@/layouts/AuthLayout';
-import DashboardLayout from '@/layouts/DashboardLayout';
-import { MainLayout } from '@/layouts/MainLayout';
-import AdminLayout from '@/layouts/AdminLayout';
-import Login from '@/features/auth/pages/Login';
-import AdminLogin from '@/features/auth/pages/AdminLogin';
-import Dashboard from '@/features/dashboard/pages/Dashboard';
-import { UserList } from '@/features/users/pages/UserList';
-import { UserDetails } from '@/features/users/pages/UserDetails';
-import { UserEdit } from '@/features/users/pages/UserEdit';
-import { NotFound } from '@/features/misc/pages/NotFound';
-import PrivateRoute from '@/components/PrivateRoute';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
-// import { ShelterList } from '@/features/shelters/pages/ShelterList';
-// import { ShelterEdit } from '@/features/shelters/pages/ShelterEdit';
-// import { ShelterDetails } from '@/features/shelters/pages/ShelterDetails';
-// import { PermissionList } from '@/features/permissions/pages/PermissionList';
-// import { PermissionDetails } from '@/features/permissions/pages/PermissionDetails';
-// import { PermissionEdit } from '@/features/permissions/pages/PermissionEdit';
-// import { AcolhidoList } from '@/features/acolhidos/pages/AcolhidoList';
-// import { AcolhidoDetails } from '@/features/acolhidos/pages/AcolhidoDetails';
-// import { AcolhidoEdit } from '@/features/acolhidos/pages/AcolhidoEdit';
-// import { DocumentoList } from '@/features/documentos/pages/DocumentoList';
-// import { DocumentoDetails } from '@/features/documentos/pages/DocumentoDetails';
-// import { AgendamentoList } from '@/features/agendamentos/pages/AgendamentoList';
-// import { AgendamentoDetails } from '@/features/agendamentos/pages/AgendamentoDetails';
-// import { NotificacaoList } from '@/features/notificacoes/pages/NotificacaoList';
-// import { NotificacaoDetails } from '@/features/notificacoes/pages/NotificacaoDetails';
-// import { ConversaList } from '@/features/mensagens/pages/ConversaList'
-// import { Chat } from '@/features/mensagens/pages/Chat'
-// import { RelatorioList } from '@/features/relatorios/pages/RelatorioList'
-// import { RelatorioDetails } from '@/features/relatorios/pages/RelatorioDetails'
-// import { ConfiguracaoList } from '@/features/configuracoes/pages/ConfiguracaoList'
-// import { ConfiguracaoEdit } from '@/features/configuracoes/pages/ConfiguracaoEdit'
-// import { ConfiguracaoCreate } from '@/features/configuracoes/pages/ConfiguracaoCreate'
-// import { BackupRestore } from '@/features/configuracoes/pages/BackupRestore'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Layouts
-import PublicLayout from '@/layouts/PublicLayout';
-import { Layout } from '@/components/Layout';
+import AuthLayout from '@/layouts/AuthLayout';
+import AdminLayout from '@/layouts/AdminLayout';
 
-const routes = [
-  {
-    path: '/',
-    element: <AuthLayout />,
-    children: [
-      {
-        path: 'admin/login',
-        element: <AdminLogin />
-      }
-    ]
-  },
-  {
-    path: '/dashboard',
-    element: (
-      <PrivateRoute>
-        <DashboardLayout />
-      </PrivateRoute>
-    ),
-    children: [
-      {
-        path: '',
-        element: <Dashboard />
-      },
-      {
-        path: 'usuarios',
-        element: <UserList />
-      },
-      {
-        path: 'usuarios/:id',
-        element: <UserDetails />
-      },
-      {
-        path: 'usuarios/:id/editar',
-        element: <UserEdit />
-      }
-    ]
-  },
-  {
-    path: '/admin',
-    element: (
-      <PrivateRoute roles={['admin']}>
-        <AdminLayout />
-      </PrivateRoute>
-    ),
-    children: [
-      {
-        path: '',
-        element: <Navigate to="/admin/dashboard" />
-      }
-    ]
-  }
-];
+// Páginas
+import { Login } from '@/features/auth/pages/Login';
+import Dashboard from '@/pages/admin/Dashboard';
+import ShelterList from '@/features/shelters/pages/ShelterList';
+import ShelterDetails from '@/features/shelters/pages/ShelterDetails';
+import EditShelter from '@/features/shelters/pages/EditShelter';
+import PrivateRoute from '@/components/PrivateRoute';
 
-export const router = createBrowserRouter([
-  {
-    element: <AuthProvider>
-      <Outlet />
-    </AuthProvider>,
-    children: routes
-  }
-]); 
+const queryClient = new QueryClient();
+
+export default function AppRoutes() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<AuthLayout />} />
+            <Route path="/login" element={<AuthLayout />} />
+            
+            <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              
+              {/* Rotas de Abrigos */}
+              <Route path="abrigos">
+                <Route index element={<ShelterList />} />
+                <Route path=":id" element={<ShelterDetails />} />
+                <Route path=":id/editar" element={<EditShelter />} />
+              </Route>
+
+              <Route path="criancas" element={<div>Crianças</div>} />
+              <Route path="usuarios" element={<div>Usuários</div>} />
+              <Route path="orgaos" element={<div>Órgãos</div>} />
+              <Route path="relatorios" element={<div>Relatórios</div>} />
+              <Route path="documentos" element={<div>Documentos</div>} />
+              <Route path="atividades" element={<div>Atividades</div>} />
+              <Route path="configuracoes" element={<div>Configurações</div>} />
+            </Route>
+            
+            {/* Fallback para rotas não encontradas */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+} 

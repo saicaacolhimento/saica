@@ -1,7 +1,6 @@
-
 import React from 'react';
 import Logo from './Logo';
-import LoginForm from './LoginForm';
+import { Login } from '@/features/auth/pages/Login';
 
 const Header: React.FC = () => {
   return (
@@ -11,7 +10,7 @@ const Header: React.FC = () => {
         <Logo />
       </div>
       <div className="flex-1 flex justify-end">
-        <LoginForm />
+        <Login />
       </div>
     </header>
   );

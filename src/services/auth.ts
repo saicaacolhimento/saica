@@ -1,55 +1,90 @@
 import { supabase } from '@/config/supabase';
 import type { LoginCredentials, CreateUserData, UpdateUserData, User } from '@/types/auth';
 
+const MASTER_ADMIN = {
+  email: 'saicaacolhimento2025@gmail.com',
+  uid: '744e43fe-2c07-476c-bf0b-b7f5a0a1a059'
+};
+
 export const authService = {
   async login({ email, password }: LoginCredentials): Promise<User> {
+    console.log('Tentando fazer login...', { email });
+    
+    // 1. Autenticação com Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (authError) throw new Error(authError.message);
+    if (authError) {
+      console.error('Erro na autenticação:', authError);
+      throw new Error(authError.message);
+    }
 
+    console.log('Login bem sucedido, verificando se é master admin...');
+
+    // 2. Verifica se é o master admin
+    if (email === MASTER_ADMIN.email && authData.user.id === MASTER_ADMIN.uid) {
+      return {
+        id: MASTER_ADMIN.uid,
+        email: MASTER_ADMIN.email,
+        nome: 'Master Admin',
+        role: 'master' as const,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    // 3. Se não for master admin, busca dados do usuário normal
+    console.log('Buscando dados do usuário normal...');
     const { data: userData, error: userError } = await supabase
       .from('usuarios')
-      .select('*')
+      .select('*, abrigos(*)')
       .eq('id', authData.user.id)
       .single();
 
-    if (userError) throw new Error(userError.message);
-
-    if (userData.status === 'blocked') {
+    if (userError) {
+      console.error('Erro ao buscar dados do usuário:', userError);
       await supabase.auth.signOut();
-      throw new Error('Usuário bloqueado. Entre em contato com o administrador.');
+      throw new Error('Usuário não encontrado');
     }
-
-    // Atualiza último login
-    await supabase
-      .from('usuarios')
-      .update({ ultimo_login: new Date().toISOString() })
-      .eq('id', userData.id);
 
     return userData;
   },
 
-  async logout(): Promise<void> {
+  async signOut(): Promise<void> {
     const { error } = await supabase.auth.signOut();
-    if (error) throw new Error(error.message);
+    if (error) throw error;
   },
 
   async getCurrentUser(): Promise<User | null> {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
     
-    if (sessionError) throw new Error(sessionError.message);
-    if (!session) return null;
+    if (!user) return null;
 
+    // Verifica se é master admin
+    if (user.email === MASTER_ADMIN.email && user.id === MASTER_ADMIN.uid) {
+      return {
+        id: MASTER_ADMIN.uid,
+        email: MASTER_ADMIN.email,
+        nome: 'Master Admin',
+        role: 'master' as const,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    // Se não for master admin, busca dados do usuário normal
     const { data: userData, error: userError } = await supabase
       .from('usuarios')
-      .select('*')
-      .eq('id', session.user.id)
+      .select('*, abrigos(*)')
+      .eq('id', user.id)
       .single();
 
-    if (userError) throw new Error(userError.message);
+    if (userError) return null;
+
     return userData;
   },
 

@@ -1,130 +1,87 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
-import { authService } from '@/services/auth';
-import type { User, AuthState, LoginCredentials } from '@/types/auth';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/config/supabase';
+import { Session, User } from '@supabase/supabase-js';
 
-interface AuthContextType extends AuthState {
-  signIn: (credentials: LoginCredentials) => Promise<void>;
-  signOut: () => Promise<void>;
-  isAdmin: () => boolean;
-  isMaster: () => boolean;
-  isOrgao: () => boolean;
+interface AuthContextType {
+  session: Session | null;
+  user: User | null;
+  loading: boolean;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    loading: true,
-    error: null,
-  });
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
+    // Verificar sessão atual
+    async function getInitialSession() {
+      setLoading(true);
       try {
-        const user = await authService.getCurrentUser();
-        setState(prev => ({
-          ...prev,
-          user,
-          loading: false,
-        }));
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Erro ao verificar sessão:', error);
+          return;
+        }
+        
+        setSession(data.session);
+        setUser(data.session?.user || null);
       } catch (error) {
-        setState(prev => ({
-          ...prev,
-          error: error.message,
-          loading: false,
-        }));
+        console.error('Erro inesperado ao verificar sessão:', error);
+      } finally {
+        setLoading(false);
       }
-    };
+    }
 
-    initAuth();
+    getInitialSession();
+
+    // Configurar listener para alterações de autenticação
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        console.log('Evento de autenticação:', event);
+        setSession(newSession);
+        setUser(newSession?.user || null);
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  const signIn = async (credentials: LoginCredentials) => {
+  async function logout() {
+    setLoading(true);
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
-      const user = await authService.login(credentials);
-
-      if (user.status === 'blocked') {
-        throw new Error('Usuário bloqueado. Entre em contato com o administrador.');
-      }
-
-      setState(prev => ({
-        ...prev,
-        user,
-        loading: false,
-      }));
-
-      // Redirecionar baseado no papel do usuário
-      if (user.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      window.location.href = '/';
     } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error.message,
-        loading: false,
-      }));
-
-      toast({
-        title: 'Erro ao fazer login',
-        description: error.message,
-        variant: 'destructive',
-      });
+      console.error('Erro ao fazer logout:', error);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  const value = {
+    session,
+    user,
+    loading,
+    logout
   };
 
-  const signOut = async () => {
-    try {
-      setState(prev => ({ ...prev, loading: true }));
-      await authService.logout();
-      setState({ user: null, loading: false, error: null });
-      navigate('/login');
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error.message,
-        loading: false,
-      }));
-
-      toast({
-        title: 'Erro ao fazer logout',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const isAdmin = () => state.user?.role === 'admin';
-  const isMaster = () => state.user?.role === 'master';
-  const isOrgao = () => state.user?.role === 'orgao';
-
-  return (
-    <AuthContext.Provider 
-      value={{ 
-        ...state, 
-        signIn, 
-        signOut,
-        isAdmin,
-        isMaster,
-        isOrgao,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
   return context;
 } 

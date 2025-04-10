@@ -32,11 +32,11 @@ export default function ShelterDetails() {
           <div className="space-x-2">
             <Button
               variant="outline"
-              onClick={() => navigate(`/abrigos/${id}/editar`)}
+              onClick={() => navigate(`/admin/abrigos/${id}/editar`)}
             >
               Editar
             </Button>
-            <Button variant="outline" onClick={() => navigate('/abrigos')}>
+            <Button variant="outline" onClick={() => navigate('/admin/abrigos')}>
               Voltar
             </Button>
           </div>
@@ -44,6 +44,16 @@ export default function ShelterDetails() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="space-y-6">
+            {shelter.logo_url && (
+              <div className="flex justify-center mb-6">
+                <img 
+                  src={shelter.logo_url} 
+                  alt={`Logo do ${shelter.nome}`}
+                  className="w-32 h-32 object-cover rounded-lg"
+                />
+              </div>
+            )}
+
             <div>
               <h2 className="text-lg font-semibold mb-2">Informações Básicas</h2>
               <div className="grid grid-cols-2 gap-4">
@@ -98,7 +108,7 @@ export default function ShelterDetails() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">CEP</p>
-                    <p className="font-medium">{shelter.cep}</p>
+                    <p className="font-medium">{shelter.postal_code}</p>
                   </div>
                 </div>
               </div>

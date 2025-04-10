@@ -31,6 +31,8 @@ export const shelterService = {
           ...shelterData,
           status: 'ativo',
           ocupacao_atual: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         },
       ])
       .select()
@@ -78,4 +80,22 @@ export const shelterService = {
     if (error) throw error;
     return data;
   },
+
+  async uploadLogo(file: File, tempId: string): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${tempId}.${fileExt}`;
+    const filePath = `logos/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('abrigos')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('abrigos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  }
 }; 

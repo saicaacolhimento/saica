@@ -6,7 +6,7 @@ export interface Shelter {
   endereco: string;
   cidade: string;
   estado: string;
-  cep: string;
+  postal_code: string;
   telefone: string;
   email: string;
   capacidade: number;
@@ -16,6 +16,12 @@ export interface Shelter {
   observacoes?: string;
   created_at: string;
   updated_at: string;
+  logo_url?: string;
+  responsavel_nome: string;
+  responsavel_telefone: string;
+  responsavel_email: string;
+  master_email: string;
+  master_password_hash: string;
 }
 
 export interface CreateShelterData {
@@ -23,12 +29,35 @@ export interface CreateShelterData {
   endereco: string;
   cidade: string;
   estado: string;
-  cep: string;
+  postal_code: string;
   telefone: string;
   email: string;
-  capacidade: number;
-  descricao?: string;
-  observacoes?: string;
+  capacidade: string;
+  logo_url?: string;
+  responsavel_nome: string;
+  responsavel_telefone: string;
+  responsavel_email: string;
+  master_email: string;
+  master_password_hash: string;
+}
+
+// Interface apenas para o formulário
+export interface ShelterFormData {
+  nome: string;
+  endereco: string;
+  cidade: string;
+  estado: string;
+  postal_code: string;
+  telefone: string;
+  email: string;
+  capacidade: string;
+  logo_url?: string;
+  responsavel_nome: string;
+  responsavel_telefone: string;
+  responsavel_email: string;
+  master_email: string;
+  master_password: string;
+  confirm_password: string;
 }
 
 export interface UpdateShelterData {
@@ -36,11 +65,18 @@ export interface UpdateShelterData {
   endereco?: string;
   cidade?: string;
   estado?: string;
-  cep?: string;
+  postal_code?: string;
   telefone?: string;
   email?: string;
   capacidade?: number;
+  ocupacao?: number;
   status?: ShelterStatus;
   descricao?: string;
   observacoes?: string;
+  logo_url?: string;
+  responsavel_nome?: string;
+  responsavel_telefone?: string;
+  responsavel_email?: string;
+  master_email?: string;
+  master_password_hash?: string;
 } 

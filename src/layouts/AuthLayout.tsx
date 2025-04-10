@@ -1,18 +1,16 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import headerImage from '@/assets/images/header-kids.png';
 import logoSaica from '@/assets/images/logo-saica.png';
 import diagramaSaica from '@/assets/images/diagrama-saica.png';
-import Login from '@/features/auth/pages/Login';
+import { Login } from '@/features/auth/pages/Login';
 
-export const AuthLayout = () => {
-  const { user } = useAuth();
-  const [showForm, setShowForm] = useState(false);
-
-  if (user) {
-    return <Navigate to="/dashboard" />;
-  }
+export default function AuthLayout() {
+  const [showContact, setShowContact] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -32,7 +30,7 @@ export const AuthLayout = () => {
             className="w-32 h-auto"
           />
         </div>
-        <div className="absolute top-[20px] right-4">
+        <div className="absolute top-10 right-10">
           <Login />
         </div>
       </header>
@@ -71,45 +69,44 @@ export const AuthLayout = () => {
               </div>
               
               <div className="text-center">
-                <button
-                  onClick={() => setShowForm(!showForm)}
+                <Button
+                  onClick={() => setShowContact(!showContact)}
                   className="bg-[#6366F1] hover:bg-[#4F46E5] text-white py-2 px-8 rounded transition-colors font-semibold"
                 >
-                  FALE CONOSCO
-                </button>
+                  {showContact ? 'Fechar Contato' : 'Entrar em Contato'}
+                </Button>
               </div>
 
               {/* Formulário de Contato */}
-              {showForm && (
+              {showContact && (
                 <form className="space-y-4 mt-6">
                   <div>
-                    <input
-                      type="text"
+                    <Input
                       placeholder="NOME"
                       className="w-full p-2 border border-gray-300 rounded bg-gray-50"
                     />
                   </div>
                   <div>
-                    <input
+                    <Input
                       type="email"
                       placeholder="E-MAIL"
                       className="w-full p-2 border border-gray-300 rounded bg-gray-50"
                     />
                   </div>
                   <div>
-                    <textarea
+                    <Textarea
                       placeholder="MENSAGEM"
                       rows={4}
                       className="w-full p-2 border border-gray-300 rounded bg-gray-50 resize-none"
-                    ></textarea>
+                    ></Textarea>
                   </div>
                   <div>
-                    <button
+                    <Button
                       type="submit"
                       className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white py-2 px-4 rounded transition-colors"
                     >
                       ENVIAR MENSAGEM
-                    </button>
+                    </Button>
                   </div>
                 </form>
               )}
@@ -126,6 +123,4 @@ export const AuthLayout = () => {
       </footer>
     </div>
   );
-};
-
-export default AuthLayout; 
+} 

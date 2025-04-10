@@ -22,16 +22,19 @@ export default function EditShelter() {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [shelter, setShelter] = useState<Shelter | null>(null);
+  const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState<UpdateShelterData>({
     nome: '',
     endereco: '',
     cidade: '',
     estado: '',
-    cep: '',
+    postal_code: '',
     telefone: '',
     email: '',
     capacidade: 0,
     status: 'ativo',
+    logo_url: '',
   });
 
   const { data: shelterData, isLoading } = useQuery({
@@ -48,32 +51,53 @@ export default function EditShelter() {
         endereco: shelterData.endereco,
         cidade: shelterData.cidade,
         estado: shelterData.estado,
-        cep: shelterData.cep,
+        postal_code: shelterData.postal_code,
         telefone: shelterData.telefone,
         email: shelterData.email,
         capacidade: shelterData.capacidade,
         status: shelterData.status,
+        logo_url: shelterData.logo_url,
       });
+      if (shelterData.logo_url) {
+        setLogoPreview(shelterData.logo_url);
+      }
     }
   }, [shelterData]);
 
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedLogo(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setSelectedLogo(null);
+    setLogoPreview(null);
+    setFormData(prev => ({ ...prev, logo_url: '' }));
+  };
+
   const updateMutation = useMutation({
-    mutationFn: () => shelterService.updateShelter(id!, formData),
+    mutationFn: async (data: UpdateShelterData) => {
+      if (selectedLogo) {
+        const logoUrl = await shelterService.uploadLogo(selectedLogo, shelter!.id);
+        data.logo_url = logoUrl;
+      }
+      return shelterService.update(shelter!.id, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shelters'] });
-      queryClient.invalidateQueries({ queryKey: ['shelter', id] });
-      toast({
-        title: 'Abrigo atualizado',
-        description: 'As informações do abrigo foram atualizadas com sucesso.',
-      });
-      navigate('/abrigos');
+      toast.success('Abrigo atualizado com sucesso!');
+      navigate('/shelters');
     },
-    onError: error => {
-      toast({
-        title: 'Erro ao atualizar abrigo',
-        description: error.message,
-        variant: 'destructive',
-      });
+    onError: () => {
+      toast.error('Erro ao atualizar abrigo');
     },
   });
 
@@ -82,7 +106,7 @@ export default function EditShelter() {
     setLoading(true);
 
     try {
-      await updateMutation.mutateAsync();
+      await updateMutation.mutateAsync(formData);
     } finally {
       setLoading(false);
     }
@@ -101,7 +125,7 @@ export default function EditShelter() {
       <div className="max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Editar Abrigo</h1>
-          <Button variant="outline" onClick={() => navigate('/abrigos')}>
+          <Button variant="outline" onClick={() => navigate('/admin/abrigos')}>
             Voltar
           </Button>
         </div>
@@ -157,18 +181,18 @@ export default function EditShelter() {
               </div>
             </div>
 
+            <div className="space-y-1">
+              <Label htmlFor="postal_code">CEP</Label>
+              <Input
+                id="postal_code"
+                value={formData.postal_code}
+                onChange={e => setFormData(prev => ({ ...prev, postal_code: e.target.value }))}
+                className="h-8 border-2 border-gray-400"
+                required
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="cep">CEP</Label>
-                <Input
-                  id="cep"
-                  value={formData.cep}
-                  onChange={e =>
-                    setFormData(prev => ({ ...prev, cep: e.target.value }))
-                  }
-                  required
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="telefone">Telefone</Label>
                 <Input
@@ -232,11 +256,31 @@ export default function EditShelter() {
               </div>
             </div>
 
+            <div className="flex flex-col gap-4 mb-4">
+              <label className="font-medium">Logo do Abrigo</label>
+              
+              {logoPreview ? (
+                <div className="flex flex-col items-center gap-2">
+                  <img src={logoPreview} alt="Logo preview" className="w-32 h-32 object-cover rounded" />
+                  <Button variant="outline" onClick={handleRemoveLogo}>
+                    Remover Logo
+                  </Button>
+                </div>
+              ) : (
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="w-full"
+                />
+              )}
+            </div>
+
             <div className="flex justify-end space-x-2">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate('/abrigos')}
+                onClick={() => navigate('/admin/abrigos')}
               >
                 Cancelar
               </Button>
