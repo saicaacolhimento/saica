@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function AdminLayout() {
-  const { signOut, user } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const menuItems = [
@@ -31,7 +31,7 @@ export default function AdminLayout() {
   ];
 
   const handleLogout = async () => {
-    await signOut();
+    await logout();
     navigate('/');
   };
 

@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Input } from './input';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './command';
-import { Popover, PopoverContent, PopoverTrigger } from './popover';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from './button';
+import cidadesData from '../../data/cidades1.json.json';
 
 interface CityAutocompleteProps {
   value: string;
@@ -13,37 +9,6 @@ interface CityAutocompleteProps {
   className?: string;
 }
 
-// Lista estática de estados para referência rápida
-const ESTADOS = {
-  'AC': 'Acre',
-  'AL': 'Alagoas',
-  'AP': 'Amapá',
-  'AM': 'Amazonas',
-  'BA': 'Bahia',
-  'CE': 'Ceará',
-  'DF': 'Distrito Federal',
-  'ES': 'Espírito Santo',
-  'GO': 'Goiás',
-  'MA': 'Maranhão',
-  'MT': 'Mato Grosso',
-  'MS': 'Mato Grosso do Sul',
-  'MG': 'Minas Gerais',
-  'PA': 'Pará',
-  'PB': 'Paraíba',
-  'PR': 'Paraná',
-  'PE': 'Pernambuco',
-  'PI': 'Piauí',
-  'RJ': 'Rio de Janeiro',
-  'RN': 'Rio Grande do Norte',
-  'RS': 'Rio Grande do Sul',
-  'RO': 'Rondônia',
-  'RR': 'Roraima',
-  'SC': 'Santa Catarina',
-  'SP': 'São Paulo',
-  'SE': 'Sergipe',
-  'TO': 'Tocantins'
-};
-
 export function CityAutocomplete({
   value,
   onCityChange,
@@ -51,53 +16,33 @@ export function CityAutocomplete({
   className
 }: CityAutocompleteProps) {
   const [open, setOpen] = useState(false);
-  const [cities, setCities] = useState<Array<{ city: string; state: string }>>([]);
-  const [loading, setLoading] = useState(false);
-  const [inputValue, setInputValue] = useState('');
+  const [filteredCities, setFilteredCities] = useState<Array<{ city: string; state: string }>>([]);
+  const [inputValue, setInputValue] = useState(value);
 
   useEffect(() => {
-    const fetchCities = async () => {
-      if (inputValue.length < 3) {
-        setCities([]);
-        return;
-      }
-      
-      setLoading(true);
-      try {
-        const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome`);
-        if (!response.ok) {
-          throw new Error('Falha ao buscar cidades');
-        }
-        
-        const data = await response.json();
-        const filteredCities = data
-          .filter((city: any) => 
-            city.nome.toLowerCase().includes(inputValue.toLowerCase())
-          )
-          .map((city: any) => ({
-            city: city.nome,
-            state: city.microrregiao.mesorregiao.UF.sigla
-          }))
-          .slice(0, 10);
-        
-        setCities(filteredCities);
-      } catch (error) {
-        console.error('Erro ao buscar cidades:', error);
-        setCities([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setInputValue(value);
+  }, [value]);
 
-    const timeoutId = setTimeout(fetchCities, 500);
-    return () => clearTimeout(timeoutId);
+  useEffect(() => {
+    if (inputValue.length < 3) {
+      setFilteredCities([]);
+      return;
+    }
+
+    const results = cidadesData.estados.flatMap(estado => 
+      estado.cidades
+        .filter(cidade => cidade.toLowerCase().includes(inputValue.toLowerCase()))
+        .map(cidade => ({ city: cidade, state: estado.sigla }))
+    ).slice(0, 10);
+
+    setFilteredCities(results);
   }, [inputValue]);
 
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       <Input
         type="text"
-        value={value}
+        value={inputValue}
         onChange={(e) => {
           const newValue = e.target.value;
           onCityChange(newValue);
@@ -107,18 +52,15 @@ export function CityAutocomplete({
           }
         }}
         placeholder="Digite o nome da cidade..."
-        className="h-8 border-2 border-gray-400"
+        className="h-8"
       />
-      
       {open && inputValue.length >= 3 && (
         <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg">
-          {loading ? (
-            <div className="p-2 text-sm text-gray-500">Buscando...</div>
-          ) : cities.length === 0 ? (
+          {filteredCities.length === 0 ? (
             <div className="p-2 text-sm text-gray-500">Nenhuma cidade encontrada</div>
           ) : (
             <ul className="max-h-60 overflow-auto">
-              {cities.map((item) => (
+              {filteredCities.map((item) => (
                 <li
                   key={`${item.city}-${item.state}`}
                   className="px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer"

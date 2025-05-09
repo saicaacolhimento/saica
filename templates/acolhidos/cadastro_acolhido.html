@@ -1,0 +1,779 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cadastro de Acolhido{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+        <div class="p-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Cadastro de Acolhido</h1>
+            
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Abas de navegação -->
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button type="button" class="tab-button border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="dados-pessoais">
+                            Dados Pessoais
+                        </button>
+                        <button type="button" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="documentacao">
+                            Documentação
+                        </button>
+                        <button type="button" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="saude">
+                            Saúde
+                        </button>
+                        <button type="button" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="educacao">
+                            Educação
+                        </button>
+                        <button type="button" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="responsavel">
+                            Responsável Legal
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Conteúdo das abas -->
+                <div class="tab-content">
+                    <!-- Aba Dados Pessoais -->
+                    <div id="dados-pessoais" class="tab-pane active">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Nome Completo -->
+                                <div class="col-span-2">
+                                    <label for="nome" class="block text-sm font-medium text-gray-700">Nome Completo</label>
+                                    <input type="text" name="nome" id="nome" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Data de Nascimento -->
+                                <div>
+                                    <label for="data_nascimento" class="block text-sm font-medium text-gray-700">Data de Nascimento</label>
+                                    <input type="date" name="data_nascimento" id="data_nascimento" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Gênero -->
+                                <div>
+                                    <label for="genero" class="block text-sm font-medium text-gray-700">Gênero</label>
+                                    <select name="genero" id="genero" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Feminino</option>
+                                        <option value="O">Outro</option>
+                                    </select>
+                                </div>
+
+                                <!-- CPF -->
+                                <div>
+                                    <label for="cpf" class="block text-sm font-medium text-gray-700">CPF</label>
+                                    <input type="text" name="cpf" id="cpf" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- RG -->
+                                <div>
+                                    <label for="rg" class="block text-sm font-medium text-gray-700">RG</label>
+                                    <input type="text" name="rg" id="rg" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Naturalidade -->
+                                <div>
+                                    <label for="naturalidade" class="block text-sm font-medium text-gray-700">Naturalidade</label>
+                                    <input type="text" name="naturalidade" id="naturalidade" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Nacionalidade -->
+                                <div>
+                                    <label for="nacionalidade" class="block text-sm font-medium text-gray-700">Nacionalidade</label>
+                                    <input type="text" name="nacionalidade" id="nacionalidade" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Etnia -->
+                                <div>
+                                    <label for="etnia" class="block text-sm font-medium text-gray-700">Etnia</label>
+                                    <select name="etnia" id="etnia" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="BRANCA">Branca</option>
+                                        <option value="PRETA">Preta</option>
+                                        <option value="PARDA">Parda</option>
+                                        <option value="AMARELA">Amarela</option>
+                                        <option value="INDIGENA">Indígena</option>
+                                    </select>
+                                </div>
+
+                                <!-- Religião -->
+                                <div>
+                                    <label for="religiao" class="block text-sm font-medium text-gray-700">Religião</label>
+                                    <input type="text" name="religiao" id="religiao"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Documentação -->
+                    <div id="documentacao" class="tab-pane hidden">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Certidão de Nascimento -->
+                                <div class="col-span-2">
+                                    <label for="certidao_nascimento" class="block text-sm font-medium text-gray-700">Certidão de Nascimento</label>
+                                    <input type="file" name="certidao_nascimento" id="certidao_nascimento" accept=".pdf,.jpg,.jpeg,.png"
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+
+                                <!-- RG -->
+                                <div class="col-span-2">
+                                    <label for="rg_documento" class="block text-sm font-medium text-gray-700">RG</label>
+                                    <input type="file" name="rg_documento" id="rg_documento" accept=".pdf,.jpg,.jpeg,.png"
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+
+                                <!-- CPF -->
+                                <div class="col-span-2">
+                                    <label for="cpf_documento" class="block text-sm font-medium text-gray-700">CPF</label>
+                                    <input type="file" name="cpf_documento" id="cpf_documento" accept=".pdf,.jpg,.jpeg,.png"
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+
+                                <!-- Carteira de Vacinação -->
+                                <div class="col-span-2">
+                                    <label for="carteira_vacinacao" class="block text-sm font-medium text-gray-700">Carteira de Vacinação</label>
+                                    <input type="file" name="carteira_vacinacao" id="carteira_vacinacao" accept=".pdf,.jpg,.jpeg,.png"
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+
+                                <!-- Outros Documentos -->
+                                <div class="col-span-2">
+                                    <label for="outros_documentos" class="block text-sm font-medium text-gray-700">Outros Documentos</label>
+                                    <input type="file" name="outros_documentos" id="outros_documentos" accept=".pdf,.jpg,.jpeg,.png" multiple
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Saúde -->
+                    <div id="saude" class="tab-pane hidden">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Tipo Sanguíneo -->
+                                <div>
+                                    <label for="tipo_sanguineo" class="block text-sm font-medium text-gray-700">Tipo Sanguíneo</label>
+                                    <select name="tipo_sanguineo" id="tipo_sanguineo"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="A+">A+</option>
+                                        <option value="A-">A-</option>
+                                        <option value="B+">B+</option>
+                                        <option value="B-">B-</option>
+                                        <option value="AB+">AB+</option>
+                                        <option value="AB-">AB-</option>
+                                        <option value="O+">O+</option>
+                                        <option value="O-">O-</option>
+                                    </select>
+                                </div>
+
+                                <!-- Alergias -->
+                                <div>
+                                    <label for="alergias" class="block text-sm font-medium text-gray-700">Alergias</label>
+                                    <input type="text" name="alergias" id="alergias"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Doenças Crônicas -->
+                                <div>
+                                    <label for="doencas_cronicas" class="block text-sm font-medium text-gray-700">Doenças Crônicas</label>
+                                    <input type="text" name="doencas_cronicas" id="doencas_cronicas"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Medicamentos -->
+                                <div>
+                                    <label for="medicamentos" class="block text-sm font-medium text-gray-700">Medicamentos</label>
+                                    <input type="text" name="medicamentos" id="medicamentos"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Deficiências -->
+                                <div>
+                                    <label for="deficiencias" class="block text-sm font-medium text-gray-700">Deficiências</label>
+                                    <input type="text" name="deficiencias" id="deficiencias"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Observações de Saúde -->
+                                <div class="col-span-2">
+                                    <label for="observacoes_saude" class="block text-sm font-medium text-gray-700">Observações de Saúde</label>
+                                    <textarea name="observacoes_saude" id="observacoes_saude" rows="3"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Educação -->
+                    <div id="educacao" class="tab-pane hidden">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Nível Escolar -->
+                                <div>
+                                    <label for="nivel_escolar" class="block text-sm font-medium text-gray-700">Nível Escolar</label>
+                                    <select name="nivel_escolar" id="nivel_escolar"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="EDUCACAO_INFANTIL">Educação Infantil</option>
+                                        <option value="ENSINO_FUNDAMENTAL">Ensino Fundamental</option>
+                                        <option value="ENSINO_MEDIO">Ensino Médio</option>
+                                        <option value="EDUCACAO_ESPECIAL">Educação Especial</option>
+                                        <option value="NAO_ALFABETIZADO">Não Alfabetizado</option>
+                                    </select>
+                                </div>
+
+                                <!-- Escola -->
+                                <div>
+                                    <label for="escola" class="block text-sm font-medium text-gray-700">Escola</label>
+                                    <input type="text" name="escola" id="escola"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Turno -->
+                                <div>
+                                    <label for="turno" class="block text-sm font-medium text-gray-700">Turno</label>
+                                    <select name="turno" id="turno"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="MANHA">Manhã</option>
+                                        <option value="TARDE">Tarde</option>
+                                        <option value="NOITE">Noite</option>
+                                        <option value="INTEGRAL">Integral</option>
+                                    </select>
+                                </div>
+
+                                <!-- Observações Educacionais -->
+                                <div class="col-span-2">
+                                    <label for="observacoes_educacionais" class="block text-sm font-medium text-gray-700">Observações Educacionais</label>
+                                    <textarea name="observacoes_educacionais" id="observacoes_educacionais" rows="3"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Responsável Legal -->
+                    <div id="responsavel" class="tab-pane hidden">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Nome do Responsável -->
+                                <div class="col-span-2">
+                                    <label for="nome_responsavel" class="block text-sm font-medium text-gray-700">Nome do Responsável</label>
+                                    <input type="text" name="nome_responsavel" id="nome_responsavel"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Parentesco -->
+                                <div>
+                                    <label for="parentesco" class="block text-sm font-medium text-gray-700">Parentesco</label>
+                                    <input type="text" name="parentesco" id="parentesco"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- CPF do Responsável -->
+                                <div>
+                                    <label for="cpf_responsavel" class="block text-sm font-medium text-gray-700">CPF do Responsável</label>
+                                    <input type="text" name="cpf_responsavel" id="cpf_responsavel"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Telefone do Responsável -->
+                                <div>
+                                    <label for="telefone_responsavel" class="block text-sm font-medium text-gray-700">Telefone do Responsável</label>
+                                    <input type="tel" name="telefone_responsavel" id="telefone_responsavel"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Endereço do Responsável -->
+                                <div class="col-span-2">
+                                    <label for="endereco_responsavel" class="block text-sm font-medium text-gray-700">Endereço do Responsável</label>
+                                    <input type="text" name="endereco_responsavel" id="endereco_responsavel"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de navegação -->
+                <div class="flex justify-between mt-6">
+                    <button type="button" id="btn-anterior" class="hidden bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                        Anterior
+                    </button>
+                    <button type="button" id="btn-proximo" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        Próximo
+                    </button>
+                </div>
+
+                <!-- Botão de envio (inicialmente oculto) -->
+                <div class="mt-6 text-right hidden" id="submit-container">
+                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        Salvar Cadastro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-button');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    const btnAnterior = document.getElementById('btn-anterior');
+    const btnProximo = document.getElementById('btn-proximo');
+    const submitContainer = document.getElementById('submit-container');
+    let currentTabIndex = 0;
+
+    function showTab(index) {
+        // Esconde todas as abas
+        tabPanes.forEach(pane => pane.classList.add('hidden'));
+        tabs.forEach(tab => {
+            tab.classList.remove('border-indigo-500', 'text-indigo-600');
+            tab.classList.add('border-transparent', 'text-gray-500');
+        });
+
+        // Mostra a aba atual
+        tabPanes[index].classList.remove('hidden');
+        tabs[index].classList.remove('border-transparent', 'text-gray-500');
+        tabs[index].classList.add('border-indigo-500', 'text-indigo-600');
+
+        // Atualiza os botões
+        btnAnterior.classList.toggle('hidden', index === 0);
+        btnProximo.classList.toggle('hidden', index === tabs.length - 1);
+        submitContainer.classList.toggle('hidden', index !== tabs.length - 1);
+    }
+
+    // Event listeners para os botões de navegação
+    btnAnterior.addEventListener('click', () => {
+        if (currentTabIndex > 0) {
+            currentTabIndex--;
+            showTab(currentTabIndex);
+        }
+    });
+
+    btnProximo.addEventListener('click', () => {
+        if (currentTabIndex < tabs.length - 1) {
+            currentTabIndex++;
+            showTab(currentTabIndex);
+        }
+    });
+
+    // Event listeners para as abas
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => {
+            currentTabIndex = index;
+            showTab(currentTabIndex);
+        });
+    });
+
+    // Mostra a primeira aba inicialmente
+    showTab(0);
+});
+</script>
+{% endblock %} 
+{% load static %}
+
+{% block title %}Cadastro de Acolhido{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+        <div class="p-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Cadastro de Acolhido</h1>
+            
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Abas de navegação -->
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button type="button" class="tab-button border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="dados-pessoais">
+                            Dados Pessoais
+                        </button>
+                        <button type="button" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="documentacao">
+                            Documentação
+                        </button>
+                        <button type="button" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="saude">
+                            Saúde
+                        </button>
+                        <button type="button" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="educacao">
+                            Educação
+                        </button>
+                        <button type="button" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="responsavel">
+                            Responsável Legal
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Conteúdo das abas -->
+                <div class="tab-content">
+                    <!-- Aba Dados Pessoais -->
+                    <div id="dados-pessoais" class="tab-pane active">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Nome Completo -->
+                                <div class="col-span-2">
+                                    <label for="nome" class="block text-sm font-medium text-gray-700">Nome Completo</label>
+                                    <input type="text" name="nome" id="nome" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Data de Nascimento -->
+                                <div>
+                                    <label for="data_nascimento" class="block text-sm font-medium text-gray-700">Data de Nascimento</label>
+                                    <input type="date" name="data_nascimento" id="data_nascimento" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Gênero -->
+                                <div>
+                                    <label for="genero" class="block text-sm font-medium text-gray-700">Gênero</label>
+                                    <select name="genero" id="genero" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Feminino</option>
+                                        <option value="O">Outro</option>
+                                    </select>
+                                </div>
+
+                                <!-- CPF -->
+                                <div>
+                                    <label for="cpf" class="block text-sm font-medium text-gray-700">CPF</label>
+                                    <input type="text" name="cpf" id="cpf" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- RG -->
+                                <div>
+                                    <label for="rg" class="block text-sm font-medium text-gray-700">RG</label>
+                                    <input type="text" name="rg" id="rg" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Naturalidade -->
+                                <div>
+                                    <label for="naturalidade" class="block text-sm font-medium text-gray-700">Naturalidade</label>
+                                    <input type="text" name="naturalidade" id="naturalidade" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Nacionalidade -->
+                                <div>
+                                    <label for="nacionalidade" class="block text-sm font-medium text-gray-700">Nacionalidade</label>
+                                    <input type="text" name="nacionalidade" id="nacionalidade" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Etnia -->
+                                <div>
+                                    <label for="etnia" class="block text-sm font-medium text-gray-700">Etnia</label>
+                                    <select name="etnia" id="etnia" required
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="BRANCA">Branca</option>
+                                        <option value="PRETA">Preta</option>
+                                        <option value="PARDA">Parda</option>
+                                        <option value="AMARELA">Amarela</option>
+                                        <option value="INDIGENA">Indígena</option>
+                                    </select>
+                                </div>
+
+                                <!-- Religião -->
+                                <div>
+                                    <label for="religiao" class="block text-sm font-medium text-gray-700">Religião</label>
+                                    <input type="text" name="religiao" id="religiao"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Documentação -->
+                    <div id="documentacao" class="tab-pane hidden">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Certidão de Nascimento -->
+                                <div class="col-span-2">
+                                    <label for="certidao_nascimento" class="block text-sm font-medium text-gray-700">Certidão de Nascimento</label>
+                                    <input type="file" name="certidao_nascimento" id="certidao_nascimento" accept=".pdf,.jpg,.jpeg,.png"
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+
+                                <!-- RG -->
+                                <div class="col-span-2">
+                                    <label for="rg_documento" class="block text-sm font-medium text-gray-700">RG</label>
+                                    <input type="file" name="rg_documento" id="rg_documento" accept=".pdf,.jpg,.jpeg,.png"
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+
+                                <!-- CPF -->
+                                <div class="col-span-2">
+                                    <label for="cpf_documento" class="block text-sm font-medium text-gray-700">CPF</label>
+                                    <input type="file" name="cpf_documento" id="cpf_documento" accept=".pdf,.jpg,.jpeg,.png"
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+
+                                <!-- Carteira de Vacinação -->
+                                <div class="col-span-2">
+                                    <label for="carteira_vacinacao" class="block text-sm font-medium text-gray-700">Carteira de Vacinação</label>
+                                    <input type="file" name="carteira_vacinacao" id="carteira_vacinacao" accept=".pdf,.jpg,.jpeg,.png"
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+
+                                <!-- Outros Documentos -->
+                                <div class="col-span-2">
+                                    <label for="outros_documentos" class="block text-sm font-medium text-gray-700">Outros Documentos</label>
+                                    <input type="file" name="outros_documentos" id="outros_documentos" accept=".pdf,.jpg,.jpeg,.png" multiple
+                                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Saúde -->
+                    <div id="saude" class="tab-pane hidden">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Tipo Sanguíneo -->
+                                <div>
+                                    <label for="tipo_sanguineo" class="block text-sm font-medium text-gray-700">Tipo Sanguíneo</label>
+                                    <select name="tipo_sanguineo" id="tipo_sanguineo"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="A+">A+</option>
+                                        <option value="A-">A-</option>
+                                        <option value="B+">B+</option>
+                                        <option value="B-">B-</option>
+                                        <option value="AB+">AB+</option>
+                                        <option value="AB-">AB-</option>
+                                        <option value="O+">O+</option>
+                                        <option value="O-">O-</option>
+                                    </select>
+                                </div>
+
+                                <!-- Alergias -->
+                                <div>
+                                    <label for="alergias" class="block text-sm font-medium text-gray-700">Alergias</label>
+                                    <input type="text" name="alergias" id="alergias"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Doenças Crônicas -->
+                                <div>
+                                    <label for="doencas_cronicas" class="block text-sm font-medium text-gray-700">Doenças Crônicas</label>
+                                    <input type="text" name="doencas_cronicas" id="doencas_cronicas"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Medicamentos -->
+                                <div>
+                                    <label for="medicamentos" class="block text-sm font-medium text-gray-700">Medicamentos</label>
+                                    <input type="text" name="medicamentos" id="medicamentos"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Deficiências -->
+                                <div>
+                                    <label for="deficiencias" class="block text-sm font-medium text-gray-700">Deficiências</label>
+                                    <input type="text" name="deficiencias" id="deficiencias"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Observações de Saúde -->
+                                <div class="col-span-2">
+                                    <label for="observacoes_saude" class="block text-sm font-medium text-gray-700">Observações de Saúde</label>
+                                    <textarea name="observacoes_saude" id="observacoes_saude" rows="3"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Educação -->
+                    <div id="educacao" class="tab-pane hidden">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Nível Escolar -->
+                                <div>
+                                    <label for="nivel_escolar" class="block text-sm font-medium text-gray-700">Nível Escolar</label>
+                                    <select name="nivel_escolar" id="nivel_escolar"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="EDUCACAO_INFANTIL">Educação Infantil</option>
+                                        <option value="ENSINO_FUNDAMENTAL">Ensino Fundamental</option>
+                                        <option value="ENSINO_MEDIO">Ensino Médio</option>
+                                        <option value="EDUCACAO_ESPECIAL">Educação Especial</option>
+                                        <option value="NAO_ALFABETIZADO">Não Alfabetizado</option>
+                                    </select>
+                                </div>
+
+                                <!-- Escola -->
+                                <div>
+                                    <label for="escola" class="block text-sm font-medium text-gray-700">Escola</label>
+                                    <input type="text" name="escola" id="escola"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Turno -->
+                                <div>
+                                    <label for="turno" class="block text-sm font-medium text-gray-700">Turno</label>
+                                    <select name="turno" id="turno"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="MANHA">Manhã</option>
+                                        <option value="TARDE">Tarde</option>
+                                        <option value="NOITE">Noite</option>
+                                        <option value="INTEGRAL">Integral</option>
+                                    </select>
+                                </div>
+
+                                <!-- Observações Educacionais -->
+                                <div class="col-span-2">
+                                    <label for="observacoes_educacionais" class="block text-sm font-medium text-gray-700">Observações Educacionais</label>
+                                    <textarea name="observacoes_educacionais" id="observacoes_educacionais" rows="3"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Responsável Legal -->
+                    <div id="responsavel" class="tab-pane hidden">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Nome do Responsável -->
+                                <div class="col-span-2">
+                                    <label for="nome_responsavel" class="block text-sm font-medium text-gray-700">Nome do Responsável</label>
+                                    <input type="text" name="nome_responsavel" id="nome_responsavel"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Parentesco -->
+                                <div>
+                                    <label for="parentesco" class="block text-sm font-medium text-gray-700">Parentesco</label>
+                                    <input type="text" name="parentesco" id="parentesco"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- CPF do Responsável -->
+                                <div>
+                                    <label for="cpf_responsavel" class="block text-sm font-medium text-gray-700">CPF do Responsável</label>
+                                    <input type="text" name="cpf_responsavel" id="cpf_responsavel"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Telefone do Responsável -->
+                                <div>
+                                    <label for="telefone_responsavel" class="block text-sm font-medium text-gray-700">Telefone do Responsável</label>
+                                    <input type="tel" name="telefone_responsavel" id="telefone_responsavel"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+
+                                <!-- Endereço do Responsável -->
+                                <div class="col-span-2">
+                                    <label for="endereco_responsavel" class="block text-sm font-medium text-gray-700">Endereço do Responsável</label>
+                                    <input type="text" name="endereco_responsavel" id="endereco_responsavel"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de navegação -->
+                <div class="flex justify-between mt-6">
+                    <button type="button" id="btn-anterior" class="hidden bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                        Anterior
+                    </button>
+                    <button type="button" id="btn-proximo" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        Próximo
+                    </button>
+                </div>
+
+                <!-- Botão de envio (inicialmente oculto) -->
+                <div class="mt-6 text-right hidden" id="submit-container">
+                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        Salvar Cadastro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-button');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    const btnAnterior = document.getElementById('btn-anterior');
+    const btnProximo = document.getElementById('btn-proximo');
+    const submitContainer = document.getElementById('submit-container');
+    let currentTabIndex = 0;
+
+    function showTab(index) {
+        // Esconde todas as abas
+        tabPanes.forEach(pane => pane.classList.add('hidden'));
+        tabs.forEach(tab => {
+            tab.classList.remove('border-indigo-500', 'text-indigo-600');
+            tab.classList.add('border-transparent', 'text-gray-500');
+        });
+
+        // Mostra a aba atual
+        tabPanes[index].classList.remove('hidden');
+        tabs[index].classList.remove('border-transparent', 'text-gray-500');
+        tabs[index].classList.add('border-indigo-500', 'text-indigo-600');
+
+        // Atualiza os botões
+        btnAnterior.classList.toggle('hidden', index === 0);
+        btnProximo.classList.toggle('hidden', index === tabs.length - 1);
+        submitContainer.classList.toggle('hidden', index !== tabs.length - 1);
+    }
+
+    // Event listeners para os botões de navegação
+    btnAnterior.addEventListener('click', () => {
+        if (currentTabIndex > 0) {
+            currentTabIndex--;
+            showTab(currentTabIndex);
+        }
+    });
+
+    btnProximo.addEventListener('click', () => {
+        if (currentTabIndex < tabs.length - 1) {
+            currentTabIndex++;
+            showTab(currentTabIndex);
+        }
+    });
+
+    // Event listeners para as abas
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => {
+            currentTabIndex = index;
+            showTab(currentTabIndex);
+        });
+    });
+
+    // Mostra a primeira aba inicialmente
+    showTab(0);
+});
+</script>
+{% endblock %} 

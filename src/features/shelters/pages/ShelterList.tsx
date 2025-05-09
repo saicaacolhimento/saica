@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
@@ -21,30 +21,38 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { shelterService } from '@/services/shelter';
 import type { Shelter, CreateShelterData, ShelterFormData } from '@/types/shelter';
-import { Plus, Eye, EyeOff, X, Upload } from 'lucide-react';
+import { Plus, Eye, EyeOff, X, Upload, Trash2, Loader2, Filter } from 'lucide-react';
 import { CityAutocomplete } from '@/components/ui/city-autocomplete';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
 
 export default function ShelterList() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [shelters, setShelters] = useState<Shelter[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(true);
-  
+  const [shelterToDelete, setShelterToDelete] = useState<string | null>(null);
   const [newShelter, setNewShelter] = useState<ShelterFormData>({
     nome: '',
+    cnpj: '',
     endereco: '',
     cidade: '',
     estado: '',
@@ -58,50 +66,22 @@ export default function ShelterList() {
     responsavel_email: '',
     master_email: '',
     master_password: '',
-    confirm_password: ''
+    confirm_password: '',
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const prevOpen = useRef(open);
+
+  // Filtros avançados
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterNome, setFilterNome] = useState('');
+  const [filterCidade, setFilterCidade] = useState('');
+  const [filterEstado, setFilterEstado] = useState('');
+  const [filterAtivo, setFilterAtivo] = useState(true);
+  const [filterInativo, setFilterInativo] = useState(true);
 
   const { data: sheltersData, isLoading: sheltersLoading } = useQuery({
     queryKey: ['shelters'],
     queryFn: shelterService.getShelters,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: shelterService.createShelter,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shelters'] });
-      toast({
-        title: 'Abrigo criado',
-        description: 'O abrigo foi criado com sucesso.',
-      });
-      setOpen(false);
-      setNewShelter({
-        nome: '',
-        endereco: '',
-        cidade: '',
-        estado: '',
-        postal_code: '',
-        telefone: '',
-        email: '',
-        capacidade: '',
-        logo_url: '',
-        responsavel_nome: '',
-        responsavel_telefone: '',
-        responsavel_email: '',
-        master_email: '',
-        master_password: '',
-        confirm_password: ''
-      });
-      setSelectedLogo(null);
-      setLogoPreview(null);
-    },
-    onError: error => {
-      toast({
-        title: 'Erro ao criar abrigo',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
   });
 
   const deleteMutation = useMutation({
@@ -122,73 +102,44 @@ export default function ShelterList() {
     },
   });
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedLogo(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleDelete = async (id: string) => {
+    setShelterToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (shelterToDelete) {
+      console.log('Tentando excluir abrigo com id:', shelterToDelete);
+      try {
+        await deleteMutation.mutateAsync(shelterToDelete);
+      } finally {
+        setShelterToDelete(null);
+      }
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user) {
+  const filteredShelters = sheltersData?.filter(shelter => {
+    const matchSearch = searchTerm
+      ? shelter.nome.toLowerCase().includes(searchTerm.toLowerCase())
+      : true;
+    const matchNome = filterNome ? shelter.nome.toLowerCase().includes(filterNome.toLowerCase()) : true;
+    const matchCidade = filterCidade ? shelter.cidade.toLowerCase().includes(filterCidade.toLowerCase()) : true;
+    const matchEstado = filterEstado ? shelter.estado.toLowerCase().includes(filterEstado.toLowerCase()) : true;
+    const matchStatus = (filterAtivo && shelter.status === 'ativo') || (filterInativo && shelter.status === 'inativo');
+    return matchSearch && matchNome && matchCidade && matchEstado && matchStatus;
+  });
+
+  // Função para criar abrigo
+  const createMutation = useMutation({
+    mutationFn: shelterService.createShelter,
+    onSuccess: () => {
       toast({
-        title: 'Erro',
-        description: 'Você precisa estar autenticado para criar um abrigo',
-        variant: 'destructive'
+        title: 'Abrigo criado',
+        description: 'O abrigo foi criado com sucesso.',
       });
-      return;
-    }
-    
-    if (!passwordMatch) {
-      toast({
-        title: 'Erro',
-        description: 'As senhas não coincidem',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-
-      // Remove os campos de senha do formulário
-      const { confirm_password, master_password, ...shelterData } = newShelter;
-
-      // Prepara os dados para enviar ao banco
-      const dataToSend = {
-        ...shelterData,
-        master_password_hash: master_password, // Enviamos a senha direto para o backend fazer o hash
-        capacidade: shelterData.capacidade ? parseInt(shelterData.capacidade) : 0
-      };
-
-      // Se tiver um logo selecionado, faz o upload primeiro
-      let logoUrl = '';
-      if (selectedLogo) {
-        const tempId = Math.random().toString(36).substring(7);
-        logoUrl = await shelterService.uploadLogo(selectedLogo, tempId);
-      }
-
-      // Cria o abrigo com todos os dados
-      await createMutation.mutateAsync({
-        ...dataToSend,
-        logo_url: logoUrl || newShelter.logo_url
-      });
-
-      toast({
-        title: 'Sucesso',
-        description: 'Abrigo criado com sucesso!'
-      });
-      
-      // Reseta o formulário
+      setOpen(false);
       setNewShelter({
         nome: '',
+        cnpj: '',
         endereco: '',
         cidade: '',
         estado: '',
@@ -202,38 +153,26 @@ export default function ShelterList() {
         responsavel_email: '',
         master_email: '',
         master_password: '',
-        confirm_password: ''
+        confirm_password: '',
       });
       setSelectedLogo(null);
       setLogoPreview(null);
-      setOpen(false);
-    } catch (error: any) {
-      console.error('Erro ao criar abrigo:', error);
+    },
+    onError: (error: any) => {
       toast({
-        title: 'Erro',
-        description: 'Erro ao criar abrigo: ' + error.message,
-        variant: 'destructive'
+        title: 'Erro ao criar abrigo',
+        description: error?.message || 'Ocorreu um erro ao criar o abrigo.',
+        variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
+    },
+  });
+
+  useEffect(() => {
+    if (prevOpen.current && !open) {
+      queryClient.invalidateQueries({ queryKey: ['shelters'] });
     }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este abrigo?')) {
-      await deleteMutation.mutateAsync(id);
-    }
-  };
-
-  const filteredShelters = sheltersData?.filter(shelter =>
-    shelter.nome.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Função para validar se as senhas são iguais
-  const validatePasswords = (password: string, confirmPassword: string) => {
-    if (confirmPassword === '') return true;
-    return password === confirmPassword;
-  };
+    prevOpen.current = open;
+  }, [open, queryClient]);
 
   if (sheltersLoading) {
     return (
@@ -247,288 +186,36 @@ export default function ShelterList() {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Abrigos</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>Novo Abrigo</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-6">
-            <DialogHeader className="mb-4">
-              <DialogTitle className="text-xl font-semibold">Novo Abrigo</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="logo" className="text-sm font-medium">Logo do Abrigo</Label>
-                  <div className="flex items-start gap-2">
-                    {logoPreview ? (
-                      <div className="relative w-32 h-32">
-                        <img
-                          src={logoPreview}
-                          alt="Preview do logo"
-                          className="w-full h-full object-cover rounded-lg border border-gray-200"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedLogo(null);
-                            setLogoPreview(null);
-                            setNewShelter(prev => ({ ...prev, logo_url: '' }));
-                          }}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <Label
-                        htmlFor="logo"
-                        className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
-                      >
-                        <Upload className="h-8 w-8 text-gray-400" />
-                        <span className="text-sm text-gray-500 mt-2">Clique para upload</span>
-                      </Label>
-                    )}
-                    <Input
-                      id="logo"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleLogoChange}
-                    />
-                  </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Button variant="outline" size="icon" onClick={() => setFilterOpen(!filterOpen)} title="Filtrar abrigos">
+              <Filter className="h-5 w-5" />
+            </Button>
+            {filterOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-white border rounded-lg shadow-lg p-4 z-50">
+                <div className="mb-2">
+                  <Label className="text-xs">Nome</Label>
+                  <Input value={filterNome} onChange={e => setFilterNome(e.target.value)} placeholder="Filtrar por nome" className="h-8" />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome" className="text-sm font-medium">Nome do Abrigo</Label>
-                    <Input
-                      id="nome"
-                      className="h-9"
-                      value={newShelter.nome}
-                      onChange={e => setNewShelter(prev => ({ ...prev, nome: e.target.value }))}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="capacidade" className="text-sm font-medium">Capacidade</Label>
-                    <Input
-                      id="capacidade"
-                      type="number"
-                      className="h-9"
-                      value={newShelter.capacidade}
-                      onChange={e => {
-                        const value = e.target.value;
-                        if (value === '' || parseInt(value) >= 0) {
-                          setNewShelter(prev => ({ ...prev, capacidade: value }));
-                        }
-                      }}
-                      min="0"
-                      required
-                    />
-                  </div>
+                <div className="mb-2">
+                  <Label className="text-xs">Cidade</Label>
+                  <Input value={filterCidade} onChange={e => setFilterCidade(e.target.value)} placeholder="Filtrar por cidade" className="h-8" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="endereco" className="text-sm font-medium">Endereço</Label>
-                  <Input
-                    id="endereco"
-                    className="h-9"
-                    value={newShelter.endereco}
-                    onChange={e => setNewShelter(prev => ({ ...prev, endereco: e.target.value }))}
-                    required
-                  />
+                <div className="mb-2">
+                  <Label className="text-xs">Estado</Label>
+                  <Input value={filterEstado} onChange={e => setFilterEstado(e.target.value)} placeholder="Filtrar por estado" className="h-8" />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cidade" className="text-sm font-medium">Cidade</Label>
-                    <CityAutocomplete
-                      value={newShelter.cidade}
-                      onCityChange={(city) => setNewShelter({ ...newShelter, cidade: city })}
-                      onStateChange={(state) => setNewShelter({ ...newShelter, estado: state })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="estado" className="text-sm font-medium">Estado</Label>
-                    <Input
-                      id="estado"
-                      className="h-9"
-                      value={newShelter.estado}
-                      readOnly
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="postal_code" className="text-sm font-medium">CEP</Label>
-                  <Input
-                    id="postal_code"
-                    className="h-9"
-                    value={newShelter.postal_code}
-                    onChange={e => setNewShelter(prev => ({ ...prev, postal_code: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="telefone" className="text-sm font-medium">Telefone</Label>
-                    <Input
-                      id="telefone"
-                      className="h-9"
-                      value={newShelter.telefone}
-                      onChange={e => setNewShelter(prev => ({ ...prev, telefone: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      className="h-9"
-                      value={newShelter.email}
-                      onChange={e => setNewShelter(prev => ({ ...prev, email: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-700">Dados do Responsável</h3>
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="responsavel_nome" className="text-sm font-medium">Nome do Responsável</Label>
-                      <Input
-                        id="responsavel_nome"
-                        className="h-9"
-                        value={newShelter.responsavel_nome}
-                        onChange={e => setNewShelter(prev => ({ ...prev, responsavel_nome: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="responsavel_telefone" className="text-sm font-medium">Telefone do Responsável</Label>
-                        <Input
-                          id="responsavel_telefone"
-                          className="h-9"
-                          value={newShelter.responsavel_telefone}
-                          onChange={e => setNewShelter(prev => ({ ...prev, responsavel_telefone: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="responsavel_email" className="text-sm font-medium">Email do Responsável</Label>
-                        <Input
-                          id="responsavel_email"
-                          type="email"
-                          className="h-9"
-                          value={newShelter.responsavel_email}
-                          onChange={e => setNewShelter(prev => ({ ...prev, responsavel_email: e.target.value }))}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-700">Dados do Usuário Master</h3>
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="master_email" className="text-sm font-medium">Email do Usuário Master</Label>
-                      <Input
-                        id="master_email"
-                        type="email"
-                        className="h-9"
-                        value={newShelter.master_email}
-                        onChange={e => setNewShelter(prev => ({ ...prev, master_email: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="master_password" className="text-sm font-medium">Senha</Label>
-                        <div className="relative">
-                          <Input
-                            id="master_password"
-                            type={showPassword ? "text" : "password"}
-                            className="h-9 pr-10"
-                            value={newShelter.master_password}
-                            onChange={e => {
-                              const newPassword = e.target.value;
-                              setNewShelter(prev => ({ ...prev, master_password: newPassword }));
-                              setPasswordMatch(validatePasswords(newPassword, newShelter.confirm_password));
-                            }}
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                          >
-                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm_password" className="text-sm font-medium">Confirmar Senha</Label>
-                        <div className="relative">
-                          <Input
-                            id="confirm_password"
-                            type={showConfirmPassword ? "text" : "password"}
-                            className={`h-9 pr-10 ${!passwordMatch && newShelter.confirm_password ? 'border-red-500' : ''}`}
-                            value={newShelter.confirm_password}
-                            onChange={e => {
-                              const confirmPassword = e.target.value;
-                              setNewShelter(prev => ({ ...prev, confirm_password: confirmPassword }));
-                              setPasswordMatch(validatePasswords(newShelter.master_password, confirmPassword));
-                            }}
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                          >
-                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
-                        </div>
-                        {!passwordMatch && newShelter.confirm_password && (
-                          <p className="text-xs text-red-500 mt-1">As senhas não coincidem</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <input type="checkbox" id="ativo" checked={filterAtivo} onChange={() => setFilterAtivo(v => !v)} />
+                  <Label htmlFor="ativo" className="text-xs">Ativo</Label>
+                  <input type="checkbox" id="inativo" checked={filterInativo} onChange={() => setFilterInativo(v => !v)} />
+                  <Label htmlFor="inativo" className="text-xs">Inativo</Label>
                 </div>
               </div>
-
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                  disabled={isLoading}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading || !passwordMatch}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Criando...
-                    </>
-                  ) : (
-                    'Criar Abrigo'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+            )}
+          </div>
+          <Button onClick={() => setOpen(true)}>Novo Abrigo</Button>
+        </div>
       </div>
 
       <div className="mb-4">
@@ -548,19 +235,20 @@ export default function ShelterList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Cidade</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Capacidade</TableHead>
-                <TableHead>Ocupação</TableHead>
+                <TableHead className="whitespace-nowrap text-center">Nome</TableHead>
+                <TableHead className="text-center whitespace-nowrap">CNPJ</TableHead>
+                <TableHead className="text-center">Cidade</TableHead>
+                <TableHead className="text-center">Estado</TableHead>
+                <TableHead className="text-center">Capacidade</TableHead>
+                <TableHead className="text-center">Ocupação</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="text-center whitespace-nowrap">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredShelters?.map(shelter => (
                 <TableRow key={shelter.id}>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       {shelter.logo_url ? (
                         <img 
@@ -576,10 +264,11 @@ export default function ShelterList() {
                       <span>{shelter.nome}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{shelter.cidade}</TableCell>
-                  <TableCell>{shelter.estado}</TableCell>
-                  <TableCell>{shelter.capacidade}</TableCell>
-                  <TableCell>{shelter.ocupacao_atual}</TableCell>
+                  <TableCell className="text-center whitespace-nowrap">{shelter.cnpj}</TableCell>
+                  <TableCell className="text-center">{shelter.cidade}</TableCell>
+                  <TableCell className="text-center">{shelter.estado}</TableCell>
+                  <TableCell className="text-center">{shelter.capacidade}</TableCell>
+                  <TableCell className="text-center">{shelter.ocupacao_atual}</TableCell>
                   <TableCell className="capitalize">{shelter.status}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
@@ -601,8 +290,13 @@ export default function ShelterList() {
                         variant="destructive"
                         size="sm"
                         onClick={() => handleDelete(shelter.id)}
+                        disabled={deleteMutation.isPending}
                       >
-                        Excluir
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </TableCell>
@@ -612,6 +306,382 @@ export default function ShelterList() {
           </Table>
         </div>
       )}
+
+      <AlertDialog open={!!shelterToDelete} onOpenChange={() => setShelterToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir abrigo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este abrigo? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal de cadastro de abrigo */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle>Novo Abrigo</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!user) {
+              toast({
+                title: 'Erro',
+                description: 'Você precisa estar autenticado para criar um abrigo',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!passwordMatch) {
+              toast({
+                title: 'Erro',
+                description: 'As senhas não coincidem',
+                variant: 'destructive'
+              });
+              return;
+            }
+            try {
+              setIsLoading(true);
+              const { confirm_password, master_password, ...shelterData } = newShelter;
+              const dataToSend = {
+                ...shelterData,
+                master_password_hash: master_password,
+              };
+              let logoUrl = '';
+              if (selectedLogo) {
+                const tempId = Math.random().toString(36).substring(7);
+                logoUrl = await shelterService.uploadLogo(selectedLogo, tempId);
+              }
+              await createMutation.mutateAsync({
+                ...dataToSend,
+                logo_url: logoUrl || newShelter.logo_url
+              });
+            } catch (error) {
+              // O toast de erro já é tratado no onError da mutation
+            } finally {
+              setIsLoading(false);
+            }
+          }} className="space-y-4">
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="logo" className="text-sm font-medium">Logo do Abrigo</Label>
+                <div className="flex items-start gap-2">
+                  {logoPreview ? (
+                    <div className="relative w-32 h-32">
+                      <img
+                        src={logoPreview}
+                        alt="Preview do logo"
+                        className="w-full h-full object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedLogo(null);
+                          setLogoPreview(null);
+                          setNewShelter(prev => ({ ...prev, logo_url: '' }));
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Label
+                      htmlFor="logo"
+                      className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
+                    >
+                      <Upload className="h-8 w-8 text-gray-400" />
+                      <span className="text-sm text-gray-500 mt-2">Clique para upload</span>
+                    </Label>
+                  )}
+                  <Input
+                    id="logo"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedLogo(file);
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setLogoPreview(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nome" className="text-sm font-medium">Nome do Abrigo</Label>
+                  <Input
+                    id="nome"
+                    className="h-9"
+                    value={newShelter.nome}
+                    onChange={e => setNewShelter(prev => ({ ...prev, nome: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cnpj" className="text-sm font-medium">CNPJ</Label>
+                  <Input
+                    id="cnpj"
+                    className="h-9"
+                    value={newShelter.cnpj}
+                    onChange={e => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      if (value.length <= 14) {
+                        const formattedValue = value.replace(
+                          /^(\d{2})(\d{3})?(\d{3})?(\d{4})?(\d{2})?/,
+                          (_, p1, p2, p3, p4, p5) => {
+                            if (p5) return `${p1}.${p2}.${p3}/${p4}-${p5}`;
+                            if (p4) return `${p1}.${p2}.${p3}/${p4}`;
+                            if (p3) return `${p1}.${p2}.${p3}`;
+                            if (p2) return `${p1}.${p2}`;
+                            return p1;
+                          }
+                        );
+                        setNewShelter(prev => ({ ...prev, cnpj: formattedValue }));
+                      }
+                    }}
+                    placeholder="00.000.000/0000-00"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="capacidade" className="text-sm font-medium">Capacidade</Label>
+                <Input
+                  id="capacidade"
+                  type="number"
+                  className="h-9 w-24"
+                  value={newShelter.capacidade}
+                  onChange={e => {
+                    const value = e.target.value;
+                    if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 999)) {
+                      setNewShelter(prev => ({ ...prev, capacidade: value }));
+                    }
+                  }}
+                  min="0"
+                  max="999"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endereco" className="text-sm font-medium">Endereço</Label>
+                <Input
+                  id="endereco"
+                  className="h-9"
+                  value={newShelter.endereco}
+                  onChange={e => setNewShelter(prev => ({ ...prev, endereco: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cidade" className="text-sm font-medium">Cidade</Label>
+                  <CityAutocomplete
+                    value={newShelter.cidade}
+                    onCityChange={city => setNewShelter(prev => ({ ...prev, cidade: city }))}
+                    onStateChange={state => setNewShelter(prev => ({ ...prev, estado: state }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="estado" className="text-sm font-medium">Estado</Label>
+                  <Input
+                    id="estado"
+                    className="h-9"
+                    value={newShelter.estado}
+                    readOnly
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="postal_code" className="text-sm font-medium">CEP</Label>
+                <Input
+                  id="postal_code"
+                  className="h-9"
+                  value={newShelter.postal_code}
+                  onChange={e => setNewShelter(prev => ({ ...prev, postal_code: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="telefone" className="text-sm font-medium">Telefone</Label>
+                  <Input
+                    id="telefone"
+                    className="h-9"
+                    value={newShelter.telefone}
+                    onChange={e => setNewShelter(prev => ({ ...prev, telefone: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    className="h-9"
+                    value={newShelter.email}
+                    onChange={e => setNewShelter(prev => ({ ...prev, email: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-700"></h3>
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="responsavel_nome" className="text-sm font-medium">Nome do Responsável</Label>
+                    <Input
+                      id="responsavel_nome"
+                      className="h-9"
+                      value={newShelter.responsavel_nome}
+                      onChange={e => setNewShelter(prev => ({ ...prev, responsavel_nome: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="responsavel_telefone" className="text-sm font-medium">Telefone do Responsável</Label>
+                      <Input
+                        id="responsavel_telefone"
+                        className="h-9"
+                        value={newShelter.responsavel_telefone}
+                        onChange={e => setNewShelter(prev => ({ ...prev, responsavel_telefone: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="responsavel_email" className="text-sm font-medium">Email do Responsável</Label>
+                      <Input
+                        id="responsavel_email"
+                        type="email"
+                        className="h-9"
+                        value={newShelter.responsavel_email}
+                        onChange={e => setNewShelter(prev => ({ ...prev, responsavel_email: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-700"></h3>
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="master_email" className="text-sm font-medium">Email do Usuário Master</Label>
+                    <Input
+                      id="master_email"
+                      type="email"
+                      className="h-9"
+                      value={newShelter.master_email}
+                      onChange={e => setNewShelter(prev => ({ ...prev, master_email: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="master_password" className="text-sm font-medium">Senha</Label>
+                      <div className="relative">
+                        <Input
+                          id="master_password"
+                          type={showPassword ? "text" : "password"}
+                          className="h-9 pr-10"
+                          value={newShelter.master_password}
+                          onChange={e => {
+                            const newPassword = e.target.value;
+                            setNewShelter(prev => ({ ...prev, master_password: newPassword }));
+                            setPasswordMatch(newPassword === newShelter.confirm_password);
+                          }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm_password" className="text-sm font-medium">Confirmar Senha</Label>
+                      <div className="relative">
+                        <Input
+                          id="confirm_password"
+                          type={showConfirmPassword ? "text" : "password"}
+                          className="h-9 pr-10"
+                          value={newShelter.confirm_password}
+                          onChange={e => {
+                            const confirmPassword = e.target.value;
+                            setNewShelter(prev => ({ ...prev, confirm_password: confirmPassword }));
+                            setPasswordMatch(newShelter.master_password === confirmPassword);
+                          }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      {!passwordMatch && newShelter.confirm_password && (
+                        <span className="text-xs text-red-500">As senhas não coincidem</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={isLoading}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading || !passwordMatch}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  'Criar Abrigo'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

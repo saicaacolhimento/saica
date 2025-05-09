@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { shelterService } from '@/services/shelter';
 import type { Shelter, UpdateShelterData, ShelterStatus } from '@/types/shelter';
+import { X } from 'lucide-react';
 
 export default function EditShelter() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +36,7 @@ export default function EditShelter() {
     capacidade: 0,
     status: 'ativo',
     logo_url: '',
+    cnpj: '',
   });
 
   const { data: shelterData, isLoading } = useQuery({
@@ -57,6 +59,7 @@ export default function EditShelter() {
         capacidade: shelterData.capacidade,
         status: shelterData.status,
         logo_url: shelterData.logo_url,
+        cnpj: shelterData.cnpj,
       });
       if (shelterData.logo_url) {
         setLogoPreview(shelterData.logo_url);
@@ -85,29 +88,68 @@ export default function EditShelter() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: UpdateShelterData) => {
-      if (selectedLogo) {
-        const logoUrl = await shelterService.uploadLogo(selectedLogo, shelter!.id);
-        data.logo_url = logoUrl;
+      console.log('🔄 Iniciando mutation de atualização:', { shelterId: shelter!.id, data });
+      
+      try {
+        if (selectedLogo) {
+          console.log('📤 Iniciando upload de nova logo...');
+          const logoUrl = await shelterService.uploadLogo(selectedLogo, shelter!.id);
+          console.log('✅ Logo enviada com sucesso:', logoUrl);
+          data.logo_url = logoUrl;
+        }
+
+        console.log('📝 Dados finais para atualização:', data);
+        const result = await shelterService.updateShelter(shelter!.id, data, shelter?.created_by);
+        console.log('✅ Atualização concluída com sucesso:', result);
+        return result;
+      } catch (error) {
+        console.error('❌ Erro na mutation:', {
+          error,
+          errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+          errorStack: error instanceof Error ? error.stack : undefined
+        });
+        throw error;
       }
-      return shelterService.update(shelter!.id, data);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🎉 Mutation bem sucedida:', data);
       queryClient.invalidateQueries({ queryKey: ['shelters'] });
-      toast.success('Abrigo atualizado com sucesso!');
-      navigate('/shelters');
+      toast({
+        title: 'Abrigo atualizado',
+        description: 'Abrigo atualizado com sucesso!',
+      });
+      navigate('/admin/abrigos');
     },
-    onError: () => {
-      toast.error('Erro ao atualizar abrigo');
+    onError: (error: any) => {
+      console.error('❌ Erro na mutation:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
+      toast({
+        title: 'Erro ao atualizar abrigo',
+        description: error instanceof Error ? error.message : 'Ocorreu um erro ao atualizar o abrigo.',
+        variant: 'destructive',
+      });
     },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Iniciando submissão do formulário');
     setLoading(true);
 
     try {
+      console.log('📦 Dados do formulário:', formData);
       await updateMutation.mutateAsync(formData);
+    } catch (error) {
+      console.error('❌ Erro no handleSubmit:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
     } finally {
+      console.log('🏁 Finalizando submissão do formulário');
       setLoading(false);
     }
   };
@@ -132,6 +174,37 @@ export default function EditShelter() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {logoPreview && (
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <img 
+                    src={logoPreview} 
+                    alt="Logo preview" 
+                    className="w-32 h-32 object-cover rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    className="absolute bottom-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow"
+                    title="Remover Logo"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!logoPreview && (
+              <div className="flex justify-center mb-6">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="w-64"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="nome">Nome</Label>
               <Input
@@ -140,6 +213,32 @@ export default function EditShelter() {
                 onChange={e =>
                   setFormData(prev => ({ ...prev, nome: e.target.value }))
                 }
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cnpj">CNPJ</Label>
+              <Input
+                id="cnpj"
+                value={formData.cnpj}
+                onChange={e => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  if (value.length <= 14) {
+                    const formattedValue = value.replace(
+                      /^(\d{2})(\d{3})?(\d{3})?(\d{4})?(\d{2})?/,
+                      (_, p1, p2, p3, p4, p5) => {
+                        if (p5) return `${p1}.${p2}.${p3}/${p4}-${p5}`;
+                        if (p4) return `${p1}.${p2}.${p3}/${p4}`;
+                        if (p3) return `${p1}.${p2}.${p3}`;
+                        if (p2) return `${p1}.${p2}`;
+                        return p1;
+                      }
+                    );
+                    setFormData(prev => ({ ...prev, cnpj: formattedValue }));
+                  }
+                }}
+                placeholder="00.000.000/0000-00"
                 required
               />
             </div>
@@ -225,55 +324,34 @@ export default function EditShelter() {
                 <Input
                   id="capacidade"
                   type="number"
-                  min="0"
+                  className="w-24"
                   value={formData.capacidade}
-                  onChange={e =>
-                    setFormData(prev => ({
-                      ...prev,
-                      capacidade: parseInt(e.target.value),
-                    }))
-                  }
+                  onChange={e => {
+                    const value = e.target.value;
+                    if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 999)) {
+                      setFormData(prev => ({ ...prev, capacidade: value }));
+                    }
+                  }}
+                  min="0"
+                  max="999"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
+              <div className="space-y-1">
+                <Label>Status</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value: ShelterStatus) =>
-                    setFormData(prev => ({ ...prev, status: value }))
-                  }
+                  onValueChange={(value) => setFormData(prev => ({...prev, status: value}))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione um status" />
+                    <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ativo">Ativo</SelectItem>
                     <SelectItem value="inativo">Inativo</SelectItem>
-                    <SelectItem value="em_construcao">Em Construção</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-4 mb-4">
-              <label className="font-medium">Logo do Abrigo</label>
-              
-              {logoPreview ? (
-                <div className="flex flex-col items-center gap-2">
-                  <img src={logoPreview} alt="Logo preview" className="w-32 h-32 object-cover rounded" />
-                  <Button variant="outline" onClick={handleRemoveLogo}>
-                    Remover Logo
-                  </Button>
-                </div>
-              ) : (
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoChange}
-                  className="w-full"
-                />
-              )}
             </div>
 
             <div className="flex justify-end space-x-2">

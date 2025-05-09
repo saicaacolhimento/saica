@@ -3,6 +3,7 @@ export type ShelterStatus = 'ativo' | 'inativo' | 'em_construcao';
 export interface Shelter {
   id: string;
   nome: string;
+  cnpj: string;
   endereco: string;
   cidade: string;
   estado: string;
@@ -44,6 +45,7 @@ export interface CreateShelterData {
 // Interface apenas para o formulário
 export interface ShelterFormData {
   nome: string;
+  cnpj: string;
   endereco: string;
   cidade: string;
   estado: string;

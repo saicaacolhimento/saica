@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,151 +21,254 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { toast } from "@/components/ui/use-toast";
+import { Upload, FileText, X } from 'lucide-react';
+
+// Array com todas as abas em ordem
+const tabs = ["dadosPessoais", "documentacao", "saude", "escolar", "familiar", "acolhimento"];
 
 const formSchema = z.object({
-  nome: z.string().min(2, "Nome é obrigatório"),
+  // Dados Pessoais
+  nome: z.string().min(1, "Nome é obrigatório"),
   dataNascimento: z.string().min(1, "Data de nascimento é obrigatória"),
-  nomeMae: z.string().min(2, "Nome da mãe é obrigatório"),
-  cpf: z.string().optional(),
-  rg: z.string().optional(),
-  endereco: z.string().optional(),
-  telefone: z.string().optional(),
+  sexo: z.string().min(1, "Sexo é obrigatório"),
+  corRaca: z.string().min(1, "Cor/Raça é obrigatória"),
+  naturalidade: z.string().min(1, "Naturalidade é obrigatória"),
+  nacionalidade: z.string().min(1, "Nacionalidade é obrigatória"),
+
+  // Documentação
+  rg: z.string().min(1, "RG é obrigatório"),
+  cpf: z.string().min(11, "CPF inválido").max(11, "CPF inválido"),
+  certidaoNascimento: z.string().min(1, "Certidão de Nascimento é obrigatória"),
+  certidaoCasamento: z.string().optional(),
+
+  // Saúde
+  tipoSanguineo: z.string().min(1, "Tipo Sanguíneo é obrigatório"),
+  alergias: z.string().optional(),
+  medicamentos: z.string().optional(),
+  deficiencias: z.string().optional(),
+
+  // Escolar
+  escola: z.string().min(1, "Escola é obrigatória"),
+  serie: z.string().min(1, "Série é obrigatória"),
+  turno: z.string().min(1, "Turno é obrigatório"),
+  transporteEscolar: z.string().min(1, "Transporte Escolar é obrigatório"),
+
+  // Familiar
+  nomeMae: z.string().min(1, "Nome da mãe é obrigatório"),
   nomePai: z.string().optional(),
-  possuiIrmaos: z.boolean().default(false),
-  numeroIrmaos: z.string().optional(),
-  nomesIrmaos: z.string().optional(),
-  enderecoFamiliaExtensa: z.string().optional(),
-  telefoneFamiliaExtensa: z.string().optional(),
-  numeroAcolhimentos: z.string().optional(),
-  instituicoesAnteriores: z.string().optional(),
-  tecnicoReferencia: z.string().optional(),
-  diagnosticoMedico: z.string().optional(),
-  caps: z.string().optional(),
-  creas: z.string().optional(),
-  tecnicoCreas: z.string().optional(),
-  cras: z.string().optional(),
-  tecnicoCras: z.string().optional(),
-  medicacao: z.string().optional(),
-  drogas: z.string().optional(),
-  numeroProcesso: z.string().optional(),
-  escolaAtual: z.string().optional(),
-  escolaAnterior: z.string().optional(),
-  telefoneEscola: z.string().optional(),
-  tecnicoForum: z.string().optional(),
-  descricaoCaso: z.string().optional(),
+  telefoneContato: z.string().min(1, "Telefone de contato é obrigatório"),
+  enderecoFamiliar: z.string().min(1, "Endereço familiar é obrigatório"),
+
+  // Acolhimento
+  dataEntrada: z.string().min(1, "Data de entrada é obrigatória"),
+  motivoAcolhimento: z.string().min(1, "Motivo do acolhimento é obrigatório"),
+  medidaProtecao: z.string().min(1, "Medida de proteção é obrigatória")
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 const AcolhidoCadastro: React.FC = () => {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const [currentTab, setCurrentTab] = useState<string>("dadosPessoais");
+  
+  const [formData, setFormData] = useState({
+    rg: null as File | null,
+    cpf: null as File | null,
+    certidaoNascimento: null as File | null,
+    certidaoCasamento: null as File | null,
+  });
+  
+  // Estado para controlar nomes dos arquivos
+  const [fileNames, setFileNames] = useState({
+    rg: '',
+    cpf: '',
+    certidaoNascimento: '',
+    certidaoCasamento: ''
+  });
+
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       nome: "",
       dataNascimento: "",
+      sexo: "",
+      corRaca: "",
+      naturalidade: "",
+      nacionalidade: "",
+      rg: "",
+      cpf: "",
+      certidaoNascimento: "",
+      certidaoCasamento: "",
+      tipoSanguineo: "",
+      alergias: "",
+      medicamentos: "",
+      deficiencias: "",
+      escola: "",
+      serie: "",
+      turno: "",
+      transporteEscolar: "",
       nomeMae: "",
-      possuiIrmaos: false,
-    },
+      nomePai: "",
+      telefoneContato: "",
+      enderecoFamiliar: "",
+      dataEntrada: "",
+      motivoAcolhimento: "",
+      medidaProtecao: ""
+    }
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // Aqui seria enviado para o backend
-  }
+  const goToNextTab = () => {
+    const currentIndex = tabs.indexOf(currentTab);
+    if (currentIndex < tabs.length - 1) {
+      setCurrentTab(tabs[currentIndex + 1]);
+    }
+  };
+
+  const goToPreviousTab = () => {
+    const currentIndex = tabs.indexOf(currentTab);
+    if (currentIndex > 0) {
+      setCurrentTab(tabs[currentIndex - 1]);
+    }
+  };
+
+  const handleSaveAndContinue = async () => {
+    const result = await form.trigger();
+    if (result) {
+      goToNextTab();
+    }
+  };
+
+  const onSubmit = (data: FormValues) => {
+    try {
+      const formattedData = {
+        ...data,
+        dataNascimento: new Date(data.dataNascimento).toISOString(),
+        dataEntrada: new Date(data.dataEntrada).toISOString()
+      }
+      
+      console.log("Dados do formulário:", formattedData)
+      
+      toast({
+        title: "Acolhido cadastrado com sucesso!",
+        variant: "success"
+      })
+      
+      form.reset()
+      
+    } catch (error) {
+      console.error("Erro ao cadastrar acolhido:", error)
+      toast({
+        title: "Erro ao cadastrar acolhido",
+        description: "Tente novamente mais tarde",
+        variant: "destructive" 
+      })
+    }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-2xl font-bold text-saica-blue mb-6">Cadastro de Acolhido</h1>
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Cadastro de Acolhido</h1>
+      </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <Tabs defaultValue="dadosPessoais" className="w-full">
-            <TabsList className="grid grid-cols-5 mb-6">
+          <Tabs value={currentTab} className="w-full" onValueChange={setCurrentTab}>
+            <TabsList className="grid grid-cols-6 mb-6">
               <TabsTrigger value="dadosPessoais">Dados Pessoais</TabsTrigger>
-              <TabsTrigger value="familia">Família</TabsTrigger>
-              <TabsTrigger value="historico">Histórico</TabsTrigger>
-              <TabsTrigger value="acompanhamento">Acompanhamento</TabsTrigger>
-              <TabsTrigger value="documentos">Documentos</TabsTrigger>
+              <TabsTrigger value="documentacao">Documentação</TabsTrigger>
+              <TabsTrigger value="saude">Saúde</TabsTrigger>
+              <TabsTrigger value="escolar">Escolar</TabsTrigger>
+              <TabsTrigger value="familiar">Familiar</TabsTrigger>
+              <TabsTrigger value="acolhimento">Acolhimento</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="dadosPessoais" className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <TabsContent value="dadosPessoais">
+              <div className="grid grid-cols-2 gap-3 space-y-4">
                 <FormField
                   control={form.control}
                   name="nome"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome Completo*</FormLabel>
+                      <FormLabel className="text-sm">Nome Completo</FormLabel>
                       <FormControl>
-                        <Input placeholder="Digite o nome completo" {...field} />
+                        <Input className="h-8 border-2 border-gray-400" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
                   name="dataNascimento"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Data de Nascimento*</FormLabel>
+                      <FormLabel className="text-sm">Data de Nascimento</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" className="h-8 border-2 border-gray-400" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
-                  name="cpf"
+                  name="sexo"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CPF</FormLabel>
+                      <FormLabel className="text-sm">Sexo</FormLabel>
                       <FormControl>
-                        <Input placeholder="000.000.000-00" {...field} />
+                        <select className="h-8 border-2 border-gray-400 w-full rounded-md" {...field}>
+                          <option value="">Selecione</option>
+                          <option value="masculino">Masculino</option>
+                          <option value="feminino">Feminino</option>
+                        </select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
-                  name="rg"
+                  name="corRaca"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>RG</FormLabel>
+                      <FormLabel className="text-sm">Cor/Raça</FormLabel>
                       <FormControl>
-                        <Input placeholder="00.000.000-0" {...field} />
+                        <select className="h-8 border-2 border-gray-400 w-full rounded-md" {...field}>
+                          <option value="">Selecione</option>
+                          <option value="branca">Branca</option>
+                          <option value="preta">Preta</option>
+                          <option value="parda">Parda</option>
+                          <option value="amarela">Amarela</option>
+                          <option value="indigena">Indígena</option>
+                        </select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
-                  name="telefone"
+                  name="naturalidade"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Telefone</FormLabel>
+                      <FormLabel className="text-sm">Naturalidade</FormLabel>
                       <FormControl>
-                        <Input placeholder="(00) 00000-0000" {...field} />
+                        <Input className="h-8 border-2 border-gray-400" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
-                  name="endereco"
+                  name="nacionalidade"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Endereço</FormLabel>
+                      <FormLabel className="text-sm">Nacionalidade</FormLabel>
                       <FormControl>
-                        <Input placeholder="Endereço completo" {...field} />
+                        <Input className="h-8 border-2 border-gray-400" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -175,410 +277,464 @@ const AcolhidoCadastro: React.FC = () => {
               </div>
             </TabsContent>
             
-            <TabsContent value="familia" className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="nomeMae"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome da Mãe*</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome completo da mãe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="nomePai"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Pai</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome completo do pai" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="possuiIrmaos"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Possui Irmãos</FormLabel>
+            <TabsContent value="documentacao">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <FormLabel htmlFor="rg-upload" className="text-sm">RG</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        id="rg-upload"
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setFormData(prev => ({...prev, rg: file}));
+                            setFileNames(prev => ({...prev, rg: file.name}));
+                            form.setValue('rg', file.name);
+                          }
+                        }}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                      />
+                      {fileNames.rg ? (
+                        <div className="flex items-center gap-2 border rounded-md p-2 w-full bg-gray-50">
+                          <FileText className="h-5 w-5 text-gray-500" />
+                          <span className="text-sm text-gray-700 truncate flex-1">{fileNames.rg}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-full"
+                            onClick={() => {
+                              setFormData(prev => ({...prev, rg: null}));
+                              setFileNames(prev => ({...prev, rg: ''}));
+                              form.setValue('rg', '');
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start gap-2"
+                          onClick={() => document.getElementById('rg-upload')?.click()}
+                        >
+                          <Upload className="h-4 w-4" />
+                          Selecionar RG
+                        </Button>
+                      )}
+                    </div>
+                    {form.formState.errors.rg && <p className="text-sm text-red-500">{form.formState.errors.rg.message}</p>}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <FormLabel htmlFor="cpf-upload" className="text-sm">CPF</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        id="cpf-upload"
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setFormData(prev => ({...prev, cpf: file}));
+                            setFileNames(prev => ({...prev, cpf: file.name}));
+                            form.setValue('cpf', file.name);
+                          }
+                        }}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                      />
+                      {fileNames.cpf ? (
+                        <div className="flex items-center gap-2 border rounded-md p-2 w-full bg-gray-50">
+                          <FileText className="h-5 w-5 text-gray-500" />
+                          <span className="text-sm text-gray-700 truncate flex-1">{fileNames.cpf}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-full"
+                            onClick={() => {
+                              setFormData(prev => ({...prev, cpf: null}));
+                              setFileNames(prev => ({...prev, cpf: ''}));
+                              form.setValue('cpf', '');
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                       </div>
-                    </FormItem>
-                  )}
-                />
-                
-                {form.watch("possuiIrmaos") && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="numeroIrmaos"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quantos irmãos?</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start gap-2"
+                          onClick={() => document.getElementById('cpf-upload')?.click()}
+                        >
+                          <Upload className="h-4 w-4" />
+                          Selecionar CPF
+                        </Button>
                       )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="nomesIrmaos"
-                      render={({ field }) => (
-                        <FormItem className="col-span-2">
-                          <FormLabel>Nomes dos irmãos</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Liste os nomes dos irmãos" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
-                
-                <FormField
-                  control={form.control}
-                  name="enderecoFamiliaExtensa"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>Endereço da Família Extensa</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Endereço de outros familiares" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="telefoneFamiliaExtensa"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone da Família Extensa</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(00) 00000-0000" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="historico" className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="numeroAcolhimentos"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número de Acolhimentos</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="instituicoesAnteriores"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>Instituições pelas quais passou</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Liste as instituições anteriores" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="numeroProcesso"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número do Processo Judicial</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nº do processo" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="acompanhamento" className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="tecnicoReferencia"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Técnico de Referência Atual</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do técnico" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="diagnosticoMedico"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Diagnóstico Médico</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Se houver" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="caps"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CAPS Frequentado</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do CAPS" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="creas"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CREAS</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do CREAS" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="tecnicoCreas"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Técnico de Referência do CREAS</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do técnico" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="cras"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CRAS</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do CRAS" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="tecnicoCras"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Técnico de Referência do CRAS</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do técnico" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="medicacao"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>Uso de Medicação</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Quais medicamentos, datas" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="drogas"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>Uso de Drogas</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Quais substâncias" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="escolaAtual"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Escola Atual</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome da escola" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="escolaAnterior"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Escola Anterior</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome da escola" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="telefoneEscola"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone da Escola</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(00) 00000-0000" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="tecnicoForum"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Técnico de Referência do Fórum</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do técnico" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="descricaoCaso"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>Descrição do Caso</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Descreva detalhadamente o caso" 
-                          className="min-h-[150px]"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="documentos" className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Documentos Pessoais (RG, CPF, Certidão de Nascimento)*</h3>
-                  <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-32">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-500">Arraste ou clique para enviar documentos (PDF)</p>
-                      <Button variant="outline" size="sm" className="mt-2">
-                        Selecionar Arquivos
-                      </Button>
                     </div>
+                    {form.formState.errors.cpf && <p className="text-sm text-red-500">{form.formState.errors.cpf.message}</p>}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <FormLabel htmlFor="certidao-nascimento-upload" className="text-sm">Certidão de Nascimento</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        id="certidao-nascimento-upload"
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setFormData(prev => ({...prev, certidaoNascimento: file}));
+                            setFileNames(prev => ({...prev, certidaoNascimento: file.name}));
+                            form.setValue('certidaoNascimento', file.name);
+                          }
+                        }}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                      />
+                      {fileNames.certidaoNascimento ? (
+                        <div className="flex items-center gap-2 border rounded-md p-2 w-full bg-gray-50">
+                          <FileText className="h-5 w-5 text-gray-500" />
+                          <span className="text-sm text-gray-700 truncate flex-1">{fileNames.certidaoNascimento}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-full"
+                            onClick={() => {
+                              setFormData(prev => ({...prev, certidaoNascimento: null}));
+                              setFileNames(prev => ({...prev, certidaoNascimento: ''}));
+                              form.setValue('certidaoNascimento', '');
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start gap-2"
+                          onClick={() => document.getElementById('certidao-nascimento-upload')?.click()}
+                        >
+                          <Upload className="h-4 w-4" />
+                          Selecionar Certidão
+                        </Button>
+                      )}
+                    </div>
+                    {form.formState.errors.certidaoNascimento && <p className="text-sm text-red-500">{form.formState.errors.certidaoNascimento.message}</p>}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <FormLabel htmlFor="certidao-casamento-upload" className="text-sm">Certidão de Casamento</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        id="certidao-casamento-upload"
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setFormData(prev => ({...prev, certidaoCasamento: file}));
+                            setFileNames(prev => ({...prev, certidaoCasamento: file.name}));
+                            form.setValue('certidaoCasamento', file.name);
+                          }
+                        }}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                      />
+                      {fileNames.certidaoCasamento ? (
+                        <div className="flex items-center gap-2 border rounded-md p-2 w-full bg-gray-50">
+                          <FileText className="h-5 w-5 text-gray-500" />
+                          <span className="text-sm text-gray-700 truncate flex-1">{fileNames.certidaoCasamento}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-full"
+                            onClick={() => {
+                              setFormData(prev => ({...prev, certidaoCasamento: null}));
+                              setFileNames(prev => ({...prev, certidaoCasamento: ''}));
+                              form.setValue('certidaoCasamento', '');
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start gap-2"
+                          onClick={() => document.getElementById('certidao-casamento-upload')?.click()}
+                        >
+                          <Upload className="h-4 w-4" />
+                          Selecionar Certidão
+                        </Button>
+                      )}
+                    </div>
+                    {form.formState.errors.certidaoCasamento && <p className="text-sm text-red-500">{form.formState.errors.certidaoCasamento.message}</p>}
                   </div>
                 </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Fotos da Criança (mínimo 1, máximo 5)*</h3>
-                  <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-32">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-500">Arraste ou clique para enviar fotos (JPG, PNG)</p>
-                      <Button variant="outline" size="sm" className="mt-2">
-                        Selecionar Fotos
-                      </Button>
-                    </div>
-                  </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="saude">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="grid grid-cols-2 gap-3 space-y-4">
+                <FormField
+                  control={form.control}
+                    name="tipoSanguineo"
+                  render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Tipo Sanguíneo</FormLabel>
+                      <FormControl>
+                          <select className="h-8 border-2 border-gray-400 w-full rounded-md" {...field}>
+                            <option value="">Selecione</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                          </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="alergias"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Alergias</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="medicamentos"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Medicamentos</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="deficiencias"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Deficiências</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="escolar">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="grid grid-cols-2 gap-3 space-y-4">
+                <FormField
+                  control={form.control}
+                    name="escola"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Escola</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="serie"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Série</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="turno"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Turno</FormLabel>
+                      <FormControl>
+                          <select className="h-8 border-2 border-gray-400 w-full rounded-md" {...field}>
+                            <option value="">Selecione</option>
+                            <option value="manha">Manhã</option>
+                            <option value="tarde">Tarde</option>
+                            <option value="noite">Noite</option>
+                          </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="transporteEscolar"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Transporte Escolar</FormLabel>
+                      <FormControl>
+                          <select className="h-8 border-2 border-gray-400 w-full rounded-md" {...field}>
+                            <option value="">Selecione</option>
+                            <option value="sim">Sim</option>
+                            <option value="nao">Não</option>
+                          </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                </div>
+              </div>
+            </TabsContent>
                 
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Laudos Médicos e Outros Documentos</h3>
-                  <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-32">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-500">Arraste ou clique para enviar documentos (PDF)</p>
-                      <Button variant="outline" size="sm" className="mt-2">
-                        Selecionar Documentos
-                      </Button>
-                    </div>
-                  </div>
+            <TabsContent value="familiar">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="grid grid-cols-2 gap-3 space-y-4">
+                <FormField
+                  control={form.control}
+                    name="nomeMae"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Nome da Mãe</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="nomePai"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Nome do Pai</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="telefoneContato"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Telefone de Contato</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="enderecoFamiliar"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Endereço Familiar</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                </div>
+              </div>
+            </TabsContent>
+                
+            <TabsContent value="acolhimento">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="grid grid-cols-2 gap-3 space-y-4">
+                <FormField
+                  control={form.control}
+                    name="dataEntrada"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Data de Entrada</FormLabel>
+                      <FormControl>
+                          <Input type="date" className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="motivoAcolhimento"
+                  render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel className="text-sm">Motivo do Acolhimento</FormLabel>
+                      <FormControl>
+                          <Textarea className="min-h-[80px] border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                    name="medidaProtecao"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-sm">Medida de Proteção</FormLabel>
+                      <FormControl>
+                          <Input className="h-8 border-2 border-gray-400" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 </div>
               </div>
             </TabsContent>
           </Tabs>
           
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" type="button">Cancelar</Button>
-            <Button type="submit" className="bg-saica-blue hover:bg-saica-light-blue">Salvar Cadastro</Button>
+            {currentTab !== "dadosPessoais" && (
+              <Button variant="outline" onClick={goToPreviousTab}>
+                Anterior
+              </Button>
+            )}
+            <Button onClick={handleSaveAndContinue}>
+              Próximo
+            </Button>
           </div>
         </form>
       </Form>

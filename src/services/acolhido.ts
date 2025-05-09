@@ -7,6 +7,8 @@ import {
   CreateAcolhidoFotoData,
   UpdateAcolhidoFotoData
 } from '@/types/acolhido'
+import { api } from "@/lib/api";
+import { FormValues } from "@/pages/AcolhidoCadastro";
 
 export const acolhidoService = {
   // Acolhidos
@@ -124,5 +126,59 @@ export const acolhidoService = {
       .getPublicUrl(filePath)
 
     return publicUrl
-  }
+  },
+
+  async getAll() {
+    const response = await api.get("/acolhidos");
+    return response.data;
+  },
+
+  async getById(id: string) {
+    const response = await api.get(`/acolhidos/${id}`);
+    return response.data;
+  },
+
+  async create(data: FormValues) {
+    const response = await api.post("/acolhidos", data);
+    return response.data;
+  },
+
+  async update(id: string, data: Partial<FormValues>) {
+    const response = await api.put(`/acolhidos/${id}`, data);
+    return response.data;
+  },
+
+  async delete(id: string) {
+    const response = await api.delete(`/acolhidos/${id}`);
+    return response.data;
+  },
+
+  async uploadPhoto(file: File, acolhidoId: string) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("acolhidoId", acolhidoId);
+
+    const response = await api.post("/acolhidos/upload-photo", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data;
+  },
+
+  async uploadDocument(file: File, acolhidoId: string, type: 'rg' | 'cpf' | 'certidaoNascimento' | 'certidaoCasamento') {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('acolhidoId', acolhidoId);
+    formData.append('type', type);
+
+    const response = await api.post('/acolhidos/upload-document', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data;
+  },
 } 

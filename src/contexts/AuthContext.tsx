@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         
+        console.log('[AuthContext] Sessão inicial:', data.session);
         setSession(data.session);
         setUser(data.session?.user || null);
       } catch (error) {
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Configurar listener para alterações de autenticação
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        console.log('Evento de autenticação:', event);
+        console.log('[AuthContext] Evento de autenticação:', event, newSession);
         setSession(newSession);
         setUser(newSession?.user || null);
         setLoading(false);
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function logout() {
     setLoading(true);
     try {
+      console.log('[AuthContext] Logout iniciado');
       await supabase.auth.signOut();
       setSession(null);
       setUser(null);

@@ -1,90 +1,50 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { acolhidoService } from '@/services/acolhido'
-import { useToast } from '@/components/ui/use-toast'
-import { CreateAcolhidoData, UpdateAcolhidoData } from '@/types/acolhido'
+import { useMutation } from "@tanstack/react-query";
+import { acolhidoService } from "@/services/acolhido";
+import { FormValues } from "@/pages/AcolhidoCadastro";
+import { toast } from "@/components/ui/use-toast";
 
-export const useAcolhido = () => {
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  // Queries
-  const { data: acolhidos, isLoading: isLoadingAcolhidos } = useQuery({
-    queryKey: ['acolhidos'],
-    queryFn: acolhidoService.getAcolhidos
-  })
-
-  const getAcolhidoById = (id: string) => {
-    return useQuery({
-      queryKey: ['acolhido', id],
-      queryFn: () => acolhidoService.getAcolhidoById(id)
-    })
-  }
-
-  // Mutations
-  const createAcolhidoMutation = useMutation({
-    mutationFn: acolhidoService.createAcolhido,
+export function useAcolhido() {
+  const createMutation = useMutation({
+    mutationFn: (data: FormValues) => acolhidoService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['acolhidos'] })
       toast({
-        title: 'Sucesso',
-        description: 'Acolhido cadastrado com sucesso'
-      })
+        title: "Sucesso",
+        description: "Acolhido cadastrado com sucesso",
+      });
     },
     onError: (error) => {
+      console.error(error);
       toast({
-        title: 'Erro',
-        description: 'Erro ao cadastrar acolhido',
-        variant: 'destructive'
-      })
-      console.error(error)
-    }
-  })
+        title: "Erro",
+        description: "Erro ao cadastrar acolhido",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const updateAcolhidoMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateAcolhidoData }) =>
-      acolhidoService.updateAcolhido(id, data),
+  const uploadPhotoMutation = useMutation({
+    mutationFn: ({ file, acolhidoId }: { file: File; acolhidoId: string }) =>
+      acolhidoService.uploadPhoto(file, acolhidoId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['acolhidos'] })
       toast({
-        title: 'Sucesso',
-        description: 'Acolhido atualizado com sucesso'
-      })
+        title: "Sucesso",
+        description: "Foto enviada com sucesso",
+      });
     },
     onError: (error) => {
+      console.error(error);
       toast({
-        title: 'Erro',
-        description: 'Erro ao atualizar acolhido',
-        variant: 'destructive'
-      })
-      console.error(error)
-    }
-  })
-
-  const deleteAcolhidoMutation = useMutation({
-    mutationFn: acolhidoService.deleteAcolhido,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['acolhidos'] })
-      toast({
-        title: 'Sucesso',
-        description: 'Acolhido excluído com sucesso'
-      })
+        title: "Erro", 
+        description: "Erro ao enviar foto",
+        variant: "destructive",
+      });
     },
-    onError: (error) => {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao excluir acolhido',
-        variant: 'destructive'
-      })
-      console.error(error)
-    }
-  })
+  });
 
   return {
-    acolhidos,
-    isLoadingAcolhidos,
-    getAcolhidoById,
-    createAcolhido: createAcolhidoMutation.mutate,
-    updateAcolhido: updateAcolhidoMutation.mutate,
-    deleteAcolhido: deleteAcolhidoMutation.mutate
-  }
-} 
+    createAcolhido: createMutation.mutate,
+    isCreating: createMutation.isPending,
+    uploadPhoto: uploadPhotoMutation.mutate,
+    isUploading: uploadPhotoMutation.isPending,
+  };
+}

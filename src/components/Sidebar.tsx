@@ -47,9 +47,9 @@ export function Sidebar() {
       admin: true
     },
     {
-      title: 'Acolhidos',
+      title: 'Crianças',
       icon: UserCircle,
-      href: '/acolhidos',
+      href: '/admin/criancas',
       admin: false
     },
     {

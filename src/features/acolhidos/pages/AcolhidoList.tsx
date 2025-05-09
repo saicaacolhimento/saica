@@ -1,28 +1,87 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
-import { Table } from '@/components/ui/table'
-import { Dialog } from '@/components/ui/dialog'
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { acolhidoService } from '@/services/acolhido'
 import { useAcolhido } from '@/hooks/useAcolhido'
 import { CreateAcolhidoData } from '@/types/acolhido'
+import { Upload, FileText, X, Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
 
 export function AcolhidoList() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const queryClient = useQueryClient()
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [newAcolhido, setNewAcolhido] = useState<CreateAcolhidoData>({
     nome: '',
     data_nascimento: '',
     nome_mae: '',
-    abrigo_id: ''
+    nome_pai: '',
+    cpf: '',
+    rg: '',
+    endereco: '',
+    telefone: '',
+    abrigo_id: '',
+    status: 'ativo',
+    genero: '',
+    naturalidade: '',
+    nacionalidade: '',
+    etnia: '',
+    religiao: '',
+    tipo_sanguineo: '',
+    alergias: '',
+    medicamentos: '',
+    deficiencias: '',
+    escola: '',
+    serie: '',
+    turno: '',
+    observacoes_educacionais: '',
+    nome_responsavel: '',
+    parentesco_responsavel: '',
+    cpf_responsavel: '',
+    telefone_responsavel: '',
+    endereco_responsavel: '',
+    data_entrada: '',
+    motivo_acolhimento: '',
+    rg_file: undefined,
+    cpf_file: undefined,
+    certidaoNascimento_file: undefined,
+    certidaoCasamento_file: undefined,
+    carteira_vacinacao_file: undefined
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [fileNames, setFileNames] = useState({
+    rg: '',
+    cpf: '',
+    certidaoNascimento: '',
+    certidaoCasamento: '',
+    carteira_vacinacao: ''
+  })
+  const [editingAcolhido, setEditingAcolhido] = useState<CreateAcolhidoData | null>(null)
+  const [fotos, setFotos] = useState<File[]>([])
+  const [fotoPreview, setFotoPreview] = useState<string[]>([])
 
   const {
     acolhidos,
@@ -37,18 +96,46 @@ export function AcolhidoList() {
     acolhido.nome_mae.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleCreateAcolhido = async () => {
+  const handleCreate = async () => {
     try {
-      await createAcolhido(newAcolhido)
-      setIsCreateDialogOpen(false)
-      setNewAcolhido({
-        nome: '',
-        data_nascimento: '',
-        nome_mae: '',
-        abrigo_id: ''
+      setIsLoading(true)
+      
+      const response = await acolhidoService.create(newAcolhido)
+      
+      if (response.id) {
+        if (newAcolhido.rg_file) {
+          await acolhidoService.uploadDocument(newAcolhido.rg_file, response.id, 'rg')
+        }
+        
+        if (newAcolhido.cpf_file) {
+          await acolhidoService.uploadDocument(newAcolhido.cpf_file, response.id, 'cpf')
+        }
+        
+        if (newAcolhido.certidaoNascimento_file) {
+          await acolhidoService.uploadDocument(newAcolhido.certidaoNascimento_file, response.id, 'certidaoNascimento')
+        }
+        
+        if (newAcolhido.certidaoCasamento_file) {
+          await acolhidoService.uploadDocument(newAcolhido.certidaoCasamento_file, response.id, 'certidaoCasamento')
+        }
+      }
+
+      toast({
+        title: 'Sucesso',
+        description: 'Acolhido criado com sucesso!'
       })
+      setIsDialogOpen(false)
+      queryClient.invalidateQueries(['acolhidos'])
+      
     } catch (error) {
       console.error(error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao criar acolhido',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -62,151 +149,311 @@ export function AcolhidoList() {
     }
   }
 
+  const handleEdit = (acolhido: CreateAcolhidoData) => {
+    setEditingAcolhido(acolhido)
+    setNewAcolhido(acolhido)
+    setIsDialogOpen(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      setIsLoading(true)
+      if (editingAcolhido) {
+        await updateAcolhido(newAcolhido)
+      } else {
+        await handleCreate()
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error('Erro ao salvar acolhido')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleFileChange = (field: 'rg_file' | 'cpf_file' | 'certidaoNascimento_file' | 'certidaoCasamento_file' | 'carteira_vacinacao_file') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setNewAcolhido(prev => ({...prev, [field]: file}))
+      setFileNames(prev => ({...prev, [field.replace('_file', '')]: file.name}))
+    }
+  }
+
+  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (fotos.length + files.length > 5) {
+      toast.error('Máximo de 5 fotos permitido')
+      return
+    }
+    setFotos([...fotos, ...files])
+    const previews = files.map(file => URL.createObjectURL(file))
+    setFotoPreview([...fotoPreview, ...previews])
+  }
+
+  const removeFoto = (index: number) => {
+    const newFotos = [...fotos]
+    const newPreviews = [...fotoPreview]
+    newFotos.splice(index, 1)
+    newPreviews.splice(index, 1)
+    setFotos(newFotos)
+    setFotoPreview(newPreviews)
+  }
+
   if (isLoadingAcolhidos) {
     return <div>Carregando...</div>
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Gerenciamento de Acolhidos</h1>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          Novo Acolhido
-        </Button>
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Acolhidos</h1>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Acolhido
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[800px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingAcolhido ? 'Editar Acolhido' : 'Novo Acolhido'}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Seção 1: Informações Pessoais */}
+              <div>
+                <h3 className="text-lg font-medium mb-4">Informações Pessoais</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nome">Nome</Label>
+                    <Input
+                      id="nome"
+                      value={newAcolhido.nome}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, nome: e.target.value}))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+                    <Input
+                      id="data_nascimento"
+                      type="date"
+                      value={newAcolhido.data_nascimento}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, data_nascimento: e.target.value}))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nome_mae">Nome da Mãe</Label>
+                    <Input
+                      id="nome_mae"
+                      value={newAcolhido.nome_mae}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, nome_mae: e.target.value}))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf">CPF</Label>
+                    <Input
+                      id="cpf"
+                      value={newAcolhido.cpf}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, cpf: e.target.value}))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rg">RG</Label>
+                    <Input
+                      id="rg"
+                      value={newAcolhido.rg}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, rg: e.target.value}))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endereco">Endereço</Label>
+                    <Input
+                      id="endereco"
+                      value={newAcolhido.endereco}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, endereco: e.target.value}))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 2: Responsável e Acolhimento */}
+              <div>
+                <h3 className="text-lg font-medium mb-4">Responsável e Acolhimento</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nome_responsavel">Nome do Responsável</Label>
+                    <Input
+                      id="nome_responsavel"
+                      value={newAcolhido.nome_responsavel}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, nome_responsavel: e.target.value}))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="parentesco_responsavel">Parentesco</Label>
+                    <Input
+                      id="parentesco_responsavel"
+                      value={newAcolhido.parentesco_responsavel}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, parentesco_responsavel: e.target.value}))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="data_entrada">Data de Entrada</Label>
+                    <Input
+                      id="data_entrada"
+                      type="date"
+                      value={newAcolhido.data_entrada}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, data_entrada: e.target.value}))}
+                    />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <Label htmlFor="motivo_acolhimento">Motivo do Acolhimento</Label>
+                    <Textarea
+                      id="motivo_acolhimento"
+                      value={newAcolhido.motivo_acolhimento}
+                      onChange={(e) => setNewAcolhido(prev => ({...prev, motivo_acolhimento: e.target.value}))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 3: Documentos */}
+              <div>
+                <h3 className="text-lg font-medium mb-4">Documentos</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>RG (PDF)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileChange('rg_file')}
+                        className="flex-1"
+                      />
+                      {fileNames.rg && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setNewAcolhido(prev => ({...prev, rg_file: undefined}))
+                            setFileNames(prev => ({...prev, rg: ''}))
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CPF (PDF)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileChange('cpf_file')}
+                        className="flex-1"
+                      />
+                      {fileNames.cpf && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setNewAcolhido(prev => ({...prev, cpf_file: undefined}))
+                            setFileNames(prev => ({...prev, cpf: ''}))
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    'Salvar'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="flex items-center space-x-2">
+      <div className="mb-4">
         <Input
-          placeholder="Buscar acolhidos..."
+          placeholder="Buscar por nome ou nome da mãe..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      {filteredAcolhidos?.length === 0 ? (
-        <div className="text-center py-4">
-          Nenhum acolhido encontrado
-        </div>
-      ) : (
+      <div className="bg-white rounded-lg shadow">
         <Table>
-          <thead>
-            <tr>
-              <th>Foto</th>
-              <th>Nome</th>
-              <th>Data de Nascimento</th>
-              <th>Nome da Mãe</th>
-              <th>Status</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Data de Nascimento</TableHead>
+              <TableHead>Nome da Mãe</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filteredAcolhidos?.map((acolhido) => (
-              <tr key={acolhido.id}>
-                <td>
-                  {acolhido.foto_url ? (
-                    <img
-                      src={acolhido.foto_url}
-                      alt={acolhido.nome}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-500 text-sm">
-                        {acolhido.nome.charAt(0)}
-                      </span>
-                    </div>
-                  )}
-                </td>
-                <td>{acolhido.nome}</td>
-                <td>{new Date(acolhido.data_nascimento).toLocaleDateString()}</td>
-                <td>{acolhido.nome_mae}</td>
-                <td>
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    acolhido.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              <TableRow key={acolhido.id}>
+                <TableCell className="font-medium">{acolhido.nome}</TableCell>
+                <TableCell>{new Date(acolhido.data_nascimento).toLocaleDateString()}</TableCell>
+                <TableCell>{acolhido.nome_mae}</TableCell>
+                <TableCell>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    acolhido.status === 'ativo' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {acolhido.status}
+                    {acolhido.status === 'ativo' ? 'Ativo' : 'Inativo'}
                   </span>
-                </td>
-                <td>
-                  <div className="flex space-x-2">
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/acolhidos/${acolhido.id}`)}
+                      onClick={() => handleEdit(acolhido)}
                     >
-                      Detalhes
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/acolhidos/${acolhido.id}/editar`)}
-                    >
-                      Editar
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDeleteAcolhido(acolhido.id)}
                     >
-                      Excluir
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
+          </TableBody>
         </Table>
-      )}
-
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Novo Acolhido</h2>
-          <div className="space-y-2">
-            <Label htmlFor="nome">Nome</Label>
-            <Input
-              id="nome"
-              value={newAcolhido.nome}
-              onChange={(e) => setNewAcolhido({ ...newAcolhido, nome: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="data_nascimento">Data de Nascimento</Label>
-            <Input
-              id="data_nascimento"
-              type="date"
-              value={newAcolhido.data_nascimento}
-              onChange={(e) => setNewAcolhido({ ...newAcolhido, data_nascimento: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="nome_mae">Nome da Mãe</Label>
-            <Input
-              id="nome_mae"
-              value={newAcolhido.nome_mae}
-              onChange={(e) => setNewAcolhido({ ...newAcolhido, nome_mae: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="abrigo_id">Abrigo</Label>
-            <Select
-              id="abrigo_id"
-              value={newAcolhido.abrigo_id}
-              onValueChange={(value) => setNewAcolhido({ ...newAcolhido, abrigo_id: value })}
-            >
-              {/* Aqui você precisará buscar os abrigos disponíveis */}
-              <option value="">Selecione um abrigo</option>
-            </Select>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateAcolhido}>
-              Criar
-            </Button>
-          </div>
-        </div>
-      </Dialog>
+      </div>
     </div>
   )
 } 

@@ -12,6 +12,7 @@ import Dashboard from '@/pages/admin/Dashboard';
 import ShelterList from '@/features/shelters/pages/ShelterList';
 import ShelterDetails from '@/features/shelters/pages/ShelterDetails';
 import EditShelter from '@/features/shelters/pages/EditShelter';
+import { AcolhidoList } from '@/features/acolhidos/pages/AcolhidoList';
 import PrivateRoute from '@/components/PrivateRoute';
 
 const queryClient = new QueryClient();
@@ -36,7 +37,11 @@ export default function AppRoutes() {
                 <Route path=":id/editar" element={<EditShelter />} />
               </Route>
 
-              <Route path="criancas" element={<div>Crianças</div>} />
+              {/* Rotas de Crianças/Acolhidos */}
+              <Route path="criancas">
+                <Route index element={<AcolhidoList />} />
+              </Route>
+
               <Route path="usuarios" element={<div>Usuários</div>} />
               <Route path="orgaos" element={<div>Órgãos</div>} />
               <Route path="relatorios" element={<div>Relatórios</div>} />
