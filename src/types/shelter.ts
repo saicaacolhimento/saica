@@ -32,6 +32,7 @@ export interface CreateShelterData {
   estado: string;
   postal_code: string;
   telefone: string;
+  telefone_orgao?: string;
   email: string;
   capacidade: string;
   logo_url?: string;
@@ -51,6 +52,7 @@ export interface ShelterFormData {
   estado: string;
   postal_code: string;
   telefone: string;
+  telefone_orgao?: string;
   email: string;
   capacidade: string;
   logo_url?: string;

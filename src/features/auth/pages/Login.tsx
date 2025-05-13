@@ -18,28 +18,35 @@ export function Login() {
     setLoading(true);
 
     try {
+      console.log('Tentando fazer login com:', { email });
+      
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (authError) {
+        console.error('Erro na autenticação:', authError);
         setError('Email ou senha inválidos.');
         return;
       }
 
       if (!authData.user) {
+        console.error('Usuário não encontrado após autenticação');
         setError('Usuário não encontrado.');
         return;
       }
 
+      console.log('Login bem sucedido, buscando dados do usuário...');
       await authService.getCurrentUser();
       
+      console.log('Redirecionando para dashboard...');
       setTimeout(() => {
         window.location.href = '/admin/dashboard';
       }, 500);
       
     } catch (err) {
+      console.error('Erro inesperado ao fazer login:', err);
       setError('Ocorreu um erro ao tentar fazer login. Tente novamente.');
     } finally {
       setLoading(false);
@@ -60,6 +67,7 @@ export function Login() {
           onChange={(e) => setEmail(e.target.value)}
           className="h-8 w-[180px] text-xs border-gray-300"
           required
+          disabled={loading}
         />
         <div className="relative">
           <Input
@@ -69,11 +77,13 @@ export function Login() {
             onChange={(e) => setPassword(e.target.value)}
             className="h-8 w-[140px] text-xs border-gray-300"
             required
+            disabled={loading}
           />
           <button
             type="button"
             onClick={togglePasswordVisibility}
             className="absolute right-2 top-1/2 -translate-y-1/2"
+            disabled={loading}
           >
             {showPassword ? (
               <EyeOff className="h-4 w-4 text-gray-500" />
@@ -84,13 +94,19 @@ export function Login() {
         </div>
         <button
           type="submit"
-          className="h-8 w-8 bg-blue-600 text-white rounded-sm flex items-center justify-center hover:bg-blue-700"
+          className="h-8 w-8 bg-blue-600 text-white rounded-sm flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading}
         >
-          <ChevronRight className="h-3 w-3" />
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
         </button>
         <button
           type="button"
-          className="h-6 w-6 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center text-xs hover:bg-gray-300"
+          className="h-6 w-6 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center text-xs hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading}
         >
           ?
         </button>

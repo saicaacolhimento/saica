@@ -17,22 +17,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[AuthContext] useEffect montado');
     // Verificar sessão atual
     async function getInitialSession() {
       setLoading(true);
       try {
+        console.log('[AuthContext] Iniciando verificação de sessão...');
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Erro ao verificar sessão:', error);
+          console.error('[AuthContext] Erro ao verificar sessão:', error);
+          setSession(null);
+          setUser(null);
           return;
         }
         
-        console.log('[AuthContext] Sessão inicial:', data.session);
-        setSession(data.session);
-        setUser(data.session?.user || null);
+        console.log('[AuthContext] Sessão inicial:', {
+          session: data.session ? {
+            expires_at: data.session.expires_at,
+            user: data.session.user ? {
+              id: data.session.user.id,
+              email: data.session.user.email
+            } : null
+          } : null
+        });
+
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+        } else {
+          console.log('[AuthContext] Nenhuma sessão encontrada');
+          setSession(null);
+          setUser(null);
+        }
       } catch (error) {
-        console.error('Erro inesperado ao verificar sessão:', error);
+        console.error('[AuthContext] Erro inesperado ao verificar sessão:', error);
+        setSession(null);
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -42,16 +63,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Configurar listener para alterações de autenticação
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        console.log('[AuthContext] Evento de autenticação:', event, newSession);
-        setSession(newSession);
-        setUser(newSession?.user || null);
+      async (event, newSession) => {
+        console.log('[AuthContext] Evento de autenticação:', {
+          event,
+          newSession,
+          user: newSession?.user || null
+        });
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          console.log('[AuthContext] Usuário deslogado ou deletado', {
+            event,
+            newSession,
+            user: newSession?.user || null
+          });
+          setSession(null);
+          setUser(null);
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('[AuthContext] Usuário autenticado ou token atualizado', {
+            event,
+            newSession,
+            user: newSession?.user || null
+          });
+          setSession(newSession);
+          setUser(newSession?.user || null);
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('[AuthContext] Token atualizado', {
+            event,
+            newSession
+          });
+          setSession(newSession);
+        }
         setLoading(false);
       }
     );
 
+    // Adicionar listener para storage
+    const handleStorageChange = (e: StorageEvent) => {
+      console.log('[AuthContext] StorageEvent:', e);
+      if (e.key === 'saica-auth-token') {
+        console.log('[AuthContext] Mudança detectada no localStorage:', {
+          key: e.key,
+          oldValue: e.oldValue ? 'presente' : 'ausente',
+          newValue: e.newValue ? 'presente' : 'ausente'
+        });
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
     return () => {
+      console.log('[AuthContext] Limpando listeners');
       authListener.subscription.unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
@@ -59,12 +121,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       console.log('[AuthContext] Logout iniciado');
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('[AuthContext] Erro ao fazer logout:', error);
+        throw error;
+      }
+      console.log('[AuthContext] Logout realizado com sucesso');
       setSession(null);
       setUser(null);
       window.location.href = '/';
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+      console.error('[AuthContext] Erro ao fazer logout:', error);
     } finally {
       setLoading(false);
     }

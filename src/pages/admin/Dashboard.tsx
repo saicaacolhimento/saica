@@ -29,20 +29,12 @@ export default function Dashboard() {
 
   const modules = [
     {
-      title: 'Gestão de Abrigos',
-      description: 'Cadastro e gerenciamento de abrigos',
-      route: '/admin/abrigos',
+      title: 'Gestão de Empresas',
+      description: 'Cadastro de empresas',
+      route: '/admin/empresas',
       icon: Home,
       bgColor: 'bg-blue-100',
       iconColor: 'text-blue-600'
-    },
-    {
-      title: 'Gestão de Crianças',
-      description: 'Cadastro e acompanhamento de crianças',
-      route: '/admin/criancas',
-      icon: Baby,
-      bgColor: 'bg-green-100',
-      iconColor: 'text-green-600'
     },
     {
       title: 'Gestão de Usuários',
@@ -53,12 +45,12 @@ export default function Dashboard() {
       iconColor: 'text-purple-600'
     },
     {
-      title: 'Gestão de Órgãos',
-      description: 'Cadastro e gerenciamento de órgãos externos',
-      route: '/admin/orgaos',
-      icon: Building,
-      bgColor: 'bg-yellow-100',
-      iconColor: 'text-yellow-600'
+      title: 'Gestão de Acolhido',
+      description: 'Cadastro e acompanhamento de acolhidos',
+      route: '/admin/criancas',
+      icon: Baby,
+      bgColor: 'bg-green-100',
+      iconColor: 'text-green-600'
     },
     {
       title: 'Relatórios',
@@ -116,19 +108,19 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {modules.map((module, index) => (
-          <Card 
-            key={index} 
-            className="hover:shadow-lg transition-shadow cursor-pointer" 
+          <Card
+            key={index}
+            className="hover:shadow-lg transition-shadow cursor-pointer"
             onClick={() => navigate(module.route)}
           >
-            <CardHeader className="flex flex-row items-center space-x-4 pb-2">
-              <div className={`p-2 ${module.bgColor} rounded-lg`}>
-                <module.icon className={`h-6 w-6 ${module.iconColor}`} />
+            <CardHeader className="flex flex-col items-center pb-2">
+              <div className={`p-2 ${module.bgColor} rounded-lg mb-2`}>
+                <module.icon className={`h-10 w-10 ${module.iconColor}`} />
               </div>
-              <CardTitle className="text-lg">{module.title}</CardTitle>
+              <CardTitle className="text-lg text-center w-full">{module.title}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600">{module.description}</p>
+              <p className="text-sm text-gray-600 text-center">{module.description}</p>
             </CardContent>
           </Card>
         ))}

@@ -34,9 +34,17 @@ export const acolhidoService = {
   },
 
   async createAcolhido(data: CreateAcolhidoData): Promise<Acolhido> {
+    // Tratamento para campos de data vazios
+    const payload = {
+      ...data,
+      data_nascimento: data.data_nascimento === '' ? null : data.data_nascimento,
+      data_entrada: (data as any).data_entrada === '' ? null : (data as any).data_entrada,
+      data_inativacao: (data as any).data_inativacao === '' ? null : (data as any).data_inativacao,
+      status: 'ativo'
+    };
     const { data: acolhido, error } = await supabase
       .from('acolhidos')
-      .insert([{ ...data, status: 'ativo' }])
+      .insert([payload])
       .select()
       .single()
 
@@ -45,9 +53,16 @@ export const acolhidoService = {
   },
 
   async updateAcolhido(id: string, data: UpdateAcolhidoData): Promise<Acolhido> {
+    // Tratamento para campos de data vazios
+    const payload = {
+      ...data,
+      data_nascimento: data.data_nascimento === '' ? null : data.data_nascimento,
+      data_entrada: (data as any).data_entrada === '' ? null : (data as any).data_entrada,
+      data_inativacao: (data as any).data_inativacao === '' ? null : (data as any).data_inativacao,
+    };
     const { data: acolhido, error } = await supabase
       .from('acolhidos')
-      .update(data)
+      .update(payload)
       .eq('id', id)
       .select()
       .single()
@@ -78,14 +93,24 @@ export const acolhidoService = {
   },
 
   async createAcolhidoFoto(data: CreateAcolhidoFotoData): Promise<AcolhidoFoto> {
+    // Verificar se o usuário está autenticado e logar
+    const { data: authData } = await supabase.auth.getUser();
+    console.log('Usuário autenticado:', authData.user);
+    if (!authData.user) {
+      alert('Usuário não autenticado! Faça login novamente.');
+      throw new Error('Usuário não autenticado!');
+    }
+    // Logar o payload
+    console.log('Payload enviado para acolhido_fotos:', data);
     const { data: foto, error } = await supabase
       .from('acolhido_fotos')
       .insert([data])
       .select()
       .single()
 
-    if (error) throw error
-    return foto
+    // Se o dado foi salvo, não lançar erro mesmo que error venha preenchido
+    if (!foto && error) throw error;
+    return foto;
   },
 
   async updateAcolhidoFoto(id: string, data: UpdateAcolhidoFotoData): Promise<AcolhidoFoto> {

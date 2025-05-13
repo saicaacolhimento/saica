@@ -43,7 +43,7 @@ export const documentoService = {
   async createDocumento(data: CreateDocumentoData): Promise<Documento> {
     const { data: documento, error } = await supabase
       .from('documentos')
-      .insert([{ ...data, status: 'ativo' }])
+      .insert([{ ...data, nome: data.titulo, status: 'ativo' }])
       .select()
       .single()
 

@@ -27,8 +27,12 @@ import { acolhidoService } from '@/services/acolhido'
 import { useAcolhido } from '@/hooks/useAcolhido'
 import { CreateAcolhidoData } from '@/types/acolhido'
 import { Upload, FileText, X, Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function AcolhidoList() {
+  console.log('[AcolhidoList] Componente montado');
+  const { user, session } = useAuth();
+  console.log('[AcolhidoList] Contexto de autenticação:', { user, session });
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -208,193 +212,10 @@ export function AcolhidoList() {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Acolhidos</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Acolhido
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[800px] max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingAcolhido ? 'Editar Acolhido' : 'Novo Acolhido'}
-              </DialogTitle>
-            </DialogHeader>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Seção 1: Informações Pessoais */}
-              <div>
-                <h3 className="text-lg font-medium mb-4">Informações Pessoais</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome">Nome</Label>
-                    <Input
-                      id="nome"
-                      value={newAcolhido.nome}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, nome: e.target.value}))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="data_nascimento">Data de Nascimento</Label>
-                    <Input
-                      id="data_nascimento"
-                      type="date"
-                      value={newAcolhido.data_nascimento}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, data_nascimento: e.target.value}))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="nome_mae">Nome da Mãe</Label>
-                    <Input
-                      id="nome_mae"
-                      value={newAcolhido.nome_mae}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, nome_mae: e.target.value}))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf">CPF</Label>
-                    <Input
-                      id="cpf"
-                      value={newAcolhido.cpf}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, cpf: e.target.value}))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rg">RG</Label>
-                    <Input
-                      id="rg"
-                      value={newAcolhido.rg}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, rg: e.target.value}))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="endereco">Endereço</Label>
-                    <Input
-                      id="endereco"
-                      value={newAcolhido.endereco}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, endereco: e.target.value}))}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Seção 2: Responsável e Acolhimento */}
-              <div>
-                <h3 className="text-lg font-medium mb-4">Responsável e Acolhimento</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome_responsavel">Nome do Responsável</Label>
-                    <Input
-                      id="nome_responsavel"
-                      value={newAcolhido.nome_responsavel}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, nome_responsavel: e.target.value}))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="parentesco_responsavel">Parentesco</Label>
-                    <Input
-                      id="parentesco_responsavel"
-                      value={newAcolhido.parentesco_responsavel}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, parentesco_responsavel: e.target.value}))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="data_entrada">Data de Entrada</Label>
-                    <Input
-                      id="data_entrada"
-                      type="date"
-                      value={newAcolhido.data_entrada}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, data_entrada: e.target.value}))}
-                    />
-                  </div>
-                  <div className="col-span-2 space-y-2">
-                    <Label htmlFor="motivo_acolhimento">Motivo do Acolhimento</Label>
-                    <Textarea
-                      id="motivo_acolhimento"
-                      value={newAcolhido.motivo_acolhimento}
-                      onChange={(e) => setNewAcolhido(prev => ({...prev, motivo_acolhimento: e.target.value}))}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Seção 3: Documentos */}
-              <div>
-                <h3 className="text-lg font-medium mb-4">Documentos</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>RG (PDF)</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="file"
-                        accept=".pdf"
-                        onChange={handleFileChange('rg_file')}
-                        className="flex-1"
-                      />
-                      {fileNames.rg && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            setNewAcolhido(prev => ({...prev, rg_file: undefined}))
-                            setFileNames(prev => ({...prev, rg: ''}))
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CPF (PDF)</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="file"
-                        accept=".pdf"
-                        onChange={handleFileChange('cpf_file')}
-                        className="flex-1"
-                      />
-                      {fileNames.cpf && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            setNewAcolhido(prev => ({...prev, cpf_file: undefined}))
-                            setFileNames(prev => ({...prev, cpf: ''}))
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    'Salvar'
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => navigate('/admin/criancas/novo')}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Acolhido
+        </Button>
       </div>
 
       <div className="mb-4">

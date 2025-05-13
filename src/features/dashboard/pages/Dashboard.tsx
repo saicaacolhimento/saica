@@ -16,10 +16,10 @@ const stats = [
     href: '/admin/users',
   },
   {
-    name: 'Abrigos',
+    name: 'Empresas',
     value: '0',
     icon: Building2,
-    href: '/abrigos',
+    href: '/empresas',
   },
   {
     name: 'Documentos',

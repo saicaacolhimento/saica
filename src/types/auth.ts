@@ -38,7 +38,7 @@ export interface CreateUserData {
   email: string;
   password: string;
   nome: string;
-  role: Exclude<UserRole, 'master'>;
+  role: UserRole;
   abrigo_id?: string;
   orgao_id?: string;
   funcao?: string;
@@ -46,6 +46,8 @@ export interface CreateUserData {
 
 export interface UpdateUserData {
   nome?: string;
+  email?: string;
+  password?: string;
   role?: Exclude<UserRole, 'master'>;
   status?: 'active' | 'blocked';
   abrigo_id?: string;

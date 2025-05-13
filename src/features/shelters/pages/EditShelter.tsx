@@ -91,12 +91,12 @@ export default function EditShelter() {
       console.log('🔄 Iniciando mutation de atualização:', { shelterId: shelter!.id, data });
       
       try {
-        if (selectedLogo) {
+      if (selectedLogo) {
           console.log('📤 Iniciando upload de nova logo...');
-          const logoUrl = await shelterService.uploadLogo(selectedLogo, shelter!.id);
+        const logoUrl = await shelterService.uploadLogo(selectedLogo, shelter!.id);
           console.log('✅ Logo enviada com sucesso:', logoUrl);
-          data.logo_url = logoUrl;
-        }
+        data.logo_url = logoUrl;
+      }
 
         console.log('📝 Dados finais para atualização:', data);
         const result = await shelterService.updateShelter(shelter!.id, data, shelter?.created_by);
@@ -115,10 +115,10 @@ export default function EditShelter() {
       console.log('🎉 Mutation bem sucedida:', data);
       queryClient.invalidateQueries({ queryKey: ['shelters'] });
       toast({
-        title: 'Abrigo atualizado',
-        description: 'Abrigo atualizado com sucesso!',
+        title: 'Empresa atualizada',
+        description: 'Empresa atualizada com sucesso!',
       });
-      navigate('/admin/abrigos');
+      navigate('/admin/empresas');
     },
     onError: (error: any) => {
       console.error('❌ Erro na mutation:', {
@@ -127,8 +127,8 @@ export default function EditShelter() {
         errorStack: error instanceof Error ? error.stack : undefined
       });
       toast({
-        title: 'Erro ao atualizar abrigo',
-        description: error instanceof Error ? error.message : 'Ocorreu um erro ao atualizar o abrigo.',
+        title: 'Erro ao atualizar empresa',
+        description: error instanceof Error ? error.message : 'Ocorreu um erro ao atualizar a empresa.',
         variant: 'destructive',
       });
     },
@@ -166,8 +166,8 @@ export default function EditShelter() {
     <div className="container mx-auto px-4">
       <div className="max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Editar Abrigo</h1>
-          <Button variant="outline" onClick={() => navigate('/admin/abrigos')}>
+          <h1 className="text-2xl font-bold">Editar Empresa</h1>
+          <Button variant="outline" onClick={() => navigate('/admin/empresas')}>
             Voltar
           </Button>
         </div>
@@ -330,7 +330,7 @@ export default function EditShelter() {
                     const value = e.target.value;
                     if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 999)) {
                       setFormData(prev => ({ ...prev, capacidade: value }));
-                    }
+                  }
                   }}
                   min="0"
                   max="999"
@@ -358,7 +358,7 @@ export default function EditShelter() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate('/admin/abrigos')}
+                onClick={() => navigate('/admin/empresas')}
               >
                 Cancelar
               </Button>

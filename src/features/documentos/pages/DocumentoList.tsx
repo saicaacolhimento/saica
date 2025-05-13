@@ -189,11 +189,9 @@ export function DocumentoList() {
                 }
               >
                 <option value="">Selecione um tipo</option>
-                <option value="rg">RG</option>
-                <option value="cpf">CPF</option>
-                <option value="certidao_nascimento">Certidão de Nascimento</option>
-                <option value="carteira_vacinacao">Carteira de Vacinação</option>
-                <option value="outros">Outros</option>
+                <option value="DOCUMENTO">Documento</option>
+                <option value="FOTO">Foto</option>
+                <option value="LAUDO">Laudo</option>
               </Select>
             </div>
             <div>

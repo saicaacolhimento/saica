@@ -35,76 +35,76 @@ export default function ShelterDetails() {
   return (
     <>
       <div className="container mx-auto px-4 print-ficha">
-        <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto">
           <div className="flex justify-between items-center mb-6 print:hidden">
-            <h1 className="text-2xl font-bold">Detalhes do Abrigo</h1>
-            <div className="space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => navigate(`/admin/abrigos/${id}/editar`)}
-              >
-                Editar
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/admin/abrigos')}>
-                Voltar
-              </Button>
+          <h1 className="text-2xl font-bold">Detalhes da Empresa</h1>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/admin/empresas/${id}/editar`)}
+            >
+              Editar
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/admin/empresas')}>
+              Voltar
+            </Button>
               <Button variant="default" onClick={handlePrint}>
                 Imprimir Ficha
               </Button>
-            </div>
           </div>
+        </div>
 
           <div ref={printRef} className="bg-white rounded-lg shadow p-6 print:shadow-none print:bg-white print:p-0 print:rounded-none">
-            <div className="space-y-6">
-              {shelter.logo_url && (
-                <div className="flex justify-center mb-6">
-                  <img 
-                    src={shelter.logo_url} 
-                    alt={`Logo do ${shelter.nome}`}
+          <div className="space-y-6">
+            {shelter.logo_url && (
+              <div className="flex justify-center mb-6">
+                <img 
+                  src={shelter.logo_url} 
+                  alt={`Logo do ${shelter.nome}`}
                     className="w-32 h-32 object-cover rounded-lg print:mx-auto print:mb-4 print:rounded-none"
-                  />
-                </div>
-              )}
+                />
+              </div>
+            )}
 
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Informações Básicas</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Nome</p>
-                    <p className="font-medium">{shelter.nome}</p>
-                  </div>
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Informações Básicas</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Nome</p>
+                  <p className="font-medium">{shelter.nome}</p>
+                </div>
                   <div>
                     <p className="text-sm text-gray-500">CNPJ</p>
                     <p className="font-medium">{shelter.cnpj}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Status</p>
-                    <p className="font-medium capitalize">{shelter.status}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Capacidade</p>
-                    <p className="font-medium">{shelter.capacidade} pessoas</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Ocupação Atual</p>
-                    <p className="font-medium">{shelter.ocupacao_atual} pessoas</p>
-                  </div>
+                <div>
+                  <p className="text-sm text-gray-500">Status</p>
+                  <p className="font-medium capitalize">{shelter.status}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Capacidade</p>
+                  <p className="font-medium">{shelter.capacidade} pessoas</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Ocupação Atual</p>
+                  <p className="font-medium">{shelter.ocupacao_atual} pessoas</p>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Contato</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Telefone</p>
-                    <p className="font-medium">{shelter.telefone}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-medium">{shelter.email}</p>
-                  </div>
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Contato</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Telefone</p>
+                  <p className="font-medium">{shelter.telefone}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="font-medium">{shelter.email}</p>
                 </div>
               </div>
+            </div>
 
               <div>
                 <h2 className="text-lg font-semibold mb-2">Responsável</h2>
@@ -120,65 +120,65 @@ export default function ShelterDetails() {
                 </div>
               </div>
 
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Endereço</h2>
-                <div className="space-y-2">
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Endereço</h2>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-sm text-gray-500">Endereço</p>
+                  <p className="font-medium">{shelter.endereco}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Endereço</p>
-                    <p className="font-medium">{shelter.endereco}</p>
+                    <p className="text-sm text-gray-500">Cidade</p>
+                    <p className="font-medium">{shelter.cidade}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Cidade</p>
-                      <p className="font-medium">{shelter.cidade}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Estado</p>
-                      <p className="font-medium">{shelter.estado}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">CEP</p>
-                      <p className="font-medium">{shelter.postal_code}</p>
-                    </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Estado</p>
+                    <p className="font-medium">{shelter.estado}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">CEP</p>
+                    <p className="font-medium">{shelter.postal_code}</p>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {shelter.descricao && (
-                <div>
-                  <h2 className="text-lg font-semibold mb-2">Descrição</h2>
-                  <p className="text-gray-700">{shelter.descricao}</p>
-                </div>
-              )}
-
-              {shelter.observacoes && (
-                <div>
-                  <h2 className="text-lg font-semibold mb-2">Observações</h2>
-                  <p className="text-gray-700">{shelter.observacoes}</p>
-                </div>
-              )}
-
+            {shelter.descricao && (
               <div>
-                <h2 className="text-lg font-semibold mb-2">Informações do Sistema</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Criado em</p>
-                    <p className="font-medium">
-                      {new Date(shelter.created_at).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Última atualização</p>
-                    <p className="font-medium">
-                      {new Date(shelter.updated_at).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
+                <h2 className="text-lg font-semibold mb-2">Descrição</h2>
+                <p className="text-gray-700">{shelter.descricao}</p>
+              </div>
+            )}
+
+            {shelter.observacoes && (
+              <div>
+                <h2 className="text-lg font-semibold mb-2">Observações</h2>
+                <p className="text-gray-700">{shelter.observacoes}</p>
+              </div>
+            )}
+
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Informações do Sistema</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Criado em</p>
+                  <p className="font-medium">
+                    {new Date(shelter.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Última atualização</p>
+                  <p className="font-medium">
+                    {new Date(shelter.updated_at).toLocaleDateString('pt-BR')}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
       <style>{`
         @media print {
           @page {

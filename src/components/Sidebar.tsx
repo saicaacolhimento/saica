@@ -41,6 +41,12 @@ export function Sidebar() {
       admin: false
     },
     {
+      title: 'Órgãos',
+      icon: Shield,
+      href: '/admin/orgaos',
+      admin: false
+    },
+    {
       title: 'Permissões',
       icon: Shield,
       href: '/permissoes',

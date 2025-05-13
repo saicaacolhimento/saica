@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -65,83 +64,13 @@ const AdminDashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Órgãos Cadastrados</p>
-                <p className="text-2xl font-bold">42</p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-full">
-                <Shield className="h-6 w-6 text-saica-blue" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
       
-      <Tabs defaultValue="abrigos" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="abrigos">Abrigos</TabsTrigger>
+      <Tabs defaultValue="usuarios" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
-          <TabsTrigger value="orgaos">Órgãos Externos</TabsTrigger>
+          <TabsTrigger value="abrigos">Abrigos</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="abrigos">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciamento de Abrigos</CardTitle>
-              <CardDescription>Lista de todos os abrigos cadastrados no sistema</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome do Abrigo</TableHead>
-                      <TableHead>Cidade</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Responsável</TableHead>
-                      <TableHead>Acolhidos</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {[
-                      { id: 1, nome: "Lar Feliz", cidade: "São Paulo", estado: "SP", responsavel: "Maria Silva", acolhidos: 12, status: "Ativo" },
-                      { id: 2, nome: "Casa Esperança", cidade: "Rio de Janeiro", estado: "RJ", responsavel: "João Oliveira", acolhidos: 8, status: "Ativo" },
-                      { id: 3, nome: "Abrigo Novo Amanhã", cidade: "Curitiba", estado: "PR", responsavel: "Ana Pereira", acolhidos: 15, status: "Ativo" },
-                      { id: 4, nome: "Instituto Criança Feliz", cidade: "Belo Horizonte", estado: "MG", responsavel: "Carlos Santos", acolhidos: 10, status: "Inativo" },
-                      { id: 5, nome: "Lar dos Pequeninos", cidade: "Salvador", estado: "BA", responsavel: "Juliana Costa", acolhidos: 9, status: "Ativo" },
-                    ].map((abrigo) => (
-                      <TableRow key={abrigo.id}>
-                        <TableCell className="font-medium">{abrigo.nome}</TableCell>
-                        <TableCell>{abrigo.cidade}</TableCell>
-                        <TableCell>{abrigo.estado}</TableCell>
-                        <TableCell>{abrigo.responsavel}</TableCell>
-                        <TableCell>{abrigo.acolhidos}</TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            abrigo.status === 'Ativo' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {abrigo.status}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">Editar</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
         
         <TabsContent value="usuarios">
           <Card>
@@ -194,47 +123,47 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
-        <TabsContent value="orgaos">
+        <TabsContent value="abrigos">
           <Card>
             <CardHeader>
-              <CardTitle>Gerenciamento de Órgãos Externos</CardTitle>
-              <CardDescription>CREAS, CRAS, CAPS, Conselho Tutelar e outros</CardDescription>
+              <CardTitle>Gerenciamento de Abrigos</CardTitle>
+              <CardDescription>Lista de todos os abrigos cadastrados no sistema</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Tipo</TableHead>
+                      <TableHead>Nome do Abrigo</TableHead>
                       <TableHead>Cidade</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead>Responsável</TableHead>
+                      <TableHead>Acolhidos</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {[
-                      { id: 1, nome: "CREAS Central", tipo: "CREAS", cidade: "São Paulo", estado: "SP", responsavel: "Juliana Melo", status: "Ativo" },
-                      { id: 2, nome: "CRAS Norte", tipo: "CRAS", cidade: "São Paulo", estado: "SP", responsavel: "Roberto Alves", status: "Ativo" },
-                      { id: 3, nome: "CAPS Infantil", tipo: "CAPS", cidade: "São Paulo", estado: "SP", responsavel: "Sandra Lima", status: "Ativo" },
-                      { id: 4, nome: "Conselho Tutelar Zona Sul", tipo: "Conselho Tutelar", cidade: "Rio de Janeiro", estado: "RJ", responsavel: "Marcos Silva", status: "Ativo" },
-                    ].map((orgao) => (
-                      <TableRow key={orgao.id}>
-                        <TableCell className="font-medium">{orgao.nome}</TableCell>
-                        <TableCell>{orgao.tipo}</TableCell>
-                        <TableCell>{orgao.cidade}</TableCell>
-                        <TableCell>{orgao.estado}</TableCell>
-                        <TableCell>{orgao.responsavel}</TableCell>
+                      { id: 1, nome: "Lar Feliz", cidade: "São Paulo", estado: "SP", responsavel: "Maria Silva", acolhidos: 12, status: "Ativo" },
+                      { id: 2, nome: "Casa Esperança", cidade: "Rio de Janeiro", estado: "RJ", responsavel: "João Oliveira", acolhidos: 8, status: "Ativo" },
+                      { id: 3, nome: "Abrigo Novo Amanhã", cidade: "Curitiba", estado: "PR", responsavel: "Ana Pereira", acolhidos: 15, status: "Ativo" },
+                      { id: 4, nome: "Instituto Criança Feliz", cidade: "Belo Horizonte", estado: "MG", responsavel: "Carlos Santos", acolhidos: 10, status: "Inativo" },
+                      { id: 5, nome: "Lar dos Pequeninos", cidade: "Salvador", estado: "BA", responsavel: "Juliana Costa", acolhidos: 9, status: "Ativo" },
+                    ].map((abrigo) => (
+                      <TableRow key={abrigo.id}>
+                        <TableCell className="font-medium">{abrigo.nome}</TableCell>
+                        <TableCell>{abrigo.cidade}</TableCell>
+                        <TableCell>{abrigo.estado}</TableCell>
+                        <TableCell>{abrigo.responsavel}</TableCell>
+                        <TableCell>{abrigo.acolhidos}</TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            orgao.status === 'Ativo' 
+                            abrigo.status === 'Ativo' 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {orgao.status}
+                            {abrigo.status}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">

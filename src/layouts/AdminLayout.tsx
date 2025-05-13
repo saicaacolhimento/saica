@@ -9,7 +9,6 @@ import {
   Settings,
   LogOut,
   Activity,
-  Building,
   FileBox,
   Baby
 } from 'lucide-react';
@@ -20,10 +19,9 @@ export default function AdminLayout() {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', route: '/admin/dashboard' },
-    { icon: Home, label: 'Abrigos', route: '/admin/abrigos' },
-    { icon: Baby, label: 'Crianças', route: '/admin/criancas' },
+    { icon: Home, label: 'Empresas', route: '/admin/empresas' },
     { icon: Users, label: 'Usuários', route: '/admin/usuarios' },
-    { icon: Building, label: 'Órgãos', route: '/admin/orgaos' },
+    { icon: Baby, label: 'Acolhido', route: '/admin/criancas' },
     { icon: FileText, label: 'Relatórios', route: '/admin/relatorios' },
     { icon: FileBox, label: 'Documentos', route: '/admin/documentos' },
     { icon: Activity, label: 'Atividades', route: '/admin/atividades' },

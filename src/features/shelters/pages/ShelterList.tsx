@@ -36,6 +36,8 @@ import type { Shelter, CreateShelterData, ShelterFormData } from '@/types/shelte
 import { Plus, Eye, EyeOff, X, Upload, Trash2, Loader2, Filter } from 'lucide-react';
 import { CityAutocomplete } from '@/components/ui/city-autocomplete';
 import { cn } from '@/lib/utils';
+import { authService } from '@/services/auth';
+import { supabase } from '@/config/supabase';
 
 export default function ShelterList() {
   const navigate = useNavigate();
@@ -57,7 +59,7 @@ export default function ShelterList() {
     cidade: '',
     estado: '',
     postal_code: '',
-    telefone: '',
+    telefone_orgao: '',
     email: '',
     capacidade: '',
     logo_url: '',
@@ -78,24 +80,37 @@ export default function ShelterList() {
   const [filterEstado, setFilterEstado] = useState('');
   const [filterAtivo, setFilterAtivo] = useState(true);
   const [filterInativo, setFilterInativo] = useState(true);
+  const [filterTipo, setFilterTipo] = useState('');
+
+  // Paginação
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
+  // Adicionar estado para tipo de empresa
+  const [tipoEmpresa, setTipoEmpresa] = useState('');
 
   const { data: sheltersData, isLoading: sheltersLoading } = useQuery({
-    queryKey: ['shelters'],
-    queryFn: shelterService.getShelters,
+    queryKey: ['shelters', page],
+    queryFn: () => shelterService.getShelters(page, pageSize),
   });
 
   const deleteMutation = useMutation({
     mutationFn: shelterService.deleteShelter,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shelters'] });
+    onSuccess: (_data, deletedId) => {
+      // Log para debug
+      queryClient.setQueryData(['shelters', page], (oldData) => {
+        console.log('oldData:', oldData);
+        if (!Array.isArray(oldData)) return [];
+        return oldData.filter((shelter) => shelter.id !== deletedId);
+      });
       toast({
-        title: 'Abrigo excluído',
-        description: 'O abrigo foi excluído com sucesso.',
+        title: 'Empresa excluída',
+        description: 'A empresa foi excluída com sucesso.',
       });
     },
     onError: error => {
       toast({
-        title: 'Erro ao excluir abrigo',
+        title: 'Erro ao excluir empresa',
         description: error.message,
         variant: 'destructive',
       });
@@ -108,7 +123,7 @@ export default function ShelterList() {
 
   const confirmDelete = async () => {
     if (shelterToDelete) {
-      console.log('Tentando excluir abrigo com id:', shelterToDelete);
+      console.log('Tentando excluir empresa com id:', shelterToDelete);
       try {
         await deleteMutation.mutateAsync(shelterToDelete);
       } finally {
@@ -125,16 +140,17 @@ export default function ShelterList() {
     const matchCidade = filterCidade ? shelter.cidade.toLowerCase().includes(filterCidade.toLowerCase()) : true;
     const matchEstado = filterEstado ? shelter.estado.toLowerCase().includes(filterEstado.toLowerCase()) : true;
     const matchStatus = (filterAtivo && shelter.status === 'ativo') || (filterInativo && shelter.status === 'inativo');
-    return matchSearch && matchNome && matchCidade && matchEstado && matchStatus;
+    const matchTipo = filterTipo ? shelter.tipo === filterTipo : true;
+    return matchSearch && matchNome && matchCidade && matchEstado && matchStatus && matchTipo;
   });
 
-  // Função para criar abrigo
+  // Função para criar empresa
   const createMutation = useMutation({
     mutationFn: shelterService.createShelter,
     onSuccess: () => {
       toast({
-        title: 'Abrigo criado',
-        description: 'O abrigo foi criado com sucesso.',
+        title: 'Empresa criada',
+        description: 'A empresa foi criada com sucesso.',
       });
       setOpen(false);
       setNewShelter({
@@ -144,7 +160,7 @@ export default function ShelterList() {
         cidade: '',
         estado: '',
         postal_code: '',
-        telefone: '',
+        telefone_orgao: '',
         email: '',
         capacidade: '',
         logo_url: '',
@@ -160,8 +176,8 @@ export default function ShelterList() {
     },
     onError: (error: any) => {
       toast({
-        title: 'Erro ao criar abrigo',
-        description: error?.message || 'Ocorreu um erro ao criar o abrigo.',
+        title: 'Erro ao criar empresa',
+        description: error?.message || 'Ocorreu um erro ao criar a empresa.',
         variant: 'destructive',
       });
     },
@@ -174,6 +190,24 @@ export default function ShelterList() {
     prevOpen.current = open;
   }, [open, queryClient]);
 
+  // Adicionar um ref no popup do filtro e um useEffect para fechar ao clicar fora
+  const filterRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setFilterOpen(false);
+      }
+    }
+    if (filterOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [filterOpen]);
+
   if (sheltersLoading) {
     return (
       <div className="container mx-auto px-4">
@@ -185,14 +219,14 @@ export default function ShelterList() {
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Abrigos</h1>
+        <h1 className="text-2xl font-bold">Empresas</h1>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Button variant="outline" size="icon" onClick={() => setFilterOpen(!filterOpen)} title="Filtrar abrigos">
+            <Button variant="outline" size="icon" onClick={() => setFilterOpen(!filterOpen)} title="Filtrar empresas">
               <Filter className="h-5 w-5" />
             </Button>
             {filterOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-white border rounded-lg shadow-lg p-4 z-50">
+              <div ref={filterRef} className="absolute right-0 mt-2 w-72 bg-white border rounded-lg shadow-lg p-4 z-50">
                 <div className="mb-2">
                   <Label className="text-xs">Nome</Label>
                   <Input value={filterNome} onChange={e => setFilterNome(e.target.value)} placeholder="Filtrar por nome" className="h-8" />
@@ -205,6 +239,21 @@ export default function ShelterList() {
                   <Label className="text-xs">Estado</Label>
                   <Input value={filterEstado} onChange={e => setFilterEstado(e.target.value)} placeholder="Filtrar por estado" className="h-8" />
                 </div>
+                <div className="mb-2">
+                  <Label className="text-xs">Tipo de Empresa</Label>
+                  <select
+                    value={filterTipo}
+                    onChange={e => setFilterTipo(e.target.value)}
+                    className="h-8 w-full border rounded px-2 text-xs"
+                  >
+                    <option value="">Todos</option>
+                    <option value="ABRIGO">ABRIGO</option>
+                    <option value="CREAS">CREAS</option>
+                    <option value="CRAS">CRAS</option>
+                    <option value="CAPS">CAPS</option>
+                    <option value="Conselho Tutelar">Conselho Tutelar</option>
+                  </select>
+                </div>
                 <div className="flex items-center gap-2 mt-2">
                   <input type="checkbox" id="ativo" checked={filterAtivo} onChange={() => setFilterAtivo(v => !v)} />
                   <Label htmlFor="ativo" className="text-xs">Ativo</Label>
@@ -214,13 +263,13 @@ export default function ShelterList() {
               </div>
             )}
           </div>
-          <Button onClick={() => setOpen(true)}>Novo Abrigo</Button>
+          <Button onClick={() => setOpen(true)}>Nova Empresa</Button>
         </div>
       </div>
 
       <div className="mb-4">
         <Input
-          placeholder="Buscar abrigos..."
+          placeholder="Buscar empresas..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
@@ -228,7 +277,7 @@ export default function ShelterList() {
 
       {filteredShelters?.length === 0 ? (
         <div className="text-center text-gray-500">
-          Nenhum abrigo encontrado.
+          Nenhuma empresa encontrada.
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow">
@@ -239,8 +288,6 @@ export default function ShelterList() {
                 <TableHead className="text-center whitespace-nowrap">CNPJ</TableHead>
                 <TableHead className="text-center">Cidade</TableHead>
                 <TableHead className="text-center">Estado</TableHead>
-                <TableHead className="text-center">Capacidade</TableHead>
-                <TableHead className="text-center">Ocupação</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center whitespace-nowrap">Ações</TableHead>
               </TableRow>
@@ -253,7 +300,7 @@ export default function ShelterList() {
                       {shelter.logo_url ? (
                         <img 
                           src={shelter.logo_url} 
-                          alt={`Logo do ${shelter.nome}`}
+                          alt={`Logo da ${shelter.nome}`}
                           className="w-8 h-8 object-cover rounded-full"
                         />
                       ) : (
@@ -261,28 +308,26 @@ export default function ShelterList() {
                           <span className="text-gray-500 text-sm">{shelter.nome.charAt(0)}</span>
                         </div>
                       )}
-                      <span>{shelter.nome}</span>
+                      <span className="w-full text-center">{shelter.tipo && shelter.tipo !== 'ABRIGO' ? shelter.tipo.toUpperCase() : shelter.nome}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center whitespace-nowrap">{shelter.cnpj}</TableCell>
                   <TableCell className="text-center">{shelter.cidade}</TableCell>
                   <TableCell className="text-center">{shelter.estado}</TableCell>
-                  <TableCell className="text-center">{shelter.capacidade}</TableCell>
-                  <TableCell className="text-center">{shelter.ocupacao_atual}</TableCell>
                   <TableCell className="capitalize">{shelter.status}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/admin/abrigos/${shelter.id}`)}
+                        onClick={() => navigate(`/admin/empresas/${shelter.id}`)}
                       >
                         Ver
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/admin/abrigos/${shelter.id}/editar`)}
+                        onClick={() => navigate(`/admin/empresas/${shelter.id}/editar`)}
                       >
                         Editar
                       </Button>
@@ -310,9 +355,9 @@ export default function ShelterList() {
       <AlertDialog open={!!shelterToDelete} onOpenChange={() => setShelterToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir abrigo</AlertDialogTitle>
+            <AlertDialogTitle>Excluir empresa</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este abrigo? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir esta empresa? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -335,18 +380,18 @@ export default function ShelterList() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal de cadastro de abrigo */}
+      {/* Modal de cadastro de empresa */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-xl w-full max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
-            <DialogTitle>Novo Abrigo</DialogTitle>
+            <DialogTitle>Nova Empresa</DialogTitle>
           </DialogHeader>
           <form onSubmit={async (e) => {
             e.preventDefault();
             if (!user) {
               toast({
                 title: 'Erro',
-                description: 'Você precisa estar autenticado para criar um abrigo',
+                description: 'Você precisa estar autenticado para criar uma empresa',
                 variant: 'destructive'
               });
               return;
@@ -359,21 +404,153 @@ export default function ShelterList() {
               });
               return;
             }
+            // Validação dos campos obrigatórios
+            if (!tipoEmpresa) {
+              toast({
+                title: 'Erro',
+                description: 'Selecione o tipo de empresa',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (tipoEmpresa === 'ABRIGO' && !newShelter.nome) {
+              toast({
+                title: 'Erro',
+                description: 'O nome do abrigo é obrigatório',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (tipoEmpresa === 'ABRIGO' && (newShelter.capacidade === '' || isNaN(Number(newShelter.capacidade)))) {
+              toast({
+                title: 'Erro',
+                description: 'A capacidade do abrigo é obrigatória e deve ser um número',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!newShelter.cnpj) {
+              toast({
+                title: 'Erro',
+                description: 'O CNPJ é obrigatório',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!newShelter.endereco) {
+              toast({
+                title: 'Erro',
+                description: 'O endereço é obrigatório',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!newShelter.cidade) {
+              toast({
+                title: 'Erro',
+                description: 'A cidade é obrigatória',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!newShelter.estado) {
+              toast({
+                title: 'Erro',
+                description: 'O estado é obrigatório',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!newShelter.telefone_orgao) {
+              toast({
+                title: 'Erro',
+                description: 'O telefone da empresa é obrigatório',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!newShelter.responsavel_nome) {
+              toast({
+                title: 'Erro',
+                description: 'O nome do responsável é obrigatório',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!newShelter.responsavel_email) {
+              toast({
+                title: 'Erro',
+                description: 'O e-mail do responsável é obrigatório',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!newShelter.master_email) {
+              toast({
+                title: 'Erro',
+                description: 'O e-mail do usuário master é obrigatório',
+                variant: 'destructive'
+              });
+              return;
+            }
+            if (!newShelter.master_password) {
+              toast({
+                title: 'Erro',
+                description: 'A senha do usuário master é obrigatória',
+                variant: 'destructive'
+              });
+              return;
+            }
             try {
               setIsLoading(true);
               const { confirm_password, master_password, ...shelterData } = newShelter;
               const dataToSend = {
                 ...shelterData,
+                capacidade: tipoEmpresa === 'ABRIGO' ? (shelterData.capacidade === '' ? null : Number(shelterData.capacidade)) : null,
                 master_password_hash: master_password,
+                tipo: tipoEmpresa,
               };
               let logoUrl = '';
               if (selectedLogo) {
                 const tempId = Math.random().toString(36).substring(7);
                 logoUrl = await shelterService.uploadLogo(selectedLogo, tempId);
               }
-              await createMutation.mutateAsync({
-                ...dataToSend,
-                logo_url: logoUrl || newShelter.logo_url
+              // Cria a empresa
+              let empresaCriada;
+              try {
+                empresaCriada = await createMutation.mutateAsync({
+                  ...dataToSend,
+                  logo_url: logoUrl || newShelter.logo_url
+                });
+                console.log('Empresa criada:', empresaCriada);
+              } catch (err) {
+                console.error('Erro ao criar empresa:', err);
+                toast({
+                  title: 'Erro ao criar empresa',
+                  description: err?.message || 'Erro desconhecido',
+                  variant: 'destructive'
+                });
+                setIsLoading(false);
+                return;
+              }
+              if (!empresaCriada?.id) {
+                toast({
+                  title: 'Erro',
+                  description: 'Não foi possível obter o ID da empresa criada.',
+                  variant: 'destructive'
+                });
+                setIsLoading(false);
+                return;
+              }
+              // Cria o usuário admin vinculado à empresa
+              await authService.createUser({
+                email: newShelter.master_email,
+                password: newShelter.master_password,
+                nome: newShelter.responsavel_nome,
+                cargo: 'admin',
+                role: 'admin',
+                status: 'active',
+                empresa_id: empresaCriada.id,
               });
             } catch (error) {
               // O toast de erro já é tratado no onError da mutation
@@ -383,7 +560,7 @@ export default function ShelterList() {
           }} className="space-y-4">
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label htmlFor="logo" className="text-sm font-medium">Logo do Abrigo</Label>
+                <Label htmlFor="logo" className="text-sm font-medium">Logo da Empresa</Label>
                 <div className="flex items-start gap-2">
                   {logoPreview ? (
                     <div className="relative w-32 h-32">
@@ -432,17 +609,56 @@ export default function ShelterList() {
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="tipo_empresa" className="text-sm font-medium">Tipo de Empresa</Label>
+                <select
+                  id="tipo_empresa"
+                  className="h-9 w-full border rounded px-2"
+                  value={tipoEmpresa}
+                  onChange={e => setTipoEmpresa(e.target.value)}
+                  required
+                >
+                  <option value="">Selecione o tipo</option>
+                  <option value="ABRIGO">ABRIGO</option>
+                  <option value="CREAS">CREAS</option>
+                  <option value="CRAS">CRAS</option>
+                  <option value="CAPS">CAPS</option>
+                  <option value="Conselho Tutelar">Conselho Tutelar</option>
+                </select>
+              </div>
+              {(tipoEmpresa === 'ABRIGO') && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="nome" className="text-sm font-medium">Nome do {tipoEmpresa}</Label>
+                    <Input
+                      id="nome"
+                      className="h-9"
+                      value={newShelter.nome}
+                      onChange={e => setNewShelter(prev => ({ ...prev, nome: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="capacidade" className="text-sm font-medium">Capacidade</Label>
+                    <Input
+                      id="capacidade"
+                      type="number"
+                      className="h-9 w-24"
+                      value={newShelter.capacidade}
+                      onChange={e => {
+                        const value = e.target.value;
+                        if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 999)) {
+                          setNewShelter(prev => ({ ...prev, capacidade: value }));
+                        }
+                      }}
+                      min="0"
+                      max="999"
+                      required
+                    />
+                  </div>
+                </>
+              )}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nome" className="text-sm font-medium">Nome do Abrigo</Label>
-                  <Input
-                    id="nome"
-                    className="h-9"
-                    value={newShelter.nome}
-                    onChange={e => setNewShelter(prev => ({ ...prev, nome: e.target.value }))}
-                    required
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="cnpj" className="text-sm font-medium">CNPJ</Label>
                   <Input
@@ -469,24 +685,6 @@ export default function ShelterList() {
                     required
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="capacidade" className="text-sm font-medium">Capacidade</Label>
-                <Input
-                  id="capacidade"
-                  type="number"
-                  className="h-9 w-24"
-                  value={newShelter.capacidade}
-                  onChange={e => {
-                    const value = e.target.value;
-                    if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 999)) {
-                      setNewShelter(prev => ({ ...prev, capacidade: value }));
-                    }
-                  }}
-                  min="0"
-                  max="999"
-                  required
-                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="endereco" className="text-sm font-medium">Endereço</Label>
@@ -518,143 +716,121 @@ export default function ShelterList() {
                   />
                 </div>
               </div>
+              {/* Novo campo Telefone da Empresa */}
               <div className="space-y-2">
-                <Label htmlFor="postal_code" className="text-sm font-medium">CEP</Label>
+                <Label htmlFor="telefone_orgao" className="text-sm font-medium">Telefone da Empresa</Label>
                 <Input
-                  id="postal_code"
+                  id="telefone_orgao"
                   className="h-9"
-                  value={newShelter.postal_code}
-                  onChange={e => setNewShelter(prev => ({ ...prev, postal_code: e.target.value }))}
+                  value={newShelter.telefone_orgao || ''}
+                  onChange={e => setNewShelter(prev => ({ ...prev, telefone_orgao: e.target.value }))}
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-gray-700 mt-6 mb-2 text-center">DADOS DO RESPONSÁVEL</h3>
+              <div className="grid gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="telefone" className="text-sm font-medium">Telefone</Label>
+                  <Label htmlFor="responsavel_nome" className="text-sm font-medium">Nome do Responsável</Label>
                   <Input
-                    id="telefone"
+                    id="responsavel_nome"
                     className="h-9"
-                    value={newShelter.telefone}
-                    onChange={e => setNewShelter(prev => ({ ...prev, telefone: e.target.value }))}
+                    value={newShelter.responsavel_nome}
+                    onChange={e => setNewShelter(prev => ({ ...prev, responsavel_nome: e.target.value }))}
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    className="h-9"
-                    value={newShelter.email}
-                    onChange={e => setNewShelter(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-700"></h3>
-                <div className="grid gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="responsavel_nome" className="text-sm font-medium">Nome do Responsável</Label>
+                    <Label htmlFor="responsavel_telefone" className="text-sm font-medium">Telefone do Responsável</Label>
                     <Input
-                      id="responsavel_nome"
+                      id="responsavel_telefone"
                       className="h-9"
-                      value={newShelter.responsavel_nome}
-                      onChange={e => setNewShelter(prev => ({ ...prev, responsavel_nome: e.target.value }))}
+                      value={newShelter.responsavel_telefone}
+                      onChange={e => setNewShelter(prev => ({ ...prev, responsavel_telefone: e.target.value }))}
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="responsavel_telefone" className="text-sm font-medium">Telefone do Responsável</Label>
-                      <Input
-                        id="responsavel_telefone"
-                        className="h-9"
-                        value={newShelter.responsavel_telefone}
-                        onChange={e => setNewShelter(prev => ({ ...prev, responsavel_telefone: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="responsavel_email" className="text-sm font-medium">Email do Responsável</Label>
-                      <Input
-                        id="responsavel_email"
-                        type="email"
-                        className="h-9"
-                        value={newShelter.responsavel_email}
-                        onChange={e => setNewShelter(prev => ({ ...prev, responsavel_email: e.target.value }))}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-700"></h3>
-                <div className="grid gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="master_email" className="text-sm font-medium">Email do Usuário Master</Label>
+                    <Label htmlFor="responsavel_email" className="text-sm font-medium">Email do Responsável</Label>
                     <Input
-                      id="master_email"
+                      id="responsavel_email"
                       type="email"
                       className="h-9"
-                      value={newShelter.master_email}
-                      onChange={e => setNewShelter(prev => ({ ...prev, master_email: e.target.value }))}
+                      value={newShelter.responsavel_email}
+                      onChange={e => setNewShelter(prev => ({ ...prev, responsavel_email: e.target.value }))}
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="master_password" className="text-sm font-medium">Senha</Label>
-                      <div className="relative">
-                        <Input
-                          id="master_password"
-                          type={showPassword ? "text" : "password"}
-                          className="h-9 pr-10"
-                          value={newShelter.master_password}
-                          onChange={e => {
-                            const newPassword = e.target.value;
-                            setNewShelter(prev => ({ ...prev, master_password: newPassword }));
-                            setPasswordMatch(newPassword === newShelter.confirm_password);
-                          }}
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-gray-700 mt-6 mb-2 text-center">CADASTRO DE USUÁRIO</h3>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="master_email" className="text-sm font-medium">Email do Usuário Master</Label>
+                  <Input
+                    id="master_email"
+                    type="email"
+                    className="h-9"
+                    value={newShelter.master_email}
+                    onChange={e => setNewShelter(prev => ({ ...prev, master_email: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="master_password" className="text-sm font-medium">Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="master_password"
+                        type={showPassword ? "text" : "password"}
+                        className="h-9 pr-10"
+                        value={newShelter.master_password}
+                        onChange={e => {
+                          const newPassword = e.target.value;
+                          setNewShelter(prev => ({ ...prev, master_password: newPassword }));
+                          setPasswordMatch(newPassword === newShelter.confirm_password);
+                        }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm_password" className="text-sm font-medium">Confirmar Senha</Label>
-                      <div className="relative">
-                        <Input
-                          id="confirm_password"
-                          type={showConfirmPassword ? "text" : "password"}
-                          className="h-9 pr-10"
-                          value={newShelter.confirm_password}
-                          onChange={e => {
-                            const confirmPassword = e.target.value;
-                            setNewShelter(prev => ({ ...prev, confirm_password: confirmPassword }));
-                            setPasswordMatch(newShelter.master_password === confirmPassword);
-                          }}
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
-                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      {!passwordMatch && newShelter.confirm_password && (
-                        <span className="text-xs text-red-500">As senhas não coincidem</span>
-                      )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm_password" className="text-sm font-medium">Confirmar Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirm_password"
+                        type={showConfirmPassword ? "text" : "password"}
+                        className="h-9 pr-10"
+                        value={newShelter.confirm_password}
+                        onChange={e => {
+                          const confirmPassword = e.target.value;
+                          setNewShelter(prev => ({ ...prev, confirm_password: confirmPassword }));
+                          setPasswordMatch(newShelter.master_password === confirmPassword);
+                        }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
                     </div>
+                    {!passwordMatch && newShelter.confirm_password && (
+                      <span className="text-xs text-red-500">As senhas não coincidem</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -675,13 +851,20 @@ export default function ShelterList() {
                     Criando...
                   </>
                 ) : (
-                  'Criar Abrigo'
+                  'Criar Empresa'
                 )}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Controles de paginação */}
+      <div className="flex justify-center mt-4 gap-2">
+        <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Anterior</Button>
+        <span className="px-2 py-1 text-sm">Página {page}</span>
+        <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={sheltersData?.length < pageSize}>Próxima</Button>
+      </div>
     </div>
   );
 } 

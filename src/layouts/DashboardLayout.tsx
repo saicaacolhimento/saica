@@ -19,7 +19,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Usuários', href: '/admin/users', icon: Users, adminOnly: true },
-  { name: 'Abrigos', href: '/abrigos', icon: Building2 },
+  { name: 'Empresas', href: '/empresas', icon: Building2 },
   { name: 'Documentos', href: '/documentos', icon: FileText },
   { name: 'Agendamentos', href: '/agendamentos', icon: Calendar },
   { name: 'Notificações', href: '/notificacoes', icon: Bell },

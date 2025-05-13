@@ -46,7 +46,6 @@ export const authService = {
 
     if (userError) {
       console.error('Erro ao buscar dados do usuário:', userError);
-      await supabase.auth.signOut();
       throw new Error('Usuário não encontrado');
     }
 
@@ -100,35 +99,26 @@ export const authService = {
   },
 
   async createUser(userData: CreateUserData): Promise<User> {
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: userData.email,
-      password: userData.password,
+    // Chama o endpoint backend para criar o usuário sem trocar a sessão
+    const response = await fetch('http://localhost:3333/admin/criar-usuario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
     });
-
-    if (authError) throw new Error(authError.message);
-
-    try {
-      const { data: newUser, error: userError } = await supabase
-        .from('usuarios')
-        .insert([
-          {
-            id: authData.user!.id,
-            email: userData.email,
-            nome: userData.nome,
-            role: userData.role,
-            status: 'active',
-          },
-        ])
-        .select()
-        .single();
-
-      if (userError) throw userError;
-      return newUser;
-    } catch (error) {
-      // Rollback: remove o usuário auth se houver erro ao criar no banco
-      await supabase.auth.admin.deleteUser(authData.user!.id);
-      throw error;
-    }
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro ao criar usuário');
+    // Retorne o objeto esperado (ajuste conforme retorno do backend)
+    return {
+      id: result.userId,
+      email: userData.email,
+      nome: userData.nome,
+      role: userData.role,
+      status: 'active',
+      cargo: userData.cargo,
+      empresa_id: userData.empresa_id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as User;
   },
 
   async updateUser(id: string, userData: UpdateUserData): Promise<void> {
@@ -139,6 +129,16 @@ export const authService = {
       updated_at: new Date().toISOString(),
     };
 
+    // Atualiza o email no auth se fornecido
+    if (userData.email) {
+      const { error: emailError } = await supabase.auth.admin.updateUserById(
+        id,
+        { email: userData.email }
+      );
+      if (emailError) throw new Error(emailError.message);
+    }
+
+    // Atualiza a senha se fornecida
     if (userData.password) {
       const { error: passwordError } = await supabase.auth.admin.updateUserById(
         id,
@@ -178,6 +178,37 @@ export const authService = {
       .update({ status: 'active', updated_at: new Date().toISOString() })
       .eq('id', id);
 
+    if (error) throw new Error(error.message);
+  },
+
+  async getAllMasters(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, nome, email, telefone, cargo, created_at, empresa_id, empresas(id, nome, logo_url, cnpj, cidade)')
+      .eq('role', 'master');
+    if (error) throw error;
+    return data;
+  },
+
+  async getUsersByEmpresa(empresa_id: string): Promise<{ data: any[]; error: any }> {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, nome, email, telefone, cargo, role, status, empresa_id')
+      .eq('empresa_id', empresa_id);
+    return { data, error };
+  },
+
+  async getAllAdmins(): Promise<any[]> {
+    const { data, error } = await supabase.rpc('get_admins_with_user_count');
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteUser(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('usuarios')
+      .delete()
+      .eq('id', id);
     if (error) throw new Error(error.message);
   },
 }; 
