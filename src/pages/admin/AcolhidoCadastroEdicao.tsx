@@ -7,6 +7,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { acolhidoService } from '@/services/acolhido';
 import { shelterService } from '@/services/shelter';
 import { useToast } from '@/components/ui/use-toast';
+import { documentoService } from '@/services/documento';
+import { AcolhidoFoto } from '@/types/acolhido';
 
 // Exemplo de dados iniciais (edição)
 const dadosIniciais = {
@@ -59,6 +61,11 @@ export default function AcolhidoCadastroEdicao() {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [fotos, setFotos] = useState<File[]>([]);
+  const [fotosExistentes, setFotosExistentes] = useState<AcolhidoFoto[]>([]);
+  const [documentos, setDocumentos] = useState<{ file: File, nome: string }[]>([]);
+  const [documentosExistentes, setDocumentosExistentes] = useState<any[]>([]);
+  const [novoDocumentoTitulo, setNovoDocumentoTitulo] = useState('');
+  const [novoDocumentoArquivo, setNovoDocumentoArquivo] = useState<File | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -80,8 +87,19 @@ export default function AcolhidoCadastroEdicao() {
           setCreas(listaCreas.map((c: any) => ({ id: c.id, nome: c.nome })));
         }
         if (id) {
+          console.log('Buscando dados do acolhido:', id);
           const acolhido = await acolhidoService.getAcolhidoById(id);
           setForm(acolhido);
+
+          // Buscar fotos do acolhido
+          console.log('Buscando fotos do acolhido...');
+          const fotosAcolhido = await acolhidoService.getAcolhidoFotos(id);
+          setFotosExistentes(fotosAcolhido);
+
+          // Buscar documentos do acolhido
+          console.log('Buscando documentos do acolhido...');
+          const documentosAcolhido = await documentoService.getDocumentosByAcolhido(id);
+          setDocumentosExistentes(documentosAcolhido);
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -215,6 +233,74 @@ export default function AcolhidoCadastroEdicao() {
     }
   }
 
+  async function handleRemoveFotoExistente(fotoId: string) {
+    try {
+      await acolhidoService.deleteAcolhidoFoto(fotoId);
+      setFotosExistentes(prev => prev.filter(f => f.id !== fotoId));
+      toast({ title: 'Foto removida com sucesso' });
+    } catch (error) {
+      console.error('Erro ao remover foto:', error);
+      toast({ 
+        title: 'Erro ao remover foto', 
+        description: 'Não foi possível remover a foto',
+        variant: 'destructive'
+      });
+    }
+  }
+
+  function handleNovoDocumentoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNovoDocumentoArquivo(file);
+    }
+  }
+
+  async function handleAdicionarDocumento() {
+    if (!novoDocumentoArquivo || !novoDocumentoTitulo) return;
+
+    try {
+      const url = await documentoService.uploadDocumento(novoDocumentoArquivo, id!);
+      await documentoService.createDocumento({
+        acolhido_id: id!,
+        titulo: novoDocumentoTitulo,
+        url: url,
+        tipo: 'outros'
+      });
+
+      // Recarregar documentos
+      const documentosAtualizados = await documentoService.getDocumentosByAcolhido(id!);
+      setDocumentosExistentes(documentosAtualizados);
+
+      // Limpar formulário
+      setNovoDocumentoTitulo('');
+      setNovoDocumentoArquivo(null);
+
+      toast({ title: 'Documento adicionado com sucesso' });
+    } catch (error) {
+      console.error('Erro ao adicionar documento:', error);
+      toast({ 
+        title: 'Erro ao adicionar documento', 
+        description: 'Não foi possível adicionar o documento',
+        variant: 'destructive'
+      });
+    }
+  }
+
+  async function handleRemoveDocumentoExistente(docId: string) {
+    try {
+      await documentoService.deleteDocumento(docId);
+      setDocumentosExistentes(prev => prev.filter(d => d.id !== docId));
+      toast({ title: 'Documento removido com sucesso' });
+    } catch (error) {
+      console.error('Erro ao remover documento:', error);
+      toast({ 
+        title: 'Erro ao remover documento', 
+        description: 'Não foi possível remover o documento',
+        variant: 'destructive'
+      });
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">{id ? 'Editar' : 'Cadastrar'} Acolhido</h1>
@@ -238,30 +324,66 @@ export default function AcolhidoCadastroEdicao() {
               {renderEditableField('Telefone', 'telefone', 'text', true)}
               {renderAbrigoField()}
               {/* Campo de foto: obrigatório pelo menos 1, máximo 5 */}
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-4">
                 <label className="w-48 font-medium">Foto <span className="text-red-500">*</span></label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="w-64"
-                  onChange={handleFotosChange}
-                />
-                <span className="text-xs text-gray-500">Mín. 1, máx. 5 fotos</span>
-              </div>
-              {/* Previews das fotos */}
-              {fotos.length > 0 && (
-                <div className="flex gap-2 mb-4">
-                  {fotos.map((file, idx) => (
-                    <img
-                      key={idx}
-                      src={URL.createObjectURL(file)}
-                      alt={`Foto ${idx + 1}`}
-                      className="w-16 h-16 object-cover rounded border"
+                <div className="mt-2">
+                  {/* Fotos existentes */}
+                  {fotosExistentes.length > 0 && (
+                    <div className="flex flex-wrap gap-4 mb-4">
+                      {fotosExistentes.map((foto) => (
+                        <div key={foto.id} className="relative group">
+                          <img
+                            src={foto.url}
+                            alt="Foto do acolhido"
+                            className="w-20 h-20 object-cover rounded border shadow"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFotoExistente(foto.id)}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                            title="Remover foto"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Upload de novas fotos */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="w-64"
+                      onChange={handleFotosChange}
                     />
-                  ))}
+                    <span className="text-xs text-gray-500">Mín. 1, máx. 5 fotos</span>
+                  </div>
+                  {/* Preview das novas fotos */}
+                  {fotos.length > 0 && (
+                    <div className="flex flex-wrap gap-4 mt-4">
+                      {fotos.map((file, idx) => (
+                        <div key={idx} className="relative group">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Nova foto ${idx + 1}`}
+                            className="w-20 h-20 object-cover rounded border shadow"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFotos(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                            title="Remover foto"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
               {renderEditableField('CPF', 'cpf', 'text')}
               {renderEditableField('RG', 'rg', 'text')}
               {renderEditableField('Endereço', 'endereco', 'text')}
@@ -329,37 +451,69 @@ export default function AcolhidoCadastroEdicao() {
               </div>
             </TabsContent>
             <TabsContent value="documentos">
-              <div className="mb-4">
-                <label className="font-medium">RG (arquivo)</label>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block mt-1" />
-              </div>
-              <div className="mb-4">
-                <label className="font-medium">CPF (arquivo)</label>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block mt-1" />
-              </div>
-              <div className="mb-4">
-                <label className="font-medium">Certidão de Nascimento</label>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block mt-1" />
-              </div>
-              <div className="mb-4">
-                <label className="font-medium">Carteira de Vacinação</label>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block mt-1" />
-              </div>
-              <div className="mb-4">
-                <label className="font-medium">Histórico Escolar</label>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block mt-1" />
-              </div>
-              <div className="mb-4">
-                <label className="font-medium">Laudo Médico</label>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block mt-1" />
-              </div>
-              <div className="mb-4">
-                <label className="font-medium">Receita de Remédio</label>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block mt-1" />
-              </div>
-              <div className="mb-4">
-                <label className="font-medium">Outros Arquivos</label>
-                <input type="file" multiple className="block mt-1" />
+              <div className="space-y-6">
+                {/* Documentos existentes */}
+                {documentosExistentes.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {documentosExistentes.map((doc) => (
+                      <div key={doc.id} className="bg-gray-50 p-4 rounded-lg border">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium">{doc.titulo}</h3>
+                          <div className="flex gap-2">
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              Visualizar
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDocumentoExistente(doc.id)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500">{doc.tipo}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload de novos documentos */}
+                <div className="mt-6">
+                  <h3 className="font-medium mb-4">Adicionar Novos Documentos</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Título do Documento</label>
+                      <Input
+                        type="text"
+                        value={novoDocumentoTitulo}
+                        onChange={(e) => setNovoDocumentoTitulo(e.target.value)}
+                        placeholder="Digite o título do documento"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Arquivo</label>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleNovoDocumentoChange}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleAdicionarDocumento}
+                      disabled={!novoDocumentoArquivo || !novoDocumentoTitulo}
+                    >
+                      Adicionar Documento
+                    </Button>
+                  </div>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
