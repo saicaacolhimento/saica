@@ -1,0 +1,1 @@
+ALTER TABLE public.orgaos DROP COLUMN IF EXISTS nome; 
