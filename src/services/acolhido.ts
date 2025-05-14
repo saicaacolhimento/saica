@@ -57,33 +57,34 @@ export const acolhidoService = {
     try {
       console.log('[acolhidoService] Buscando acolhido por ID:', id);
       
-      // Verificar se há uma sessão ativa
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão não encontrada');
-      }
-
-      const { data, error } = await supabase
+      const { data, error, status, statusText } = await supabase
         .from('acolhidos')
         .select(`
           *,
+          empresa:empresa_id (id, nome),
           fotos:acolhido_fotos (id, url)
         `)
         .eq('id', id)
         .single();
 
+      console.log('[acolhidoService] Resposta Supabase:', { data, error, status, statusText });
+
       if (error) {
-        console.error('[acolhidoService] Erro ao buscar acolhido:', error);
+        console.error('[acolhidoService] Erro ao buscar acolhido:', error, { status, statusText });
+        if (error.code === '401' || error.code === '403') {
+          console.error('[acolhidoService] Erro de autenticação! Token pode estar expirado ou inválido.');
+        }
         throw error;
       }
 
       if (!data) {
+        console.warn('[acolhidoService] Nenhum dado retornado para o acolhido:', id);
         throw new Error('Acolhido não encontrado');
       }
 
       return data;
     } catch (error) {
-      console.error('[acolhidoService] Erro ao buscar acolhido:', error);
+      console.error('[acolhidoService] Erro inesperado ao buscar acolhido:', error);
       throw error;
     }
   },
@@ -92,12 +93,6 @@ export const acolhidoService = {
     try {
       console.log('[acolhidoService] Criando novo acolhido...');
       
-      // Verificar se há uma sessão ativa
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão não encontrada');
-      }
-
       // Tratamento para campos de data vazios
       const payload = {
         ...data,
@@ -137,12 +132,6 @@ export const acolhidoService = {
   async updateAcolhido(id: string, data: UpdateAcolhidoData): Promise<Acolhido> {
     try {
       console.log('[acolhidoService] Atualizando acolhido:', id);
-      
-      // Verificar se há uma sessão ativa
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão não encontrada');
-      }
 
       const { data: acolhido, error } = await supabase
         .from('acolhidos')
@@ -175,12 +164,6 @@ export const acolhidoService = {
   async deleteAcolhido(id: string): Promise<void> {
     try {
       console.log('[acolhidoService] Deletando acolhido:', id);
-      
-      // Verificar se há uma sessão ativa
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão não encontrada');
-      }
 
       const { error } = await supabase
         .from('acolhidos')
@@ -203,12 +186,6 @@ export const acolhidoService = {
   async getAcolhidoFotos(acolhidoId: string): Promise<AcolhidoFoto[]> {
     try {
       console.log('[acolhidoService] Buscando fotos do acolhido:', acolhidoId);
-      
-      // Verificar se há uma sessão ativa
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão não encontrada');
-      }
 
       const { data, error } = await supabase
         .from('acolhido_fotos')
@@ -231,12 +208,6 @@ export const acolhidoService = {
   async createAcolhidoFoto(data: CreateAcolhidoFotoData): Promise<AcolhidoFoto> {
     try {
       console.log('[acolhidoService] Criando nova foto para acolhido:', data.acolhido_id);
-      
-      // Verificar se há uma sessão ativa
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão não encontrada');
-      }
 
       const { data: foto, error } = await supabase
         .from('acolhido_fotos')
@@ -264,12 +235,6 @@ export const acolhidoService = {
   async updateAcolhidoFoto(id: string, data: UpdateAcolhidoFotoData): Promise<AcolhidoFoto> {
     try {
       console.log('[acolhidoService] Atualizando foto:', id);
-      
-      // Verificar se há uma sessão ativa
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão não encontrada');
-      }
 
       const { data: foto, error } = await supabase
         .from('acolhido_fotos')
@@ -298,12 +263,6 @@ export const acolhidoService = {
   async deleteAcolhidoFoto(id: string): Promise<void> {
     try {
       console.log('[acolhidoService] Deletando foto:', id);
-      
-      // Verificar se há uma sessão ativa
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sessão não encontrada');
-      }
 
       const { error } = await supabase
         .from('acolhido_fotos')

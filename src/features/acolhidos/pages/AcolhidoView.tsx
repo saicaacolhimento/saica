@@ -15,18 +15,11 @@ export function AcolhidoView() {
   const { user, session } = useAuth()
   const [isPrinting, setIsPrinting] = useState(false)
 
-  // Verificar autenticação
-  useEffect(() => {
-    if (!user || !session) {
-      navigate('/login')
-    }
-  }, [user, session, navigate])
-
   // Buscar dados do acolhido
   const { data: acolhido, isLoading, error } = useQuery({
     queryKey: ['acolhido', id],
     queryFn: () => acolhidoService.getAcolhidoById(id!),
-    enabled: !!id && !!user && !!session
+    enabled: !!id
   })
 
   // Função para imprimir

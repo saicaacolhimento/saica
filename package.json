@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "brazilian-cities": "^2.1.1"
+    "brazilian-cities": "^2.1.1",
+    "moment": "^2.30.1",
+    "react-big-calendar": "^1.18.0"
   }
 }

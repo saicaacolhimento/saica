@@ -1,9 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createBrowserRouter } from 'react-router-dom';
 import { AuthLayout } from '@/layouts/AuthLayout';
-import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { Login } from '@/features/auth/pages/Login';
 import { Dashboard } from '@/features/dashboard/pages/Dashboard';
 import { AcolhidoList } from '@/features/acolhidos/pages/AcolhidoList';
@@ -20,94 +18,12 @@ import { NotFound } from '@/features/not-found/pages/NotFound';
 import AdminLayout from '@/layouts/AdminLayout';
 import PrivateRoute from '@/components/PrivateRoute';
 import UsuariosAdminList from '@/pages/admin/Usuarios';
+import ShelterDetails from '@/features/shelters/pages/ShelterDetails';
+import EditShelter from '@/features/shelters/pages/EditShelter';
+import PermissoesEmpresa from '@/pages/admin/PermissoesEmpresa';
+import Configuracoes from '@/pages/admin/Configuracoes';
 
 const queryClient = new QueryClient();
-
-export const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <AuthLayout />,
-    children: [
-      {
-        path: 'login',
-        element: <Login />
-      }
-    ]
-  },
-  {
-    path: '/admin',
-    element: <DashboardLayout />,
-    children: [
-      {
-        path: '',
-        element: <Dashboard />
-      },
-      {
-        path: 'criancas',
-        children: [
-          {
-            index: true,
-            element: <AcolhidoList />
-          },
-          {
-            path: 'novo',
-            element: <AcolhidoCadastroEdicao />
-          },
-          {
-            path: ':id',
-            element: <AcolhidoCadastroEdicao />
-          },
-          {
-            path: ':id/visualizar',
-            element: <AcolhidoView />
-          }
-        ]
-      },
-      {
-        path: 'abrigos',
-        children: [
-          {
-            index: true,
-            element: <ShelterList />
-          },
-          {
-            path: 'novo',
-            element: <ShelterCadastroEdicao />
-          },
-          {
-            path: ':id',
-            element: <ShelterCadastroEdicao />
-          }
-        ]
-      },
-      {
-        path: 'usuarios',
-        children: [
-          {
-            index: true,
-            element: <UserList />
-          },
-          {
-            path: 'novo',
-            element: <UserCadastroEdicao />
-          },
-          {
-            path: ':id',
-            element: <UserCadastroEdicao />
-          }
-        ]
-      },
-      {
-        path: 'perfil',
-        element: <Profile />
-      }
-    ]
-  },
-  {
-    path: '*',
-    element: <NotFound />
-  }
-]);
 
 export default function AppRoutes() {
   return (
@@ -141,7 +57,10 @@ export default function AppRoutes() {
               <Route path="relatorios" element={<div>Relatórios</div>} />
               <Route path="documentos" element={<div>Documentos</div>} />
               <Route path="atividades" element={<div>Atividades</div>} />
-              <Route path="configuracoes" element={<div>Configurações</div>} />
+              <Route path="configuracoes">
+                <Route index element={<Configuracoes />} />
+                <Route path="permissoes" element={<PermissoesEmpresa />} />
+              </Route>
             </Route>
             
             {/* Fallback para rotas não encontradas */}
