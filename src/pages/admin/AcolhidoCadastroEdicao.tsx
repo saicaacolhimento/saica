@@ -8,7 +8,7 @@ import { acolhidoService } from '@/services/acolhido';
 import { shelterService } from '@/services/shelter';
 import { useToast } from '@/components/ui/use-toast';
 import { documentoService } from '@/services/documento';
-import { AcolhimentoSection } from '../../../../src/components/AcolhimentoSection';
+import { AcolhimentoSection } from '@/components/AcolhimentoSection';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Exemplo de dados iniciais (edição)
@@ -141,6 +141,7 @@ export default function AcolhidoCadastroEdicao() {
   const [nomeDocSalvo, setNomeDocSalvo] = useState<boolean[]>([]);
   const [cpfExiste, setCpfExiste] = useState(false);
   const [cpfVerificando, setCpfVerificando] = useState(false);
+  const [fotosSalvas, setFotosSalvas] = useState([]);
 
   useEffect(() => {
     console.log('[Cadastro] Estado inicial:', {
@@ -165,6 +166,8 @@ export default function AcolhidoCadastroEdicao() {
           const acolhido = await acolhidoService.getAcolhidoById(id);
           setForm(acolhido);
           console.log('[Cadastro] Dados do acolhido carregados');
+          const fotosSalvas = await acolhidoService.getAcolhidoFotos(id);
+          setFotosSalvas(fotosSalvas);
         }
       } catch (error) {
         console.error('[Cadastro] Erro ao carregar dados iniciais:', error);
@@ -698,9 +701,24 @@ export default function AcolhidoCadastroEdicao() {
     }
   }
 
+  async function handleDeleteFotoSalva(fotoId) {
+    try {
+      await acolhidoService.deleteAcolhidoFoto(fotoId);
+      setFotosSalvas(prev => prev.filter(f => f.id !== fotoId));
+      toast({ title: 'Sucesso', description: 'Foto removida com sucesso!' });
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Erro ao remover foto.', variant: 'destructive' });
+    }
+  }
+
   return (
     <div className="w-full px-4 pt-2 pb-8 bg-white rounded-lg shadow-sm">
-      <h1 className="text-3xl font-bold mb-8 text-saica-blue">{id ? 'Editar' : 'Cadastrar'} Acolhido</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">{id ? 'Editar Acolhido' : 'Cadastrar Acolhido'}</h1>
+        <Button variant="outline" onClick={() => navigate('/admin/criancas')}>
+          Voltar
+        </Button>
+      </div>
       {loading ? (
         <div className="text-center text-blue-700 font-medium py-8">Carregando dados...</div>
       ) : (
@@ -717,14 +735,36 @@ export default function AcolhidoCadastroEdicao() {
             <TabsContent value="dados">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 mb-8">
                 <div>
-                  {/* Previews das fotos centralizadas */}
+                  {/* Previews das fotos cadastradas */}
+                  {fotosSalvas.length > 0 && (
+                    <div className="flex justify-center gap-4 mb-4">
+                      {fotosSalvas.map((foto, idx) => (
+                        <div key={foto.id || idx} className="relative group">
+                          <img
+                            src={foto.url}
+                            alt={`Foto cadastrada ${idx + 1}`}
+                            className="w-20 h-20 object-cover rounded border shadow"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFotoSalva(foto.id)}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                            title="Remover foto cadastrada"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Previews das fotos novas */}
                   {fotos.length > 0 && (
                     <div className="flex justify-center gap-4 mb-4">
                       {fotos.map((file, idx) => (
                         <div key={idx} className="relative group">
                           <img
                             src={URL.createObjectURL(file)}
-                            alt={`Foto ${idx + 1}`}
+                            alt={`Foto nova ${idx + 1}`}
                             className="w-20 h-20 object-cover rounded border shadow"
                           />
                           <button
