@@ -8,7 +8,7 @@ import { acolhidoService } from '@/services/acolhido';
 import { shelterService } from '@/services/shelter';
 import { useToast } from '@/components/ui/use-toast';
 import { documentoService } from '@/services/documento';
-import { AcolhimentoSection } from '@/components/AcolhimentoSection';
+import { AcolhimentoSection } from '../../../components/AcolhimentoSection';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Exemplo de dados iniciais (edição)
