@@ -28,42 +28,42 @@ export default function AppRoutes() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AuthLayout />} />
-          <Route path="/login" element={<AuthLayout />} />
-          
-          <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+          <Routes>
+            <Route path="/" element={<AuthLayout />} />
+            <Route path="/login" element={<AuthLayout />} />
             
-            {/* Rotas de Empresas */}
-            <Route path="empresas">
-              <Route index element={<ShelterList />} />
-              <Route path=":id" element={<ShelterDetails />} />
-              <Route path=":id/editar" element={<EditShelter />} />
-            </Route>
+            <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              
+              {/* Rotas de Empresas */}
+              <Route path="empresas">
+                <Route index element={<ShelterList />} />
+                <Route path=":id" element={<ShelterDetails />} />
+                <Route path=":id/editar" element={<EditShelter />} />
+              </Route>
 
-            {/* Rotas de Crianças/Acolhidos */}
-            <Route path="criancas">
-              <Route index element={<AcolhidoList />} />
-              <Route path="novo" element={<AcolhidoCadastroEdicao />} />
-              <Route path=":id" element={<AcolhidoCadastroEdicao />} />
-              <Route path=":id/visualizar" element={<AcolhidoView />} />
-            </Route>
+              {/* Rotas de Crianças/Acolhidos */}
+              <Route path="criancas">
+                <Route index element={<AcolhidoList />} />
+                <Route path="novo" element={<AcolhidoCadastroEdicao />} />
+                <Route path=":id" element={<AcolhidoCadastroEdicao />} />
+                <Route path=":id/visualizar" element={<AcolhidoView />} />
+              </Route>
 
-            <Route path="usuarios" element={<UsuariosAdminList />} />
-            <Route path="relatorios" element={<div>Relatórios</div>} />
-            <Route path="documentos" element={<div>Documentos</div>} />
-            <Route path="atividades" element={<div>Atividades</div>} />
-            <Route path="configuracoes">
-              <Route index element={<Configuracoes />} />
-              <Route path="permissoes" element={<PermissoesEmpresa />} />
+              <Route path="usuarios" element={<UsuariosAdminList />} />
+              <Route path="relatorios" element={<div>Relatórios</div>} />
+              <Route path="documentos" element={<div>Documentos</div>} />
+              <Route path="atividades" element={<div>Atividades</div>} />
+              <Route path="configuracoes">
+                <Route index element={<Configuracoes />} />
+                <Route path="permissoes" element={<PermissoesEmpresa />} />
+              </Route>
             </Route>
-          </Route>
-          
-          {/* Fallback para rotas não encontradas */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            
+            {/* Fallback para rotas não encontradas */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
       </BrowserRouter>
     </QueryClientProvider>
   );
