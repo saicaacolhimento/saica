@@ -211,4 +211,12 @@ export const authService = {
       .eq('id', id);
     if (error) throw new Error(error.message);
   },
+
+  async getAllUsuarios(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, nome, email, cargo');
+    if (error) throw error;
+    return data;
+  },
 }; 

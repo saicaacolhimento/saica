@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Header from '@/components/Header';
 import Banner from '@/components/Banner';
@@ -11,7 +10,7 @@ import Footer from '@/components/Footer';
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white overflow-x-hidden">
       <Header />
       
       <main className="flex-grow">
@@ -21,12 +20,12 @@ const Index = () => {
           <ChildrenIllustration />
         </div>
         
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
+        <div className="w-full px-2 sm:px-4 md:px-8 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start w-full">
+            <div className="w-full flex justify-center md:justify-end">
               <NetworkDiagram />
             </div>
-            <div>
+            <div className="w-full flex justify-center md:justify-start mt-4 md:mt-0">
               <SaicaInfo />
             </div>
           </div>

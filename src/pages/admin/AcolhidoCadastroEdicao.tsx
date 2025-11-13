@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { documentoService } from '@/services/documento';
 import { AcolhimentoSection } from '../../../../src/components/AcolhimentoSection';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Exemplo de dados iniciais (edição)
 const dadosIniciais = {
@@ -128,6 +129,7 @@ export default function AcolhidoCadastroEdicao() {
   const { id } = useParams(); // se existir, é edição
   const navigate = useNavigate();
   const { user, session } = useAuth();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState('dados');
   const [form, setForm] = useState(dadosIniciais);
   const [editField, setEditField] = useState<string | null>(null);
@@ -141,6 +143,7 @@ export default function AcolhidoCadastroEdicao() {
   const [nomeDocSalvo, setNomeDocSalvo] = useState<boolean[]>([]);
   const [cpfExiste, setCpfExiste] = useState(false);
   const [cpfVerificando, setCpfVerificando] = useState(false);
+  const [fotosSalvas, setFotosSalvas] = useState([]);
 
   useEffect(() => {
     console.log('[Cadastro] Estado inicial:', {
@@ -154,17 +157,41 @@ export default function AcolhidoCadastroEdicao() {
     async function fetchData() {
       setLoading(true);
       try {
+        // Carregar abrigos primeiro (especialmente importante para master)
         if (isMaster) {
           console.log('[Cadastro] Buscando lista de abrigos...');
           const lista = await shelterService.getShelters(1, 100);
-          setAbrigos(lista.map((a: any) => ({ id: a.id, nome: a.nome })));
-          console.log('[Cadastro] Abrigos carregados:', lista.length);
+          const abrigosList = lista.map((a: any) => ({ id: a.id, nome: a.nome }));
+          setAbrigos(abrigosList);
+          console.log('[Cadastro] Abrigos carregados:', abrigosList.length);
         }
+        
+        // Carregar dados do acolhido se estiver editando
         if (id) {
           console.log('[Cadastro] Buscando dados do acolhido:', id);
           const acolhido = await acolhidoService.getAcolhidoById(id);
-          setForm(acolhido);
-          console.log('[Cadastro] Dados do acolhido carregados');
+          console.log('[Cadastro] Acolhido retornado do banco:', {
+            id: acolhido.id,
+            abrigo_id: (acolhido as any).abrigo_id,
+            empresa_id: (acolhido as any).empresa_id
+          });
+          
+          // Mapear abrigo_id para empresa_id (o formulário usa empresa_id)
+          const abrigoId = (acolhido as any).abrigo_id || (acolhido as any).empresa_id || '';
+          const acolhidoComEmpresaId = {
+            ...acolhido,
+            empresa_id: abrigoId
+          };
+          
+          setForm(acolhidoComEmpresaId);
+          console.log('[Cadastro] Dados do acolhido carregados no form:', {
+            abrigo_id: abrigoId,
+            empresa_id: acolhidoComEmpresaId.empresa_id,
+            form_empresa_id: acolhidoComEmpresaId.empresa_id
+          });
+          
+          const fotosSalvas = await acolhidoService.getAcolhidoFotos(id);
+          setFotosSalvas(fotosSalvas);
         }
       } catch (error) {
         console.error('[Cadastro] Erro ao carregar dados iniciais:', error);
@@ -566,16 +593,35 @@ export default function AcolhidoCadastroEdicao() {
     if (!form.nome) return 'Nome é obrigatório';
     if (!form.data_nascimento) return 'Data de nascimento é obrigatória';
     if (isMaster && !form.empresa_id) return 'Selecione a empresa';
-    if (fotos.length < 1) return 'Selecione pelo menos 1 foto';
-    if (fotos.length > 5) return 'Selecione no máximo 5 fotos';
     if (!form.genero) return 'Gênero é obrigatório';
+    
+    // Verificar total de fotos (salvas + novas)
+    const totalFotos = fotosSalvas.length + fotos.length;
+    
+    // Se for cadastro novo (sem id) ou não houver fotos salvas, exigir pelo menos 1 foto
+    if (!id && fotos.length < 1) {
+      return 'Selecione pelo menos 1 foto';
+    }
+    
+    // Se for edição e não houver fotos salvas nem novas, exigir pelo menos 1 foto
+    if (id && fotosSalvas.length === 0 && fotos.length < 1) {
+      return 'Selecione pelo menos 1 foto';
+    }
+    
+    // Validar limite máximo de 5 fotos no total
+    if (totalFotos > 5) {
+      return 'Selecione no máximo 5 fotos no total';
+    }
+    
     return null;
   }
 
   function handleFotosChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
-    if (fotos.length + files.length > 5) {
-      toast({ title: 'Erro', description: 'Selecione no máximo 5 fotos', variant: 'destructive' });
+    // Verificar limite considerando fotos salvas + novas + arquivos sendo adicionados
+    const totalFotos = fotosSalvas.length + fotos.length + files.length;
+    if (totalFotos > 5) {
+      toast({ title: 'Erro', description: 'Selecione no máximo 5 fotos no total', variant: 'destructive' });
       return;
     }
     setFotos(prev => [...prev, ...files]);
@@ -615,24 +661,38 @@ export default function AcolhidoCadastroEdicao() {
     try {
       let acolhidoId = id;
       // Remover campo escola_anterior se existir
-      const { escola_anterior, ...formFiltrado } = form;
+      const { escola_anterior, empresa_id, foto_url, ...formFiltrado } = form;
+      
+      // Mapear empresa_id para abrigo_id (nome correto na tabela)
+      // Se for master, usa empresa_id do formulário, senão usa empresa_id do usuário logado
+      const abrigoId = isMaster ? empresa_id : (user?.empresa_id || empresa_id);
+      
+      if (!abrigoId) {
+        throw new Error('Empresa/Abrigo não identificado. Verifique se você está vinculado a uma empresa.');
+      }
+      
+      const dadosParaEnvio = {
+        ...formFiltrado,
+        abrigo_id: abrigoId,
+      };
       
       console.log('[Cadastro] Estado da autenticação antes do cadastro:', {
-        user: user ? { id: user.id, email: user.email } : null,
+        user: user ? { id: user.id, email: user.email, empresa_id: user.empresa_id } : null,
         session: session ? {
           expires_at: session.expires_at,
           access_token: session.access_token ? 'presente' : 'ausente'
-        } : null
+        } : null,
+        dadosParaEnvio: { ...dadosParaEnvio, abrigo_id: dadosParaEnvio.abrigo_id ? 'preenchido' : 'vazio' }
       });
 
       // 1. Salvar ou atualizar acolhido
       if (id) {
         console.log('[Cadastro] Atualizando acolhido:', id);
-        await acolhidoService.updateAcolhido(id, formFiltrado);
+        await acolhidoService.updateAcolhido(id, dadosParaEnvio);
         console.log('[Cadastro] Acolhido atualizado com sucesso');
       } else {
         console.log('[Cadastro] Criando novo acolhido');
-        const novo = await acolhidoService.createAcolhido(formFiltrado);
+        const novo = await acolhidoService.createAcolhido(dadosParaEnvio);
         acolhidoId = novo.id;
         console.log('[Cadastro] Novo acolhido criado:', acolhidoId);
       }
@@ -643,10 +703,15 @@ export default function AcolhidoCadastroEdicao() {
           console.log('[Cadastro] Iniciando upload da foto:', file.name);
           const url = await acolhidoService.uploadFoto(file, acolhidoId, 'foto_perfil');
           console.log('[Cadastro] Upload da foto concluído:', url);
-          await acolhidoService.createAcolhidoFoto({ acolhido_id: acolhidoId, url, tipo: 'foto_perfil' });
-          console.log('[Cadastro] Registro da foto salvo na tabela acolhido_fotos:', url);
+          const fotoSalva = await acolhidoService.createAcolhidoFoto({ acolhido_id: acolhidoId, url, tipo: 'foto_perfil' });
+          console.log('[Cadastro] Registro da foto salvo na tabela acolhido_fotos:', fotoSalva);
+          
+          // Verificar se a foto foi realmente salva
+          const fotosVerificadas = await acolhidoService.getAcolhidoFotos(acolhidoId);
+          console.log('[Cadastro] Fotos verificadas após salvar:', fotosVerificadas);
         } catch (fotoErr) {
           console.error('[Cadastro] Erro ao enviar foto:', fotoErr);
+          // Não bloquear o cadastro se a foto falhar
         }
       }
 
@@ -680,6 +745,9 @@ export default function AcolhidoCadastroEdicao() {
         } : null
       });
 
+      // Invalidar queries para atualizar a lista
+      queryClient.invalidateQueries({ queryKey: ['acolhidos'] });
+      
       toast({
         title: 'Sucesso',
         description: id ? 'Acolhido atualizado com sucesso!' : 'Acolhido cadastrado com sucesso!'
@@ -698,9 +766,24 @@ export default function AcolhidoCadastroEdicao() {
     }
   }
 
+  async function handleDeleteFotoSalva(fotoId) {
+    try {
+      await acolhidoService.deleteAcolhidoFoto(fotoId);
+      setFotosSalvas(prev => prev.filter(f => f.id !== fotoId));
+      toast({ title: 'Sucesso', description: 'Foto removida com sucesso!' });
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Erro ao remover foto.', variant: 'destructive' });
+    }
+  }
+
   return (
     <div className="w-full px-4 pt-2 pb-8 bg-white rounded-lg shadow-sm">
-      <h1 className="text-3xl font-bold mb-8 text-saica-blue">{id ? 'Editar' : 'Cadastrar'} Acolhido</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">{id ? 'Editar Acolhido' : 'Cadastrar Acolhido'}</h1>
+        <Button variant="outline" onClick={() => navigate('/admin/criancas')}>
+          Voltar
+        </Button>
+      </div>
       {loading ? (
         <div className="text-center text-blue-700 font-medium py-8">Carregando dados...</div>
       ) : (
@@ -717,14 +800,36 @@ export default function AcolhidoCadastroEdicao() {
             <TabsContent value="dados">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 mb-8">
                 <div>
-                  {/* Previews das fotos centralizadas */}
+                  {/* Previews das fotos cadastradas */}
+                  {fotosSalvas.length > 0 && (
+                    <div className="flex justify-center gap-4 mb-4">
+                      {fotosSalvas.map((foto, idx) => (
+                        <div key={foto.id || idx} className="relative group">
+                          <img
+                            src={foto.url}
+                            alt={`Foto cadastrada ${idx + 1}`}
+                            className="w-20 h-20 object-cover rounded border shadow"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFotoSalva(foto.id)}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                            title="Remover foto cadastrada"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Previews das fotos novas */}
                   {fotos.length > 0 && (
                     <div className="flex justify-center gap-4 mb-4">
                       {fotos.map((file, idx) => (
                         <div key={idx} className="relative group">
                           <img
                             src={URL.createObjectURL(file)}
-                            alt={`Foto ${idx + 1}`}
+                            alt={`Foto nova ${idx + 1}`}
                             className="w-20 h-20 object-cover rounded border shadow"
                           />
                           <button
@@ -742,7 +847,10 @@ export default function AcolhidoCadastroEdicao() {
                   {/* Botão de upload centralizado e menor */}
                   <div className="flex justify-center mb-6">
                     <label className="w-48 font-medium flex flex-col items-center gap-2">
-                      <span>Foto <span className="text-red-500">*</span></span>
+                      <span>
+                        Foto 
+                        {(!id || fotosSalvas.length === 0) && <span className="text-red-500">*</span>}
+                      </span>
                       <input
                         id="input-foto"
                         type="file"
@@ -754,7 +862,12 @@ export default function AcolhidoCadastroEdicao() {
                       <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('input-foto')?.click()}>
                         Escolher arquivos
                       </Button>
-                      <span className="text-xs text-gray-500">Mín. 1, máx. 5 fotos</span>
+                      <span className="text-xs text-gray-500">
+                        {id && fotosSalvas.length > 0 
+                          ? `Máx. 5 fotos no total (${fotosSalvas.length} já cadastrada${fotosSalvas.length > 1 ? 's' : ''})`
+                          : 'Mín. 1, máx. 5 fotos'
+                        }
+                      </span>
                     </label>
                   </div>
                   {renderEditableField('Nome', 'nome', 'text', true)}

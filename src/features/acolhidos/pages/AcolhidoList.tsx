@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
@@ -11,209 +11,189 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { Pencil, Trash2, Plus, Loader2, Eye } from 'lucide-react'
 import { acolhidoService } from '@/services/acolhido'
-import { useAcolhido } from '@/hooks/useAcolhido'
-import { CreateAcolhidoData } from '@/types/acolhido'
-import { Upload, FileText, X, Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { Acolhido } from '@/types/acolhido'
+import { shelterService } from '@/services/shelter'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+
+// Função utilitária para calcular idade
+function calcularIdade(dataNascimento: string): number {
+  const hoje = new Date();
+  const nascimento = new Date(dataNascimento);
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  const m = hoje.getMonth() - nascimento.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) {
+    idade--;
+  }
+  return idade;
+}
 
 export function AcolhidoList() {
   console.log('[AcolhidoList] Componente montado');
   const { user, session } = useAuth();
   console.log('[AcolhidoList] Contexto de autenticação:', { user, session });
+  
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [newAcolhido, setNewAcolhido] = useState<CreateAcolhidoData>({
-    nome: '',
-    data_nascimento: '',
-    nome_mae: '',
-    nome_pai: '',
-    cpf: '',
-    rg: '',
-    endereco: '',
-    telefone: '',
-    abrigo_id: '',
-    status: 'ativo',
-    genero: '',
-    naturalidade: '',
-    nacionalidade: '',
-    etnia: '',
-    religiao: '',
-    tipo_sanguineo: '',
-    alergias: '',
-    medicamentos: '',
-    deficiencias: '',
-    escola: '',
-    serie: '',
-    turno: '',
-    observacoes_educacionais: '',
-    nome_responsavel: '',
-    parentesco_responsavel: '',
-    cpf_responsavel: '',
-    telefone_responsavel: '',
-    endereco_responsavel: '',
-    data_entrada: '',
-    motivo_acolhimento: '',
-    rg_file: undefined,
-    cpf_file: undefined,
-    certidaoNascimento_file: undefined,
-    certidaoCasamento_file: undefined,
-    carteira_vacinacao_file: undefined
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [fileNames, setFileNames] = useState({
-    rg: '',
-    cpf: '',
-    certidaoNascimento: '',
-    certidaoCasamento: '',
-    carteira_vacinacao: ''
-  })
-  const [editingAcolhido, setEditingAcolhido] = useState<CreateAcolhidoData | null>(null)
-  const [fotos, setFotos] = useState<File[]>([])
-  const [fotoPreview, setFotoPreview] = useState<string[]>([])
+  const [fotosMap, setFotosMap] = useState<{ [acolhidoId: string]: string | null }>({});
+  const [loadingFotos, setLoadingFotos] = useState(false);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 10;
+  const [abrigosMap, setAbrigosMap] = useState<{ [id: string]: string }>({});
+  const [acolhidoToDelete, setAcolhidoToDelete] = useState<Acolhido | null>(null);
 
-  const {
-    acolhidos,
-    isLoadingAcolhidos,
-    createAcolhido,
-    updateAcolhido,
-    deleteAcolhido
-  } = useAcolhido()
+  // Buscar acolhidos usando React Query
+  const { data: acolhidosData, isLoading, error } = useQuery({
+    queryKey: ['acolhidos', paginaAtual],
+    queryFn: async () => {
+      const result = await acolhidoService.getAcolhidos(paginaAtual, itensPorPagina);
+      console.log('[AcolhidoList] Acolhidos retornados:', result);
+      return result;
+    },
+    keepPreviousData: true,
+    staleTime: 0, // Sempre buscar dados atualizados
+  });
 
-  const filteredAcolhidos = acolhidos?.filter(acolhido =>
-    acolhido.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    acolhido.nome_mae.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const acolhidos = acolhidosData?.data || [];
+  const totalAcolhidos = acolhidosData?.total || 0;
+  const totalPaginas = Math.ceil(totalAcolhidos / itensPorPagina);
+  
+  console.log('[AcolhidoList] Estado atual:', {
+    acolhidos: acolhidos.length,
+    totalAcolhidos,
+    paginaAtual,
+    totalPaginas,
+    isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Erro desconhecido') : null
+  });
 
-  const handleCreate = async () => {
-    try {
-      setIsLoading(true)
-      
-      const response = await acolhidoService.create(newAcolhido)
-      
-      if (response.id) {
-        if (newAcolhido.rg_file) {
-          await acolhidoService.uploadDocument(newAcolhido.rg_file, response.id, 'rg')
-        }
-        
-        if (newAcolhido.cpf_file) {
-          await acolhidoService.uploadDocument(newAcolhido.cpf_file, response.id, 'cpf')
-        }
-        
-        if (newAcolhido.certidaoNascimento_file) {
-          await acolhidoService.uploadDocument(newAcolhido.certidaoNascimento_file, response.id, 'certidaoNascimento')
-        }
-        
-        if (newAcolhido.certidaoCasamento_file) {
-          await acolhidoService.uploadDocument(newAcolhido.certidaoCasamento_file, response.id, 'certidaoCasamento')
+  // Buscar fotos dos acolhidos
+  useEffect(() => {
+    async function fetchFotos() {
+      if (!acolhidos) return;
+      setLoadingFotos(true);
+      const map: { [acolhidoId: string]: string | null } = {};
+      for (const acolhido of acolhidos) {
+        try {
+          const fotos = await acolhidoService.getAcolhidoFotos(acolhido.id);
+          if (fotos && fotos.length > 0) {
+            // Se a url não for pública, gerar a url pública
+            let url = fotos[0].url;
+            if (url && !url.startsWith('http')) {
+              // Supondo que as fotos estão no storage do Supabase
+              const { data } = acolhidoService.supabase.storage.from('acolhidos').getPublicUrl(url);
+              url = data.publicUrl;
+            }
+            map[acolhido.id] = url;
+          } else {
+            map[acolhido.id] = null;
+          }
+        } catch (e) {
+          map[acolhido.id] = null;
         }
       }
-
-      toast({
-        title: 'Sucesso',
-        description: 'Acolhido criado com sucesso!'
-      })
-      setIsDialogOpen(false)
-      queryClient.invalidateQueries(['acolhidos'])
-      
-    } catch (error) {
-      console.error(error)
-      toast({
-        title: 'Erro',
-        description: 'Erro ao criar acolhido',
-        variant: 'destructive'
-      })
-    } finally {
-      setIsLoading(false)
+      setFotosMap(map);
+      setLoadingFotos(false);
     }
-  }
+    fetchFotos();
+  }, [acolhidos]);
 
-  const handleDeleteAcolhido = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este acolhido?')) {
+  // Buscar nomes das empresas (abrigos)
+  useEffect(() => {
+    async function fetchEmpresas() {
+      if (!acolhidos) return;
+      // Usar abrigo_id (nome correto na tabela)
+      const ids = Array.from(new Set(acolhidos.map(a => (a as any).abrigo_id || (a as any).empresa_id).filter(Boolean)));
+      console.log('[AcolhidoList] IDs de empresas encontrados nos acolhidos:', ids);
+      if (ids.length === 0) return;
       try {
-        await deleteAcolhido(id)
-      } catch (error) {
-        console.error(error)
+        // Buscar todas as empresas necessárias
+        const empresas = await shelterService.getSheltersByIds(ids);
+        console.log('[AcolhidoList] Empresas retornadas do banco:', empresas);
+        const map: { [id: string]: string } = {};
+        empresas.forEach((empresa: any) => {
+          map[empresa.id] = empresa.nome;
+        });
+        setAbrigosMap(map);
+      } catch (e) {
+        console.error('[AcolhidoList] Erro ao buscar empresas:', e);
+        setAbrigosMap({});
       }
     }
-  }
+    fetchEmpresas();
+  }, [acolhidos]);
 
-  const handleEdit = (acolhido: CreateAcolhidoData) => {
-    setEditingAcolhido(acolhido)
-    setNewAcolhido(acolhido)
-    setIsDialogOpen(true)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      setIsLoading(true)
-      if (editingAcolhido) {
-        await updateAcolhido(newAcolhido)
-      } else {
-        await handleCreate()
-      }
-    } catch (error) {
-      console.error(error)
-      toast.error('Erro ao salvar acolhido')
-    } finally {
-      setIsLoading(false)
+  // Mutação para deletar acolhido
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log('[AcolhidoList] Deletando acolhido:', id);
+      await acolhidoService.deleteAcolhido(id);
+    },
+    onSuccess: () => {
+      console.log('[AcolhidoList] Acolhido deletado com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['acolhidos'] });
+      toast({
+        title: "Sucesso",
+        description: "Acolhido removido com sucesso",
+      });
+    },
+    onError: (error) => {
+      console.error('[AcolhidoList] Erro ao deletar acolhido:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao remover acolhido",
+        variant: "destructive",
+      });
     }
-  }
+  });
 
-  const handleFileChange = (field: 'rg_file' | 'cpf_file' | 'certidaoNascimento_file' | 'certidaoCasamento_file' | 'carteira_vacinacao_file') => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setNewAcolhido(prev => ({...prev, [field]: file}))
-      setFileNames(prev => ({...prev, [field.replace('_file', '')]: file.name}))
-    }
-  }
+  const handleDeleteAcolhido = (acolhido: Acolhido) => {
+    setAcolhidoToDelete(acolhido);
+  };
 
-  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    if (fotos.length + files.length > 5) {
-      toast.error('Máximo de 5 fotos permitido')
-      return
-    }
-    setFotos([...fotos, ...files])
-    const previews = files.map(file => URL.createObjectURL(file))
-    setFotoPreview([...fotoPreview, ...previews])
-  }
+  const handleEdit = (acolhido: Acolhido) => {
+    navigate(`/admin/criancas/${acolhido.id}`);
+  };
 
-  const removeFoto = (index: number) => {
-    const newFotos = [...fotos]
-    const newPreviews = [...fotoPreview]
-    newFotos.splice(index, 1)
-    newPreviews.splice(index, 1)
-    setFotos(newFotos)
-    setFotoPreview(newPreviews)
-  }
+  const handleView = (acolhido: Acolhido) => {
+    navigate(`/admin/criancas/${acolhido.id}/visualizar`);
+  };
 
-  if (isLoadingAcolhidos) {
-    return <div>Carregando...</div>
+  if (error) {
+    console.error('[AcolhidoList] Erro ao carregar acolhidos:', error);
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-red-500">
+          Erro ao carregar acolhidos. Por favor, tente novamente.
+          <br />
+          <small>Detalhes: {error instanceof Error ? error.message : 'Erro desconhecido'}</small>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Acolhidos</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Acolhidos</h1>
+          <span className="text-sm text-gray-600">{totalAcolhidos} acolhido(s) cadastrados</span>
+        </div>
         <Button onClick={() => navigate('/admin/criancas/novo')}>
-          <Plus className="h-4 w-4 mr-2" />
           Novo Acolhido
         </Button>
       </div>
@@ -227,54 +207,159 @@ export function AcolhidoList() {
       </div>
 
       <div className="bg-white rounded-lg shadow">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Data de Nascimento</TableHead>
-              <TableHead>Nome da Mãe</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredAcolhidos?.map((acolhido) => (
-              <TableRow key={acolhido.id}>
-                <TableCell className="font-medium">{acolhido.nome}</TableCell>
-                <TableCell>{new Date(acolhido.data_nascimento).toLocaleDateString()}</TableCell>
-                <TableCell>{acolhido.nome_mae}</TableCell>
-                <TableCell>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    acolhido.status === 'ativo' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {acolhido.status === 'ativo' ? 'Ativo' : 'Inativo'}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(acolhido)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteAcolhido(acolhido.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+        {isLoading ? (
+          <div className="flex justify-center items-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <span className="ml-2">Carregando acolhidos...</span>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center">Foto</TableHead>
+                <TableHead className="text-center">Nome</TableHead>
+                <TableHead className="text-center">Data de Nascimento</TableHead>
+                <TableHead className="text-center">Idade</TableHead>
+                <TableHead className="text-center">Abrigo</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {loadingFotos ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                    Carregando fotos...
+                  </TableCell>
+                </TableRow>
+              ) : acolhidos.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                    Nenhum acolhido encontrado com os critérios de busca.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                acolhidos.map((acolhido) => (
+                  <TableRow key={acolhido.id}>
+                    <TableCell className="text-center">
+                      {fotosMap[acolhido.id] ? (
+                        <img
+                          src={fotosMap[acolhido.id]!}
+                          alt={acolhido.nome}
+                          className="w-[80px] h-[80px] object-cover border"
+                        />
+                      ) : (
+                        <div className="w-[80px] h-[80px] bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                          {acolhido.nome.charAt(0)}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center font-medium">{acolhido.nome}</TableCell>
+                    <TableCell className="text-center">{new Date(acolhido.data_nascimento).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-center">{calcularIdade(acolhido.data_nascimento)}</TableCell>
+                    <TableCell className="text-center">{abrigosMap[(acolhido as any).abrigo_id || (acolhido as any).empresa_id] || '-'}</TableCell>
+                    <TableCell className="text-center">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        acolhido.status === 'ativo' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {acolhido.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleView(acolhido)}
+                          title="Visualizar"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(acolhido)}
+                          title="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteAcolhido(acolhido)}
+                          title="Excluir"
+                          disabled={deleteMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
+
+      {/* Controles de paginação */}
+      {totalPaginas > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
+            disabled={paginaAtual === 1}
+          >
+            Anterior
+          </Button>
+          <span className="mx-2">Página {paginaAtual} de {totalPaginas}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
+            disabled={paginaAtual === totalPaginas}
+          >
+            Próxima
+          </Button>
+        </div>
+      )}
+
+      {/* Modal de confirmação de exclusão */}
+      <AlertDialog open={!!acolhidoToDelete} onOpenChange={() => setAcolhidoToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cadastro</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este cadastro de criança? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (acolhidoToDelete) {
+                  await deleteMutation.mutateAsync(acolhidoToDelete.id);
+                  setAcolhidoToDelete(null);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 } 

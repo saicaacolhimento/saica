@@ -65,7 +65,7 @@ export function AcolhidoEdit() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Editar Acolhido</h1>
-        <Button variant="outline" onClick={() => navigate(`/acolhidos/${id}`)}>
+        <Button variant="outline" onClick={() => navigate('/admin/criancas')}>
           Voltar
         </Button>
       </div>
@@ -165,7 +165,7 @@ export function AcolhidoEdit() {
       </div>
 
       <div className="flex justify-end space-x-2">
-        <Button variant="outline" onClick={() => navigate(`/acolhidos/${id}`)}>
+        <Button variant="outline" onClick={() => navigate('/admin/criancas')}>
           Cancelar
         </Button>
         <Button onClick={handleUpdateAcolhido}>

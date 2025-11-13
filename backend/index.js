@@ -50,6 +50,22 @@ app.post('/admin/criar-usuario', async (req, res) => {
   }
 });
 
+app.post('/admin/alterar-senha', async (req, res) => {
+  try {
+    const { userId, novaSenha } = req.body;
+    if (!userId || !novaSenha) {
+      return res.status(400).json({ error: 'userId e novaSenha são obrigatórios' });
+    }
+    const { data, error } = await supabase.auth.admin.updateUserById(userId, {
+      password: novaSenha,
+    });
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3333;
 app.listen(PORT, () => {
   console.log(`Backend rodando na porta ${PORT}`);

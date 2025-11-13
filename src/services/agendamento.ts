@@ -52,9 +52,16 @@ export const agendamentoService = {
   },
 
   async createAgendamento(data: CreateAgendamentoData): Promise<Agendamento> {
+    // Tratamento para campos de data e outros sensíveis
+    const dadosTratados = {
+      ...data,
+      data: data.data === '' ? null : data.data,
+      data_hora: data.data_hora === '' ? null : data.data_hora,
+      dataFinalRecorrencia: (data as any).dataFinalRecorrencia === '' ? null : (data as any).dataFinalRecorrencia,
+    };
     const { data: agendamento, error } = await supabase
       .from('agendamentos')
-      .insert([{ ...data, status: 'agendado' }])
+      .insert([{ ...dadosTratados, status: 'agendado' }])
       .select()
       .single()
 

@@ -1,10 +1,20 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/config/supabase';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+
+// Definir tipo User completo
+interface UserFull {
+  id: string;
+  email: string;
+  nome?: string;
+  role?: string;
+  empresa_id?: string;
+  [key: string]: any;
+}
 
 interface AuthContextType {
   session: Session | null;
-  user: User | null;
+  user: UserFull | null;
   loading: boolean;
   logout: () => Promise<void>;
 }
@@ -13,53 +23,38 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserFull | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasTriedSession, setHasTriedSession] = useState(false);
 
   useEffect(() => {
+    console.log('[AuthContext] Estado atual:', { user, session, loading });
+    if (hasTriedSession) return; // Não tenta de novo
     console.log('[AuthContext] useEffect montado');
     // Verificar sessão atual
     async function getInitialSession() {
+      console.log('[DEBUG] Entrou no getInitialSession');
       setLoading(true);
-      try {
-        console.log('[AuthContext] Iniciando verificação de sessão...');
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('[AuthContext] Erro ao verificar sessão:', error);
-          setSession(null);
-          setUser(null);
-          return;
-        }
-        
-        console.log('[AuthContext] Sessão inicial:', {
-          session: data.session ? {
-            expires_at: data.session.expires_at,
-            user: data.session.user ? {
-              id: data.session.user.id,
-              email: data.session.user.email
-            } : null
-          } : null
-        });
-
-        if (data.session) {
-          setSession(data.session);
-          setUser(data.session.user);
-        } else {
-          console.log('[AuthContext] Nenhuma sessão encontrada');
-          setSession(null);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('[AuthContext] Erro inesperado ao verificar sessão:', error);
+      const { data, error } = await supabase.auth.getSession();
+      console.log('[DEBUG] Resultado do getSession:', { data, error });
+      if (error || !data.session) {
         setSession(null);
         setUser(null);
-      } finally {
         setLoading(false);
+        console.log('[DEBUG] Sem sessão, liberando loading instantaneamente para tela inicial.');
+        return;
       }
+      setSession(data.session);
+      // NÃO consultar a tabela usuarios aqui!
+      const { user: authUser } = data.session;
+      if (authUser) {
+        setUser(authUser);
+      }
+      setLoading(false);
+      console.log('[DEBUG] Fim do getInitialSession, loading liberado');
     }
-
     getInitialSession();
+    setHasTriedSession(true);
 
     // Configurar listener para alterações de autenticação
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -69,30 +64,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           newSession,
           user: newSession?.user || null
         });
+
         if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          console.log('[AuthContext] Usuário deslogado ou deletado', {
-            event,
-            newSession,
-            user: newSession?.user || null
-          });
+          console.log('[AuthContext] Usuário deslogado ou deletado');
           setSession(null);
           setUser(null);
+          setLoading(false);
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log('[AuthContext] Usuário autenticado ou token atualizado', {
-            event,
-            newSession,
-            user: newSession?.user || null
-          });
+          console.log('[AuthContext] Usuário autenticado ou token atualizado');
           setSession(newSession);
-          setUser(newSession?.user || null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('[AuthContext] Token atualizado', {
-            event,
-            newSession
-          });
-          setSession(newSession);
+
+          if (newSession?.user) {
+            setUser(newSession.user);
+          } else {
+            setUser(null);
+          }
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -143,6 +131,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     logout
   };
+
+  // Renderizar loading global enquanto loading for true
+  if (loading) {
+    return <div style={{width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24}}>Carregando...</div>;
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

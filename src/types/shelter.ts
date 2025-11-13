@@ -83,4 +83,5 @@ export interface UpdateShelterData {
   responsavel_email?: string;
   master_email?: string;
   master_password_hash?: string;
+  empresas_vinculadas?: string[];
 } 

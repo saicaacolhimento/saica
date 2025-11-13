@@ -15,6 +15,7 @@ import {
 import { shelterService } from '@/services/shelter';
 import type { Shelter, UpdateShelterData, ShelterStatus } from '@/types/shelter';
 import { X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function EditShelter() {
   const { id } = useParams<{ id: string }>();
@@ -31,13 +32,18 @@ export default function EditShelter() {
     cidade: '',
     estado: '',
     postal_code: '',
-    telefone: '',
+    telefone_orgao: '',
     email: '',
     capacidade: 0,
     status: 'ativo',
     logo_url: '',
     cnpj: '',
+    responsavel_nome: '',
+    responsavel_telefone: '',
+    responsavel_email: '',
   });
+  const [empresasVinculadas, setEmpresasVinculadas] = useState<string[]>([]);
+  const [todasEmpresas, setTodasEmpresas] = useState<any[]>([]);
 
   const { data: shelterData, isLoading } = useQuery({
     queryKey: ['shelter', id],
@@ -49,21 +55,38 @@ export default function EditShelter() {
     if (shelterData) {
       setShelter(shelterData);
       setFormData({
-        nome: shelterData.nome,
+        nome: (shelterData.tipo && shelterData.tipo !== 'ABRIGO') ? `${shelterData.tipo} ${shelterData.nome}` : shelterData.nome,
         endereco: shelterData.endereco,
         cidade: shelterData.cidade,
         estado: shelterData.estado,
         postal_code: shelterData.postal_code,
-        telefone: shelterData.telefone,
+        telefone_orgao: shelterData.telefone_orgao || '',
         email: shelterData.email,
         capacidade: shelterData.capacidade,
         status: shelterData.status,
         logo_url: shelterData.logo_url,
         cnpj: shelterData.cnpj,
+        responsavel_nome: shelterData.responsavel_nome,
+        responsavel_telefone: shelterData.responsavel_telefone,
+        responsavel_email: shelterData.responsavel_email,
       });
       if (shelterData.logo_url) {
         setLogoPreview(shelterData.logo_url);
       }
+    }
+  }, [shelterData]);
+
+  useEffect(() => {
+    async function fetchEmpresas() {
+      const todas = await shelterService.getShelters(1, 1000);
+      setTodasEmpresas(todas.filter(e => e.id !== id));
+    }
+    fetchEmpresas();
+  }, [id]);
+
+  useEffect(() => {
+    if (shelterData && Array.isArray(shelterData.empresas_vinculadas)) {
+      setEmpresasVinculadas(shelterData.empresas_vinculadas);
     }
   }, [shelterData]);
 
@@ -126,6 +149,11 @@ export default function EditShelter() {
         errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
         errorStack: error instanceof Error ? error.stack : undefined
       });
+      if (error && typeof error === 'object') {
+        for (const [key, value] of Object.entries(error)) {
+          console.error(`Detalhe do erro [${key}]:`, value);
+        }
+      }
       toast({
         title: 'Erro ao atualizar empresa',
         description: error instanceof Error ? error.message : 'Ocorreu um erro ao atualizar a empresa.',
@@ -141,13 +169,22 @@ export default function EditShelter() {
 
     try {
       console.log('📦 Dados do formulário:', formData);
-      await updateMutation.mutateAsync(formData);
+      console.log('🔗 Empresas vinculadas:', empresasVinculadas);
+      await updateMutation.mutateAsync({
+        ...formData,
+        empresas_vinculadas: empresasVinculadas.filter(empId => !!empId && empId !== id),
+      });
     } catch (error) {
       console.error('❌ Erro no handleSubmit:', {
         error,
         errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
         errorStack: error instanceof Error ? error.stack : undefined
       });
+      if (error && typeof error === 'object') {
+        for (const [key, value] of Object.entries(error)) {
+          console.error(`Detalhe do erro [${key}]:`, value);
+        }
+      }
     } finally {
       console.log('🏁 Finalizando submissão do formulário');
       setLoading(false);
@@ -280,63 +317,80 @@ export default function EditShelter() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="postal_code">CEP</Label>
-              <Input
-                id="postal_code"
-                value={formData.postal_code}
-                onChange={e => setFormData(prev => ({ ...prev, postal_code: e.target.value }))}
-                className="h-8 border-2 border-gray-400"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  value={formData.telefone}
-                  onChange={e =>
-                    setFormData(prev => ({ ...prev, telefone: e.target.value }))
-                  }
-                  required
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="telefone_orgao">Telefone da Empresa</Label>
               <Input
-                id="email"
-                type="email"
-                value={formData.email}
+                id="telefone_orgao"
+                value={formData.telefone_orgao}
                 onChange={e =>
-                  setFormData(prev => ({ ...prev, email: e.target.value }))
+                  setFormData(prev => ({ ...prev, telefone_orgao: e.target.value }))
                 }
                 required
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Campos do Responsável */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold mt-6 mb-4">Dados do Responsável</h3>
               <div className="space-y-2">
-                <Label htmlFor="capacidade">Capacidade</Label>
+                <Label htmlFor="responsavel_nome">Nome do Responsável</Label>
                 <Input
-                  id="capacidade"
-                  type="number"
-                  className="w-24"
-                  value={formData.capacidade}
-                  onChange={e => {
-                    const value = e.target.value;
-                    if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 999)) {
-                      setFormData(prev => ({ ...prev, capacidade: value }));
+                  id="responsavel_nome"
+                  value={formData.responsavel_nome}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, responsavel_nome: e.target.value }))
                   }
-                  }}
-                  min="0"
-                  max="999"
                   required
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="responsavel_telefone">Telefone do Responsável</Label>
+                  <Input
+                    id="responsavel_telefone"
+                    value={formData.responsavel_telefone}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, responsavel_telefone: e.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="responsavel_email">Email do Responsável</Label>
+                  <Input
+                    id="responsavel_email"
+                    type="email"
+                    value={formData.responsavel_email}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, responsavel_email: e.target.value }))
+                    }
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {shelter?.tipo === 'ABRIGO' && (
+                <div className="space-y-2">
+                  <Label htmlFor="capacidade">Capacidade</Label>
+                  <Input
+                    id="capacidade"
+                    type="number"
+                    className="w-24"
+                    value={formData.capacidade}
+                    onChange={e => {
+                      const value = e.target.value;
+                      if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 999)) {
+                        setFormData(prev => ({ ...prev, capacidade: value }));
+                      }
+                    }}
+                    min="0"
+                    max="999"
+                    required
+                  />
+                </div>
+              )}
               <div className="space-y-1">
                 <Label>Status</Label>
                 <Select
@@ -353,6 +407,33 @@ export default function EditShelter() {
                 </Select>
               </div>
             </div>
+
+            {(shelter?.tipo === 'ABRIGO') && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Empresas Vinculadas</Label>
+                <div className="border rounded p-2 max-h-40 overflow-y-auto">
+                  {todasEmpresas.length === 0 && (
+                    <div className="text-xs text-gray-500">Nenhuma empresa disponível.</div>
+                  )}
+                  {todasEmpresas.map(emp => (
+                    <label key={emp.id} className="flex items-center gap-2 py-1 cursor-pointer">
+                      <Checkbox
+                        checked={empresasVinculadas.includes(emp.id)}
+                        onCheckedChange={checked => {
+                          setEmpresasVinculadas(prev =>
+                            checked
+                              ? [...prev, emp.id]
+                              : prev.filter(id => id !== emp.id)
+                          );
+                        }}
+                      />
+                      <span>{emp.nome} {emp.tipo && emp.tipo !== 'ABRIGO' ? `(${emp.tipo})` : ''}</span>
+                    </label>
+                  ))}
+                </div>
+                <small className="text-xs text-gray-500">Selecione as empresas para vincular.</small>
+              </div>
+            )}
 
             <div className="flex justify-end space-x-2">
               <Button

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/config/supabase';
 import { authService } from '@/services/auth';
 import { Eye, EyeOff, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +23,7 @@ export function Login() {
       console.log('Tentando fazer login com:', { email });
       
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
@@ -41,9 +43,7 @@ export function Login() {
       await authService.getCurrentUser();
       
       console.log('Redirecionando para dashboard...');
-      setTimeout(() => {
-        window.location.href = '/admin/dashboard';
-      }, 500);
+      navigate('/admin/dashboard');
       
     } catch (err) {
       console.error('Erro inesperado ao fazer login:', err);
@@ -58,24 +58,24 @@ export function Login() {
   };
 
   return (
-    <div className="absolute top-2 right-4">
-      <form onSubmit={handleSubmit} className="flex items-center space-x-1">
+    <div className="w-full flex justify-center md:justify-end">
+      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-center gap-2 md:gap-1 w-full max-w-md">
         <Input
           type="text"
           placeholder="usuário"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="h-8 w-[180px] text-xs border-gray-300"
+          className="h-8 w-full md:w-[180px] text-xs border-gray-300"
           required
           disabled={loading}
         />
-        <div className="relative">
+        <div className="relative w-full md:w-auto">
           <Input
             type={showPassword ? "text" : "password"}
             placeholder="senha"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-8 w-[140px] text-xs border-gray-300"
+            className="h-8 w-full md:w-[140px] text-xs border-gray-300"
             required
             disabled={loading}
           />

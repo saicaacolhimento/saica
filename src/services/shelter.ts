@@ -8,7 +8,7 @@ export const shelterService = {
     const to = from + pageSize - 1;
     const { data, error } = await supabase
       .from('empresas')
-      .select('id, nome, cnpj, cidade, estado, capacidade, ocupacao_atual, status, logo_url, tipo')
+      .select('id, nome, cnpj, cidade, estado, capacidade, ocupacao_atual, status, logo_url, tipo, telefone_orgao')
       .order('nome')
       .range(from, to);
 
@@ -137,5 +137,15 @@ export const shelterService = {
         .eq('id', shelter.id);
       if (error) throw error;
     }
+  },
+
+  async getSheltersByIds(ids: string[]): Promise<Shelter[]> {
+    if (!ids || ids.length === 0) return [];
+    const { data, error } = await supabase
+      .from('empresas')
+      .select('id, nome, cidade, endereco, telefone_orgao, responsavel_nome, responsavel_email, tipo')
+      .in('id', ids);
+    if (error) throw error;
+    return data;
   },
 }; 

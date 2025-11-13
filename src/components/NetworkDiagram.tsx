@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Logo from './Logo';
 
@@ -13,17 +12,18 @@ const NetworkDiagram: React.FC = () => {
   ];
 
   return (
-    <div className="relative h-96 w-96 mx-auto mt-8">
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Logo />
+    <div className="w-full max-w-full md:max-w-[220px] flex flex-col items-center md:overflow-hidden p-2">
+      <div className="w-full flex justify-center mb-4">
+        <Logo className="w-20 h-auto max-w-full mx-auto md:w-full md:max-w-[80px]" />
       </div>
-      
-      {connections.map((connection, index) => (
-        <div key={index} className={`absolute ${connection.position} text-saica-blue font-bold text-center`}>
-          {connection.label}
-          <div className="border-dashed border-saica-blue border w-16 h-px absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-        </div>
-      ))}
+      <div className="w-full flex flex-col items-center mt-2">
+        {connections.map((connection, index) => (
+          <div key={index} className="text-saica-blue font-bold text-center text-[10px] sm:text-xs md:text-base break-words w-full">
+            {connection.label}
+            <div className="border-dashed border-saica-blue border w-6 sm:w-10 h-px mx-auto my-1"></div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

@@ -7,11 +7,12 @@ interface PrivateRouteProps {
 }
 
 export default function PrivateRoute({ children }: PrivateRouteProps) {
-  console.log('[PrivateRoute] Componente montado');
   const { user, loading, session } = useAuth();
+  console.log('[PrivateRoute] Renderizou:', { user, session, loading });
   console.log('[PrivateRoute] Estado inicial:', { user, loading, session });
 
   useEffect(() => {
+    console.log('[PrivateRoute] Estado atual (useEffect):', { user, session, loading });
     console.log('[PrivateRoute] Estado atual:', { 
       user: user ? { id: user.id, email: user.email } : null, 
       loading,
@@ -48,18 +49,14 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
     );
   }
 
-  if (!user || !session || !session.access_token) {
-    console.log('[PrivateRoute] Redirecionando para login:', {
-      motivo: !user ? 'usuário não encontrado' : 
-              !session ? 'sessão não encontrada' : 
-              'token de acesso ausente'
-    });
+  // Simplificar a verificação de autenticação
+  if (!session) {
+    console.log('[PrivateRoute] Redirecionando para login: sessão não encontrada');
     return <Navigate to="/" replace />;
   }
 
-  // Verifica se o token expirou
-  const tokenExpiration = session.expires_at ? new Date(session.expires_at * 1000) : null;
-  if (tokenExpiration && tokenExpiration < new Date()) {
+  // Verificar token expirado
+  if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
     console.log('[PrivateRoute] Token expirado, redirecionando para login');
     return <Navigate to="/" replace />;
   }

@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -109,4 +108,26 @@
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Força o texto do dia atual do calendário a ser branco, igual ao botão HOJE */
+.rdp-day_today, .bg-blue-400.text-white {
+  color: #fff !important;
+}
+
+@media print {
+  .sidebar,
+  .Sidebar,
+  [class*="sidebar"],
+  [class*="Sidebar"],
+  .print\\:hidden {
+    display: none !important;
+  }
+  [class*="border-r"],
+  [class*="w-64"],
+  [class*="w-[16rem]"],
+  [class*='w-[--sidebar-width]'],
+  [data-sidebar="sidebar"] {
+    display: none !important;
+  }
 }

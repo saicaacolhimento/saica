@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/config/supabase';
 import {
   Users,
   Home,
@@ -9,23 +10,15 @@ import {
   Activity,
   Building,
   FileBox,
-  Baby
+  Baby,
+  Calendar,
+  DollarSign
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simula um tempo de carregamento para garantir que todos os recursos estarão prontos
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, []);
 
   const modules = [
     {
@@ -53,10 +46,18 @@ export default function Dashboard() {
       iconColor: 'text-green-600'
     },
     {
-      title: 'Relatórios',
-      description: 'Geração e visualização de relatórios',
-      route: '/admin/relatorios',
-      icon: FileText,
+      title: 'Agenda',
+      description: 'Veja e gerencie seus compromissos',
+      route: '/admin/agenda',
+      icon: Calendar,
+      bgColor: 'bg-orange-100',
+      iconColor: 'text-orange-700'
+    },
+    {
+      title: 'Gestão Financeira',
+      description: 'Controle de doações, despesas e estoque',
+      route: '/admin/financeiro',
+      icon: DollarSign,
       bgColor: 'bg-pink-100',
       iconColor: 'text-pink-600'
     },
@@ -86,7 +87,7 @@ export default function Dashboard() {
     }
   ];
 
-  if (isLoading || !user) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="flex flex-col items-center space-y-4">
@@ -98,29 +99,32 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto px-2 sm:px-4 md:px-6 py-4 overflow-x-hidden">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Bem-vindo, {user?.nome || 'Administrador'}</h1>
+          <h1 className="text-xl md:text-2xl font-bold">
+            {user?.email === 'saicaacolhimento2025@gmail.com' ? 'Olá, Administrador' : `Olá, ${user?.user_metadata?.nome || user?.nome || ''}`}
+          </h1>
           <p className="text-gray-600">Acesso total ao sistema</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {modules.map((module, index) => (
           <Card
             key={index}
-            className="hover:shadow-lg transition-shadow cursor-pointer"
+            className="w-full hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
             onClick={() => navigate(module.route)}
+            tabIndex={0}
           >
             <CardHeader className="flex flex-col items-center pb-2">
               <div className={`p-2 ${module.bgColor} rounded-lg mb-2`}>
-                <module.icon className={`h-10 w-10 ${module.iconColor}`} />
+                <module.icon className={`h-8 w-8 md:h-10 md:w-10 ${module.iconColor}`} />
               </div>
-              <CardTitle className="text-lg text-center w-full">{module.title}</CardTitle>
+              <CardTitle className="text-base md:text-lg text-center w-full truncate">{module.title}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600 text-center">{module.description}</p>
+              <p className="text-sm text-gray-600 text-center break-words">{module.description}</p>
             </CardContent>
           </Card>
         ))}

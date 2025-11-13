@@ -24,20 +24,22 @@ export default function UsuariosAdminList() {
   const [empresaUsuarios, setEmpresaUsuarios] = useState<{ [key: string]: any[] }>({});
   const [loadingUsuarios, setLoadingUsuarios] = useState<string | null>(null);
   const [editUserModal, setEditUserModal] = useState<{ open: boolean, user: any | null }>({ open: false, user: null });
-  const [editForm, setEditForm] = useState({ nome: '', email: '', senha: '' });
+  const [editForm, setEditForm] = useState({ nome: '', email: '', senha: '', confirmarSenha: '' });
   const [editLoading, setEditLoading] = useState(false);
+  const [editSenhaCoincide, setEditSenhaCoincide] = useState(true);
+
+  async function fetchAdmins() {
+    setLoading(true);
+    try {
+      const data = await authService.getAllAdmins();
+      console.log('Admins encontrados:', data);
+      setAdmins(data);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchAdmins() {
-      setLoading(true);
-      try {
-        const data = await authService.getAllAdmins();
-        console.log('Admins encontrados:', data);
-        setAdmins(data);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchAdmins();
   }, []);
 
@@ -79,6 +81,7 @@ export default function UsuariosAdminList() {
         status: 'active',
         empresa_id: modalAdmin.empresa_id,
       });
+      await fetchAdmins();
       toast({ title: 'Usuário criado com sucesso!' });
       handleCloseModal();
     } catch (e: any) {
@@ -106,12 +109,12 @@ export default function UsuariosAdminList() {
 
   const handleOpenEditModal = (user: any) => {
     setEditUserModal({ open: true, user });
-    setEditForm({ nome: user.nome, email: user.email, senha: '' });
+    setEditForm({ nome: user.nome, email: user.email, senha: '', confirmarSenha: '' });
   };
 
   const handleCloseEditModal = () => {
     setEditUserModal({ open: false, user: null });
-    setEditForm({ nome: '', email: '', senha: '' });
+    setEditForm({ nome: '', email: '', senha: '', confirmarSenha: '' });
   };
 
   const handleEditUser = async () => {
@@ -119,18 +122,27 @@ export default function UsuariosAdminList() {
     
     setEditLoading(true);
     try {
-      await authService.updateUser(editUserModal.user.id, {
-        nome: editForm.nome,
-        email: editForm.email,
-        password: editForm.senha || undefined
-      });
-      
-      // Atualiza a lista de usuários
-      if (editUserModal.user.empresa_id) {
-        const { data } = await authService.getUsersByEmpresa(editUserModal.user.empresa_id);
-        setEmpresaUsuarios(prev => ({ ...prev, [editUserModal.user.empresa_id]: data || [] }));
+      await authService.updateUser(
+        editUserModal.user.id,
+        {
+          nome: editForm.nome,
+          // outros campos...
+        }
+      );
+
+      if (editForm.senha && editForm.senha === editForm.confirmarSenha) {
+        const resp = await fetch('http://localhost:3333/admin/alterar-senha', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: editUserModal.user.id,
+            novaSenha: editForm.senha,
+          }),
+        });
+        const result = await resp.json();
+        if (!result.success) throw new Error(result.error || 'Erro ao alterar senha');
       }
-      
+
       toast({ title: 'Usuário atualizado com sucesso!' });
       handleCloseEditModal();
     } catch (e: any) {
@@ -384,15 +396,18 @@ export default function UsuariosAdminList() {
               placeholder="Email"
               type="email"
               value={editForm.email}
-              onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+              readOnly
               required
             />
             <div className="relative">
               <Input
-                placeholder="Nova senha (opcional)"
+                placeholder="Nova senha"
                 type={showSenha ? 'text' : 'password'}
                 value={editForm.senha}
-                onChange={(e) => setEditForm(prev => ({ ...prev, senha: e.target.value }))}
+                onChange={(e) => {
+                  setEditForm(prev => ({ ...prev, senha: e.target.value }));
+                  setEditSenhaCoincide(e.target.value === editForm.confirmarSenha);
+                }}
               />
               <button
                 type="button"
@@ -403,6 +418,28 @@ export default function UsuariosAdminList() {
                 {showSenha ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            <div className="relative">
+              <Input
+                placeholder="Confirmar nova senha"
+                type={showSenha ? 'text' : 'password'}
+                value={editForm.confirmarSenha}
+                onChange={(e) => {
+                  setEditForm(prev => ({ ...prev, confirmarSenha: e.target.value }));
+                  setEditSenhaCoincide(editForm.senha === e.target.value);
+                }}
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
+                onClick={() => setShowSenha((v) => !v)}
+                tabIndex={-1}
+              >
+                {showSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {!editSenhaCoincide && editForm.confirmarSenha && (
+              <div className="text-red-500 text-xs mt-1">As senhas não coincidem</div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseEditModal} disabled={editLoading}>

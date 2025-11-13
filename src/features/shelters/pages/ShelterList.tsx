@@ -38,6 +38,7 @@ import { CityAutocomplete } from '@/components/ui/city-autocomplete';
 import { cn } from '@/lib/utils';
 import { authService } from '@/services/auth';
 import { supabase } from '@/config/supabase';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function ShelterList() {
   const navigate = useNavigate();
@@ -88,6 +89,9 @@ export default function ShelterList() {
 
   // Adicionar estado para tipo de empresa
   const [tipoEmpresa, setTipoEmpresa] = useState('');
+
+  const [empresasVinculadas, setEmpresasVinculadas] = useState<string[]>([]);
+  const [empresasComMesmoDDD, setEmpresasComMesmoDDD] = useState<any[]>([]);
 
   const { data: sheltersData, isLoading: sheltersLoading } = useQuery({
     queryKey: ['shelters', page],
@@ -207,6 +211,26 @@ export default function ShelterList() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [filterOpen]);
+
+  // Atualizar empresas vinculadas quando telefone_orgao mudar e tipoEmpresa for ABRIGO
+  useEffect(() => {
+    async function fetchEmpresas() {
+      if (tipoEmpresa === 'ABRIGO' && newShelter.telefone_orgao && newShelter.telefone_orgao.length >= 2) {
+        const ddd = newShelter.telefone_orgao.substring(0, 2);
+        const todas = await shelterService.getShelters(1, 1000);
+        const filtradas = todas.filter(e =>
+          e.telefone_orgao &&
+          e.telefone_orgao.length >= 2 &&
+          e.telefone_orgao.substring(0, 2) === ddd &&
+          e.id !== newShelter.id
+        );
+        setEmpresasComMesmoDDD(filtradas);
+      } else {
+        setEmpresasComMesmoDDD([]);
+      }
+    }
+    fetchEmpresas();
+  }, [tipoEmpresa, newShelter.telefone_orgao]);
 
   if (sheltersLoading) {
     return (
@@ -727,6 +751,32 @@ export default function ShelterList() {
                   required
                 />
               </div>
+              {tipoEmpresa === 'ABRIGO' && (
+                <div className="space-y-2">
+                  <Label htmlFor="empresas_vinculadas" className="text-sm font-medium">Empresas Vinculadas</Label>
+                  <div className="border rounded p-2 max-h-40 overflow-y-auto">
+                    {empresasComMesmoDDD.length === 0 && (
+                      <div className="text-xs text-gray-500">Nenhuma empresa encontrada com o mesmo DDD.</div>
+                    )}
+                    {empresasComMesmoDDD.map(emp => (
+                      <label key={emp.id} className="flex items-center gap-2 py-1 cursor-pointer">
+                        <Checkbox
+                          checked={empresasVinculadas.includes(emp.id)}
+                          onCheckedChange={checked => {
+                            setEmpresasVinculadas(prev =>
+                              checked
+                                ? [...prev, emp.id]
+                                : prev.filter(id => id !== emp.id)
+                            );
+                          }}
+                        />
+                        <span>{emp.nome} {emp.tipo && emp.tipo !== 'ABRIGO' ? `(${emp.tipo})` : ''}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <small className="text-xs text-gray-500">Selecione as empresas com o mesmo DDD para vincular.</small>
+                </div>
+              )}
             </div>
             <div>
               <h3 className="text-base font-semibold text-gray-700 mt-6 mb-2 text-center">DADOS DO RESPONSÁVEL</h3>
@@ -770,7 +820,7 @@ export default function ShelterList() {
               <h3 className="text-base font-semibold text-gray-700 mt-6 mb-2 text-center">CADASTRO DE USUÁRIO</h3>
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="master_email" className="text-sm font-medium">Email do Usuário Master</Label>
+                  <Label htmlFor="master_email" className="text-sm font-medium">Email do Usuário Admin</Label>
                   <Input
                     id="master_email"
                     type="email"

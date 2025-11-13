@@ -19,12 +19,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import PermissoesEmpresa from '../../../../../src/pages/admin/PermissoesEmpresa'
 
 export const ConfiguracaoList = () => {
   const navigate = useNavigate()
   const { getConfiguracoes, deleteConfiguracao } = useConfiguracao()
   const [searchTerm, setSearchTerm] = useState('')
   const [configuracaoToDelete, setConfiguracaoToDelete] = useState<string | null>(null)
+  const [showPermissoes, setShowPermissoes] = useState(false)
 
   const { data: configuracoes, isLoading } = getConfiguracoes()
 
@@ -60,82 +62,84 @@ export const ConfiguracaoList = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar configurações..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-        <Button onClick={() => navigate('/configuracoes/nova')}>
-          Nova Configuração
+    <div className="flex gap-6">
+      {/* Menu lateral */}
+      <div className="w-56 min-h-full bg-white rounded-lg shadow p-4 flex flex-col gap-2">
+        <Button
+          variant="secondary"
+          className="w-full justify-start text-base font-semibold"
+          onClick={() => setShowPermissoes(true)}
+        >
+          Permissões
         </Button>
+        {/* Adicione mais botões aqui se desejar */}
       </div>
+      <div className="flex-1 space-y-4">
+        {showPermissoes ? (
+          <PermissoesEmpresa />
+        ) : (
+          <div className="grid gap-4">
+            {filteredConfiguracoes?.map((configuracao) => (
+              <Card key={configuracao.id} className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      <h3 className="font-medium">{configuracao.chave}</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-1">
+                      {configuracao.descricao}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{configuracao.tipo}</Badge>
+                      <Badge variant="outline">{configuracao.categoria}</Badge>
+                      {configuracao.obrigatorio && (
+                        <Badge variant="destructive">Obrigatório</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(configuracao.updated_at), 'PPp', {
+                        locale: ptBR,
+                      })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate(`/configuracoes/${configuracao.id}/editar`)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setConfiguracaoToDelete(configuracao.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
 
-      <div className="grid gap-4">
-        {filteredConfiguracoes?.map((configuracao) => (
-          <Card key={configuracao.id} className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  <h3 className="font-medium">{configuracao.chave}</h3>
-                </div>
-                <p className="text-sm text-muted-foreground line-clamp-1">
-                  {configuracao.descricao}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{configuracao.tipo}</Badge>
-                  <Badge variant="outline">{configuracao.categoria}</Badge>
-                  {configuracao.obrigatorio && (
-                    <Badge variant="destructive">Obrigatório</Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(configuracao.updated_at), 'PPp', {
-                    locale: ptBR,
-                  })}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate(`/configuracoes/${configuracao.id}/editar`)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setConfiguracaoToDelete(configuracao.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
+        <AlertDialog open={!!configuracaoToDelete} onOpenChange={() => setConfiguracaoToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir configuração</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir esta configuração? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-
-      <AlertDialog open={!!configuracaoToDelete} onOpenChange={() => setConfiguracaoToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir configuração</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir esta configuração? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 } 

@@ -14,7 +14,7 @@ import {
   Settings,
   LogOut,
   UserCircle,
-  BarChart2
+  DollarSign
 } from 'lucide-react'
 
 export function Sidebar() {
@@ -53,21 +53,21 @@ export function Sidebar() {
       admin: true
     },
     {
-      title: 'Crianças',
+      title: 'Acolhidos',
       icon: UserCircle,
       href: '/admin/criancas',
+      admin: false
+    },
+    {
+      title: 'Agenda',
+      icon: Calendar,
+      href: '/admin/agenda',
       admin: false
     },
     {
       title: 'Documentos',
       icon: FileText,
       href: '/documentos',
-      admin: false
-    },
-    {
-      title: 'Agendamentos',
-      icon: Calendar,
-      href: '/agendamentos',
       admin: false
     },
     {
@@ -89,15 +89,15 @@ export function Sidebar() {
       admin: true
     },
     {
-      title: 'Relatórios',
-      icon: BarChart2,
-      href: '/relatorios',
+      title: 'Financeiro',
+      icon: DollarSign,
+      href: '/admin/financeiro',
       admin: true
     }
   ]
 
   return (
-    <div className="flex h-full w-64 flex-col border-r">
+    <div className="flex h-full w-64 flex-col border-r print:hidden">
       <div className="flex h-14 items-center border-b px-4">
         <h1 className="text-lg font-semibold">SAICA</h1>
       </div>
