@@ -19,8 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import PermissoesEmpresa from '@/pages/admin/PermissoesEmpresa'
-import Orgaos from '@/pages/admin/Orgaos'
+import PermissoesEmpresa from '../../../../../src/pages/admin/PermissoesEmpresa'
 
 export const ConfiguracaoList = () => {
   const navigate = useNavigate()
@@ -28,7 +27,6 @@ export const ConfiguracaoList = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [configuracaoToDelete, setConfiguracaoToDelete] = useState<string | null>(null)
   const [showPermissoes, setShowPermissoes] = useState(false)
-  const [showOrgaos, setShowOrgaos] = useState(false)
 
   const { data: configuracoes, isLoading } = getConfiguracoes()
 
@@ -48,47 +46,37 @@ export const ConfiguracaoList = () => {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-[300px]" />
+        </div>
+        <div className="grid gap-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex gap-6">
-      {/* Menu lateral - sempre visível */}
+      {/* Menu lateral */}
       <div className="w-56 min-h-full bg-white rounded-lg shadow p-4 flex flex-col gap-2">
         <Button
-          variant={showPermissoes ? "default" : "secondary"}
+          variant="secondary"
           className="w-full justify-start text-base font-semibold"
-          onClick={() => {
-            setShowPermissoes(true)
-            setShowOrgaos(false)
-          }}
+          onClick={() => setShowPermissoes(true)}
         >
           Permissões
         </Button>
-        <Button
-          variant={showOrgaos ? "default" : "secondary"}
-          className="w-full justify-start text-base font-semibold"
-          onClick={() => {
-            setShowOrgaos(true)
-            setShowPermissoes(false)
-          }}
-        >
-          Órgãos
-        </Button>
+        {/* Adicione mais botões aqui se desejar */}
       </div>
       <div className="flex-1 space-y-4">
         {showPermissoes ? (
           <PermissoesEmpresa />
-        ) : showOrgaos ? (
-          <Orgaos />
-        ) : isLoading ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-10 w-[300px]" />
-            </div>
-            <div className="grid gap-4">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-24 w-full" />
-              ))}
-            </div>
-          </div>
         ) : (
           <div className="grid gap-4">
             {filteredConfiguracoes?.map((configuracao) => (

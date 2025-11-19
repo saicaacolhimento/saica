@@ -39,8 +39,6 @@ import { cn } from '@/lib/utils';
 import { authService } from '@/services/auth';
 import { supabase } from '@/config/supabase';
 import { Checkbox } from '@/components/ui/checkbox';
-import { tipoOrgaoService } from '@/services/tipoOrgao';
-import type { TipoOrgao } from '@/types/tipoOrgao';
 
 export default function ShelterList() {
   const navigate = useNavigate();
@@ -91,7 +89,6 @@ export default function ShelterList() {
 
   // Adicionar estado para tipo de empresa
   const [tipoEmpresa, setTipoEmpresa] = useState('');
-  const [tiposOrgaos, setTiposOrgaos] = useState<TipoOrgao[]>([]);
 
   const [empresasVinculadas, setEmpresasVinculadas] = useState<string[]>([]);
   const [empresasComMesmoDDD, setEmpresasComMesmoDDD] = useState<any[]>([]);
@@ -190,21 +187,6 @@ export default function ShelterList() {
     },
   });
 
-  // Buscar tipos de órgãos dinamicamente usando React Query
-  const { data: tiposOrgaosQuery } = useQuery({
-    queryKey: ['tiposOrgaos'],
-    queryFn: () => tipoOrgaoService.getTiposOrgaosAtivos(),
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    refetchOnWindowFocus: true,
-  });
-
-  useEffect(() => {
-    if (tiposOrgaosQuery) {
-      setTiposOrgaos(tiposOrgaosQuery);
-      console.log('[ShelterList] Tipos de órgãos carregados:', tiposOrgaosQuery);
-    }
-  }, [tiposOrgaosQuery]);
-
   useEffect(() => {
     if (prevOpen.current && !open) {
       queryClient.invalidateQueries({ queryKey: ['shelters'] });
@@ -290,11 +272,10 @@ export default function ShelterList() {
                   >
                     <option value="">Todos</option>
                     <option value="ABRIGO">ABRIGO</option>
-                    {tiposOrgaos.map(tipo => (
-                      <option key={tipo.id} value={tipo.codigo}>
-                        {tipo.nome}
-                      </option>
-                    ))}
+                    <option value="CREAS">CREAS</option>
+                    <option value="CRAS">CRAS</option>
+                    <option value="CAPS">CAPS</option>
+                    <option value="Conselho Tutelar">Conselho Tutelar</option>
                   </select>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
@@ -663,11 +644,10 @@ export default function ShelterList() {
                 >
                   <option value="">Selecione o tipo</option>
                   <option value="ABRIGO">ABRIGO</option>
-                  {tiposOrgaos.map(tipo => (
-                    <option key={tipo.id} value={tipo.codigo}>
-                      {tipo.nome}
-                    </option>
-                  ))}
+                  <option value="CREAS">CREAS</option>
+                  <option value="CRAS">CRAS</option>
+                  <option value="CAPS">CAPS</option>
+                  <option value="Conselho Tutelar">Conselho Tutelar</option>
                 </select>
               </div>
               {(tipoEmpresa === 'ABRIGO') && (

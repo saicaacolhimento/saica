@@ -164,8 +164,12 @@ export default function AcolhidoCadastroEdicao() {
         if (id) {
           console.log('[Cadastro] Buscando dados do acolhido:', id);
           const acolhido = await acolhidoService.getAcolhidoById(id);
-          setForm(acolhido);
-          console.log('[Cadastro] Dados do acolhido carregados');
+          // Mapear abrigo_id do banco para empresa_id no formulário
+          setForm({
+            ...acolhido,
+            empresa_id: acolhido.abrigo_id || acolhido.empresa_id || '',
+          });
+          console.log('[Cadastro] Dados do acolhido carregados, empresa_id:', acolhido.abrigo_id || acolhido.empresa_id);
           const fotosSalvas = await acolhidoService.getAcolhidoFotos(id);
           setFotosSalvas(fotosSalvas);
         }
@@ -618,7 +622,15 @@ export default function AcolhidoCadastroEdicao() {
     try {
       let acolhidoId = id;
       // Remover campo escola_anterior se existir
-      const { escola_anterior, ...formFiltrado } = form;
+      const { escola_anterior, empresa_id, ...formFiltrado } = form;
+      
+      // Mapear empresa_id do formulário para abrigo_id do banco
+      const dataToSend = {
+        ...formFiltrado,
+        abrigo_id: empresa_id || form.abrigo_id || null,
+      };
+      
+      console.log('[Cadastro] Dados a serem enviados - empresa_id:', empresa_id, 'abrigo_id:', dataToSend.abrigo_id);
       
       console.log('[Cadastro] Estado da autenticação antes do cadastro:', {
         user: user ? { id: user.id, email: user.email } : null,
@@ -631,11 +643,11 @@ export default function AcolhidoCadastroEdicao() {
       // 1. Salvar ou atualizar acolhido
       if (id) {
         console.log('[Cadastro] Atualizando acolhido:', id);
-        await acolhidoService.updateAcolhido(id, formFiltrado);
+        await acolhidoService.updateAcolhido(id, dataToSend);
         console.log('[Cadastro] Acolhido atualizado com sucesso');
       } else {
         console.log('[Cadastro] Criando novo acolhido');
-        const novo = await acolhidoService.createAcolhido(formFiltrado);
+        const novo = await acolhidoService.createAcolhido(dataToSend);
         acolhidoId = novo.id;
         console.log('[Cadastro] Novo acolhido criado:', acolhidoId);
       }
