@@ -60,26 +60,15 @@ export function AcolhidoList() {
   const { data: acolhidosData, isLoading, error } = useQuery({
     queryKey: ['acolhidos', paginaAtual],
     queryFn: async () => {
-      const result = await acolhidoService.getAcolhidos(paginaAtual, itensPorPagina);
-      console.log('[AcolhidoList] Acolhidos retornados:', result);
-      return result;
+      return await acolhidoService.getAcolhidos(paginaAtual, itensPorPagina);
     },
     keepPreviousData: true,
-    staleTime: 0, // Sempre buscar dados atualizados
+    staleTime: 1000 * 60 * 5,
   });
 
   const acolhidos = acolhidosData?.data || [];
   const totalAcolhidos = acolhidosData?.total || 0;
   const totalPaginas = Math.ceil(totalAcolhidos / itensPorPagina);
-  
-  console.log('[AcolhidoList] Estado atual:', {
-    acolhidos: acolhidos.length,
-    totalAcolhidos,
-    paginaAtual,
-    totalPaginas,
-    isLoading,
-    error: error ? (error instanceof Error ? error.message : 'Erro desconhecido') : null
-  });
 
   // Buscar fotos dos acolhidos
   useEffect(() => {
@@ -116,8 +105,7 @@ export function AcolhidoList() {
   useEffect(() => {
     async function fetchEmpresas() {
       if (!acolhidos) return;
-      // Usar abrigo_id (nome correto na tabela)
-      const ids = Array.from(new Set(acolhidos.map(a => (a as any).abrigo_id || (a as any).empresa_id).filter(Boolean)));
+      const ids = Array.from(new Set(acolhidos.map(a => a.empresa_id).filter(Boolean)));
       console.log('[AcolhidoList] IDs de empresas encontrados nos acolhidos:', ids);
       if (ids.length === 0) return;
       try {
@@ -257,7 +245,7 @@ export function AcolhidoList() {
                     <TableCell className="text-center font-medium">{acolhido.nome}</TableCell>
                     <TableCell className="text-center">{new Date(acolhido.data_nascimento).toLocaleDateString()}</TableCell>
                     <TableCell className="text-center">{calcularIdade(acolhido.data_nascimento)}</TableCell>
-                    <TableCell className="text-center">{abrigosMap[(acolhido as any).abrigo_id || (acolhido as any).empresa_id] || '-'}</TableCell>
+                    <TableCell className="text-center">{abrigosMap[acolhido.empresa_id] || '-'}</TableCell>
                     <TableCell className="text-center">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         acolhido.status === 'ativo' 

@@ -72,3 +72,5 @@ async function definirSenhaMaster() {
 definirSenhaMaster().catch(console.error);
 
 
+
+

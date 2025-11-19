@@ -41,11 +41,9 @@ export const documentoService = {
   },
 
   async createDocumento(data: CreateDocumentoData): Promise<Documento> {
-    // Remover titulo do objeto e usar apenas nome
-    const { titulo, ...restData } = data;
     const { data: documento, error } = await supabase
       .from('documentos')
-      .insert([{ ...restData, nome: titulo, status: 'ativo' }])
+      .insert([{ ...data, nome: data.titulo, status: 'ativo' }])
       .select()
       .single()
 
