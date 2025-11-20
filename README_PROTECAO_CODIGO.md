@@ -1,0 +1,74 @@
+# 🛡️ PROTEÇÃO DO CÓDIGO - LEIA ANTES DE MODIFICAR
+
+## ⚠️ ATENÇÃO: CÓDIGO FUNCIONANDO
+
+Este projeto está em um estado **FUNCIONANDO**. Antes de fazer qualquer modificação, leia este documento.
+
+## 📁 Arquivos de Proteção
+
+1. **`PROTECAO_CODIGO_ACOLHIDOS.md`** - Documentação sobre busca de acolhidos
+2. **`IMPORTANTE_AUTHCONTEXT.md`** - Documentação crítica sobre AuthContext (se existir)
+3. **`ESTADO_ATUAL_FUNCIONANDO.md`** - Lista de todas as funcionalidades funcionando (se existir)
+
+## 🚫 NÃO MODIFICAR SEM CUIDADO
+
+### AuthContext (`src/contexts/AuthContext.tsx`)
+- ⚠️ **CRÍTICO:** Não adicione `await authService.getCurrentUser()` no carregamento inicial
+- ⚠️ **CRÍTICO:** Não remova `finally { setLoading(false) }`
+- ⚠️ **CRÍTICO:** Não adicione timeouts ou delays no carregamento inicial
+
+**Por quê?** Isso causa tela branca e bloqueia o login.
+
+### Busca de Acolhidos (`src/services/acolhido.ts`)
+- ⚠️ **CRÍTICO:** Não adicione timeout manual
+- ⚠️ **CRÍTICO:** Não remova o filtro por `empresa_id` para admins
+- ⚠️ **CRÍTICO:** Use `abrigo_id` no mapeamento, não `empresa_id`
+
+**Por quê?** Isso causa timeout e erro de carregamento.
+
+### Dashboard (`src/pages/admin/Dashboard.tsx`)
+- ⚠️ **CRÍTICO:** "Gestão de Empresas" só para master (`masterOnly: true`)
+- ⚠️ **CRÍTICO:** "Gestão de Usuários" só para admin e master (`adminOnly: true`)
+
+**Por quê?** Cards devem aparecer apenas para usuários corretos.
+
+### AdminLayout (`src/layouts/AdminLayout.tsx`)
+- ⚠️ **CRÍTICO:** "Empresas" só para master (`show: isMaster`)
+- ⚠️ **CRÍTICO:** "Usuários" só para admin e master (`show: isAdmin`)
+
+**Por quê?** Botões laterais devem aparecer apenas para usuários corretos.
+
+## ✅ Como Fazer Modificações Seguras
+
+1. **Leia primeiro:**
+   - `PROTECAO_CODIGO_ACOLHIDOS.md`
+   - Este arquivo
+
+2. **Teste imediatamente:**
+   - Faça login
+   - Verifique se não ficou tela branca
+   - Verifique se o carregamento é rápido
+   - Verifique se os cards/botões aparecem corretamente
+
+3. **Se algo quebrar:**
+   - Reverta as mudanças imediatamente
+   - Use o git para voltar à versão anterior
+
+## 📝 Checklist Antes de Modificar
+
+- [ ] Li os arquivos de proteção
+- [ ] Entendi que NÃO devo adicionar timeouts manuais
+- [ ] Entendi que NÃO devo remover filtros por role
+- [ ] Vou testar imediatamente após a mudança
+- [ ] Tenho um plano de rollback se algo der errado
+
+## 🔄 Se Precisar Reverter
+
+1. Use `git log` para ver commits recentes
+2. Use `git revert <commit-hash>` para reverter um commit específico
+3. Ou use `git reset --hard <commit-hash>` (CUIDADO: perde mudanças não commitadas)
+
+---
+
+**Última atualização:** Código funcionando - login rápido, busca de acolhidos funcionando, cards/botões filtrados corretamente
+

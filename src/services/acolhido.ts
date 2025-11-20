@@ -12,20 +12,47 @@ export const acolhidoService = {
   // Acolhidos
   async getAcolhidos(page = 1, perPage = 10): Promise<{ data: Acolhido[], total: number }> {
     try {
-      // Buscar o total de registros
-      const { count, error: countError } = await supabase
-        .from('acolhidos')
-        .select('*', { count: 'exact', head: true });
-
-      if (countError) {
-        console.error('[acolhidoService] Erro ao contar acolhidos:', countError);
-        throw countError;
+      console.log('[acolhidoService] Iniciando busca de acolhidos...', { page, perPage });
+      
+      // Buscar dados completos do usuário para filtrar
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
       }
 
-      // Buscar os registros da página atual
-      const { data, error } = await supabase
+      // Verificar se é master
+      const { data: masterCheck } = await supabase
+        .from('master_admin')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      const isMaster = !!masterCheck;
+
+      let empresaId: string | null = null;
+      if (!isMaster) {
+        // Buscar empresa_id do usuário
+        const { data: userData } = await supabase
+          .from('usuarios')
+          .select('empresa_id')
+          .eq('id', user.id)
+          .single();
+        
+        empresaId = userData?.empresa_id || null;
+      }
+
+      // Buscar acolhidos com filtro baseado no role
+      let query = supabase
         .from('acolhidos')
-        .select('*')
+        .select('*', { count: 'exact' });
+
+      // Se não for master, filtrar por empresa
+      if (!isMaster && empresaId) {
+        query = query.eq('abrigo_id', empresaId);
+      }
+
+      // Buscar com paginação
+      const { data, count, error } = await query
         .order('created_at', { ascending: false })
         .range((page - 1) * perPage, page * perPage - 1);
 
@@ -34,8 +61,10 @@ export const acolhidoService = {
         throw error;
       }
 
+      console.log('[acolhidoService] ✅ Acolhidos encontrados:', data?.length || 0, 'de', count || 0);
+
       return {
-        data: data || [],
+        data: (data || []) as Acolhido[],
         total: count || 0
       };
     } catch (error) {

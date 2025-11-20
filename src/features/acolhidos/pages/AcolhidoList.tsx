@@ -12,18 +12,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Pencil, Trash2, Plus, Loader2, Eye } from 'lucide-react'
 import { acolhidoService } from '@/services/acolhido'
 import { useAuth } from '@/contexts/AuthContext'
 import { Acolhido } from '@/types/acolhido'
 import { shelterService } from '@/services/shelter'
+import { supabase } from '@/config/supabase'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,23 +50,31 @@ export function AcolhidoList() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
-  const [filtroAbrigo, setFiltroAbrigo] = useState<string>('todos')
   const [fotosMap, setFotosMap] = useState<{ [acolhidoId: string]: string | null }>({});
   const [loadingFotos, setLoadingFotos] = useState(false);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 10;
   const [abrigosMap, setAbrigosMap] = useState<{ [id: string]: string }>({});
-  const [todosAbrigos, setTodosAbrigos] = useState<{ id: string, nome: string }[]>([]);
   const [acolhidoToDelete, setAcolhidoToDelete] = useState<Acolhido | null>(null);
 
   // Buscar acolhidos usando React Query
-  const { data: acolhidosData, isLoading, error } = useQuery({
+  const { data: acolhidosData, isLoading, error, isError } = useQuery({
     queryKey: ['acolhidos', paginaAtual],
     queryFn: async () => {
-      return await acolhidoService.getAcolhidos(paginaAtual, itensPorPagina);
+      try {
+        console.log('[AcolhidoList] Buscando acolhidos...', { paginaAtual, itensPorPagina });
+        const result = await acolhidoService.getAcolhidos(paginaAtual, itensPorPagina);
+        console.log('[AcolhidoList] Acolhidos recebidos:', result);
+        return result;
+      } catch (err) {
+        console.error('[AcolhidoList] Erro ao buscar acolhidos:', err);
+        throw err;
+      }
     },
     keepPreviousData: true,
     staleTime: 1000 * 60 * 5,
+    retry: 0, // Não tentar novamente automaticamente
+    refetchOnWindowFocus: false,
   });
 
   const acolhidos = acolhidosData?.data || [];
@@ -93,7 +95,7 @@ export function AcolhidoList() {
             let url = fotos[0].url;
             if (url && !url.startsWith('http')) {
               // Supondo que as fotos estão no storage do Supabase
-              const { data } = acolhidoService.supabase.storage.from('acolhidos').getPublicUrl(url);
+              const { data } = supabase.storage.from('acolhidos').getPublicUrl(url);
               url = data.publicUrl;
             }
             map[acolhido.id] = url;
@@ -110,44 +112,25 @@ export function AcolhidoList() {
     fetchFotos();
   }, [acolhidos]);
 
-  // Buscar todos os abrigos cadastrados
-  useEffect(() => {
-    async function fetchTodosAbrigos() {
-      try {
-        const lista = await shelterService.getShelters(1, 1000);
-        // Filtrar apenas abrigos (tipo ABRIGO)
-        const abrigos = lista
-          .filter((e: any) => e.tipo === 'ABRIGO')
-          .map((e: any) => ({ id: e.id, nome: e.nome }));
-        setTodosAbrigos(abrigos);
-        console.log('[AcolhidoList] Abrigos disponíveis:', abrigos.length);
-      } catch (e) {
-        console.error('[AcolhidoList] Erro ao buscar todos os abrigos:', e);
-        setTodosAbrigos([]);
-      }
-    }
-    fetchTodosAbrigos();
-  }, []);
-
-  // Buscar nomes das empresas (abrigos) dos acolhidos
+  // Buscar nomes das empresas (abrigos) - usar abrigo_id
   useEffect(() => {
     async function fetchEmpresas() {
-      if (!acolhidos) return;
-      // Usar abrigo_id do banco de dados
-      const ids = Array.from(new Set(acolhidos.map(a => a.abrigo_id).filter(Boolean)));
+      if (!acolhidos || acolhidos.length === 0) return;
+      // Usar abrigo_id ao invés de empresa_id
+      const ids = Array.from(new Set(acolhidos.map(a => (a as any).abrigo_id).filter(Boolean)));
       console.log('[AcolhidoList] IDs de abrigos encontrados nos acolhidos:', ids);
       if (ids.length === 0) return;
       try {
-        // Buscar todas as empresas (abrigos) necessárias
+        // Buscar todas as empresas necessárias
         const empresas = await shelterService.getSheltersByIds(ids);
-        console.log('[AcolhidoList] Abrigos retornados do banco:', empresas);
+        console.log('[AcolhidoList] Empresas retornadas do banco:', empresas);
         const map: { [id: string]: string } = {};
         empresas.forEach((empresa: any) => {
           map[empresa.id] = empresa.nome;
         });
         setAbrigosMap(map);
       } catch (e) {
-        console.error('[AcolhidoList] Erro ao buscar abrigos:', e);
+        console.error('[AcolhidoList] Erro ao buscar empresas:', e);
         setAbrigosMap({});
       }
     }
@@ -190,32 +173,35 @@ export function AcolhidoList() {
     navigate(`/admin/criancas/${acolhido.id}/visualizar`);
   };
 
-  // Filtrar acolhidos baseado no filtro de abrigo e busca por texto
-  const filteredAcolhidos = acolhidos.filter((acolhido) => {
-    // Filtro por abrigo
-    if (filtroAbrigo !== 'todos' && acolhido.abrigo_id !== filtroAbrigo) {
-      return false;
-    }
-    
-    // Filtro por busca de texto
-    if (searchTerm) {
-      const termo = searchTerm.toLowerCase();
-      const nomeMatch = acolhido.nome?.toLowerCase().includes(termo);
-      const nomeMaeMatch = acolhido.nome_mae?.toLowerCase().includes(termo);
-      return nomeMatch || nomeMaeMatch;
-    }
-    
-    return true;
-  });
-
-  if (error) {
-    console.error('[AcolhidoList] Erro ao carregar acolhidos:', error);
+  // Se erro, mostrar mensagem
+  if (isError && error) {
+    console.error('[AcolhidoList] Erro:', { isError, error });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorDetails = error instanceof Error && (error as any).code ? `Código: ${(error as any).code}` : '';
     return (
       <div className="container mx-auto p-6">
-        <div className="text-red-500">
-          Erro ao carregar acolhidos. Por favor, tente novamente.
-          <br />
-          <small>Detalhes: {error instanceof Error ? error.message : 'Erro desconhecido'}</small>
+        <div className="text-red-500 bg-red-50 p-4 rounded-lg">
+          <h2 className="font-bold mb-2">Erro ao carregar acolhidos</h2>
+          <p className="mb-2">Por favor, tente novamente.</p>
+          <small className="block mt-2">
+            <strong>Detalhes:</strong> {errorMessage}
+            {errorDetails && <><br />{errorDetails}</>}
+          </small>
+          <div className="mt-4 flex gap-2">
+            <Button 
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['acolhidos'] });
+              }}
+            >
+              Tentar Novamente
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.location.reload()}
+            >
+              Recarregar Página
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -226,53 +212,27 @@ export function AcolhidoList() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Acolhidos</h1>
-          <span className="text-sm text-gray-600">
-            {filtroAbrigo !== 'todos' 
-              ? `${filteredAcolhidos.length} acolhido(s) no abrigo selecionado` 
-              : `${totalAcolhidos} acolhido(s) cadastrados`}
-          </span>
+          <span className="text-sm text-gray-600">{totalAcolhidos} acolhido(s) cadastrados</span>
         </div>
         <Button onClick={() => navigate('/admin/criancas/novo')}>
           Novo Acolhido
         </Button>
       </div>
 
-      <div className="mb-4 flex gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Buscar por nome ou nome da mãe..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="w-64">
-          <Select
-            value={filtroAbrigo}
-            onValueChange={(value) => {
-              setFiltroAbrigo(value);
-              setPaginaAtual(1); // Resetar para primeira página ao mudar filtro
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Filtrar por abrigo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os abrigos</SelectItem>
-              {todosAbrigos.map((abrigo) => (
-                <SelectItem key={abrigo.id} value={abrigo.id}>
-                  {abrigo.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="mb-4">
+        <Input
+          placeholder="Buscar por nome ou nome da mãe..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
       <div className="bg-white rounded-lg shadow">
         {isLoading ? (
-          <div className="flex justify-center items-center p-8">
+          <div className="flex flex-col justify-center items-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            <span className="ml-2">Carregando acolhidos...</span>
+            <span className="ml-2 mt-2">Carregando acolhidos...</span>
+            <small className="text-gray-500 mt-2">Se demorar muito, verifique o console do navegador (F12)</small>
           </div>
         ) : (
           <Table>
@@ -290,20 +250,18 @@ export function AcolhidoList() {
             <TableBody>
               {loadingFotos ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                     Carregando fotos...
                   </TableCell>
                 </TableRow>
-              ) : filteredAcolhidos.length === 0 ? (
+              ) : acolhidos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    {filtroAbrigo !== 'todos' || searchTerm 
-                      ? 'Nenhum acolhido encontrado com os critérios de busca.' 
-                      : 'Nenhum acolhido cadastrado.'}
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                    Nenhum acolhido encontrado com os critérios de busca.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredAcolhidos.map((acolhido) => (
+                acolhidos.map((acolhido) => (
                   <TableRow key={acolhido.id}>
                     <TableCell className="text-center">
                       {fotosMap[acolhido.id] ? (
@@ -321,7 +279,7 @@ export function AcolhidoList() {
                     <TableCell className="text-center font-medium">{acolhido.nome}</TableCell>
                     <TableCell className="text-center">{new Date(acolhido.data_nascimento).toLocaleDateString()}</TableCell>
                     <TableCell className="text-center">{calcularIdade(acolhido.data_nascimento)}</TableCell>
-                    <TableCell className="text-center">{abrigosMap[acolhido.abrigo_id] || '-'}</TableCell>
+                    <TableCell className="text-center">{abrigosMap[(acolhido as any).abrigo_id] || '-'}</TableCell>
                     <TableCell className="text-center">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         acolhido.status === 'ativo' 

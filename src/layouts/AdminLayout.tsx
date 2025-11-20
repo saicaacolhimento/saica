@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/auth';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
@@ -15,21 +16,41 @@ import {
   DollarSign
 } from 'lucide-react';
 import logoSaica from '@/assets/images/logo-saica.png';
+import { useEffect, useState } from 'react';
 
 export default function AdminLayout() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const [userNome, setUserNome] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Buscar dados completos do usuário em background
+  useEffect(() => {
+    if (user?.id) {
+      authService.getCurrentUser().then(fullUser => {
+        if (fullUser) {
+          setUserNome(fullUser.nome || null);
+          setUserRole(fullUser.role || null);
+        }
+      }).catch(() => {
+        // Silencioso
+      });
+    }
+  }, [user?.id]);
+
+  const isMaster = userRole === 'master' || user?.email === 'saicaacolhimento2025@gmail.com';
+  const isAdmin = userRole === 'admin' || isMaster;
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', route: '/admin/dashboard' },
-    { icon: Home, label: 'Empresas', route: '/admin/empresas' },
-    { icon: Users, label: 'Usuários', route: '/admin/usuarios' },
-    { icon: Baby, label: 'Acolhidos', route: '/admin/criancas' },
-    { icon: Calendar, label: 'Agenda', route: '/admin/agenda' },
-    { icon: DollarSign, label: 'Financeiro', route: '/admin/financeiro' },
-    { icon: FileBox, label: 'Documentos', route: '/admin/documentos' },
-    { icon: Activity, label: 'Atividades', route: '/admin/atividades' },
-    { icon: Settings, label: 'Configurações', route: '/admin/configuracoes' }
+    { icon: LayoutDashboard, label: 'Dashboard', route: '/admin/dashboard', show: true },
+    { icon: Home, label: 'Empresas', route: '/admin/empresas', show: isMaster }, // ⚠️ SÓ PARA MASTER
+    { icon: Users, label: 'Usuários', route: '/admin/usuarios', show: isAdmin }, // ⚠️ PARA ADMIN E MASTER (NÃO PARA USUÁRIO NORMAL)
+    { icon: Baby, label: 'Acolhidos', route: '/admin/criancas', show: true },
+    { icon: Calendar, label: 'Agenda', route: '/admin/agenda', show: true },
+    { icon: DollarSign, label: 'Financeiro', route: '/admin/financeiro', show: true },
+    { icon: FileBox, label: 'Documentos', route: '/admin/documentos', show: true },
+    { icon: Activity, label: 'Atividades', route: '/admin/atividades', show: true },
+    { icon: Settings, label: 'Configurações', route: '/admin/configuracoes', show: true }
   ];
 
   const handleLogout = async () => {
@@ -47,22 +68,26 @@ export default function AdminLayout() {
           </Link>
           <div className="mt-4 bg-[#2D3B4E] rounded-lg p-3 w-full text-center">
             <p className="text-sm opacity-70">Logado como</p>
-            <p className="font-medium truncate">{user?.nome}</p>
+            <p className="font-medium truncate">
+              {userNome && userNome.trim() ? userNome.trim() : 'Usuário'}
+            </p>
             <p className="text-xs opacity-70">{user?.email}</p>
           </div>
         </div>
         
         <nav className="space-y-1 px-2">
-          {menuItems.map((item, index) => (
-            <Link
-              key={index}
-              to={item.route}
-              className="flex items-center space-x-2 px-4 py-2 text-sm rounded-lg hover:bg-[#2D3B4E] transition-colors"
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {menuItems
+            .filter(item => item.show !== false) // ⚠️ Filtra itens com show: false
+            .map((item, index) => (
+              <Link
+                key={index}
+                to={item.route}
+                className="flex items-center space-x-2 px-4 py-2 text-sm rounded-lg hover:bg-[#2D3B4E] transition-colors"
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
         </nav>
 
         <div className="mt-auto w-64 p-2">
