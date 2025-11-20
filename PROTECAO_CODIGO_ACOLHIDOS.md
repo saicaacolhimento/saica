@@ -61,3 +61,30 @@
 
 **Última atualização:** Versão funcionando - busca direta, sem timeout, com filtro correto por role
 
+---
+
+## Correção de Erro ao Editar Acolhido (2025-01-07)
+
+### Problema:
+Erro `Cannot read properties of null (reading 'replace')` ao clicar em "Editar" acolhido.
+
+### Causa:
+Campos do formulário (`cpf`, `cpf_responsavel`, `telefone_familia`, `telefone_escola`, `telefone_responsavel`) podem ser `null` ou `undefined` quando carregados do banco, mas o código tentava usar `.replace()` diretamente nesses valores.
+
+### Solução:
+Adicionado proteção `|| ''` (fallback para string vazia) antes de usar `.replace()` em todos os campos que formatam valores:
+
+- `form.cpf` → `(form.cpf || '').replace(...)`
+- `form.cpf_responsavel` → `(form.cpf_responsavel || '').replace(...)`
+- `form.telefone_familia` → `(form.telefone_familia || '').replace(...)`
+- `form.telefone_escola` → `(form.telefone_escola || '').replace(...)`
+- `form.telefone_responsavel` → Tratado com variável intermediária
+
+### Arquivos Modificados:
+- `project/src/pages/admin/AcolhidoCadastroEdicao.tsx` - Função `renderEditableField()`
+
+### ⚠️ NÃO REVERTER:
+- ❌ **NÃO** remover o `|| ''` dos campos de formatação
+- ❌ **NÃO** assumir que campos do banco sempre terão valor string
+- ✅ **SEMPRE** usar fallback para string vazia antes de métodos de string em campos opcionais
+
