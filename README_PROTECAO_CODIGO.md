@@ -110,3 +110,29 @@ A tela de usuários estava mostrando todos os usuários do sistema, mesmo quando
 - ❌ **NÃO** fazer `fetchAdmins()` quando logado como admin (não master)
 - ✅ **SEMPRE** verificar `isMaster` e `isAdmin` antes de decidir qual lista mostrar
 
+### Lógica de Detecção de Master (2025-01-07):
+
+**Problema:** Master não via usuários porque `userRole` demorava para ser carregado.
+
+**Solução:**
+- **Detecção imediata pelo email:** Se `user?.email === 'saicaacolhimento2025@gmail.com'`, o sistema identifica como master imediatamente, sem esperar `userRole`
+- **Busca imediata:** Quando master é detectado pelo email, `fetchAdmins()` é chamado imediatamente no `useEffect`
+- **Fallback:** Se houver erro ao buscar dados do usuário, mas o email for do master, define `userRole` como 'master'
+
+**Código crítico:**
+```typescript
+// Detecção imediata pelo email (mais rápido)
+const isMaster = user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master';
+
+// No useEffect, verificar email primeiro
+if (user?.email === 'saicaacolhimento2025@gmail.com') {
+  fetchAdmins(); // Busca imediata, sem esperar userRole
+  return;
+}
+```
+
+**⚠️ NÃO REVERTER:**
+- ❌ **NÃO** remover a verificação do email antes de verificar `userRole`
+- ❌ **NÃO** fazer o `useEffect` esperar `userRole` se o email for do master
+- ✅ **SEMPRE** verificar email primeiro para detecção rápida do master
+

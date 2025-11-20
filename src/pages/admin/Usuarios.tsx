@@ -34,7 +34,8 @@ export default function UsuariosAdminList() {
   const [userEmpresaId, setUserEmpresaId] = useState<string | null>(null);
 
   // Calcular isMaster e isAdmin dinamicamente
-  const isMaster = userRole === 'master' || user?.email === 'saicaacolhimento2025@gmail.com';
+  // Verificar email primeiro (mais rápido) e depois role
+  const isMaster = user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master';
   const isAdmin = userRole === 'admin' || isMaster;
 
   // Buscar dados completos do usuário
@@ -47,16 +48,26 @@ export default function UsuariosAdminList() {
             const role = fullUser.role || null;
             const empresaId = fullUser.empresa_id || null;
             
+            console.log('[Usuarios] Dados do usuário carregados:', { role, empresaId, email: user?.email });
             setUserRole(role);
             setUserEmpresaId(empresaId);
           }
         } catch (err) {
           console.error('[Usuarios] Erro ao buscar dados do usuário:', err);
+          // Se der erro mas o email for master, definir como master
+          if (user?.email === 'saicaacolhimento2025@gmail.com') {
+            console.log('[Usuarios] Email é master, definindo role como master');
+            setUserRole('master');
+          }
         }
+      } else if (user?.email === 'saicaacolhimento2025@gmail.com') {
+        // Se não tiver user.id mas o email for master, definir como master imediatamente
+        console.log('[Usuarios] Email é master, definindo role como master imediatamente');
+        setUserRole('master');
       }
     }
     fetchUserData();
-  }, [user?.id]);
+  }, [user?.id, user?.email]);
 
   async function fetchAdmins() {
     setLoading(true);
@@ -111,13 +122,20 @@ export default function UsuariosAdminList() {
   }
 
   useEffect(() => {
+    // Se for master pelo email, não precisa esperar userRole
+    if (user?.email === 'saicaacolhimento2025@gmail.com') {
+      console.log('[Usuarios] Master detectado pelo email, buscando todos os admins...');
+      fetchAdmins();
+      return;
+    }
+
     if (userRole === null) {
-      // Aguardar dados do usuário serem carregados
+      // Aguardar dados do usuário serem carregados (apenas se não for master pelo email)
       console.log('[Usuarios] Aguardando dados do usuário...');
       return;
     }
 
-    console.log('[Usuarios] Dados do usuário carregados:', { userRole, isMaster, isAdmin, userEmpresaId });
+    console.log('[Usuarios] Dados do usuário carregados:', { userRole, isMaster, isAdmin, userEmpresaId, email: user?.email });
 
     if (isMaster) {
       // Master vê todos os admins
@@ -131,7 +149,7 @@ export default function UsuariosAdminList() {
       console.warn('[Usuarios] Usuário sem permissão ou sem empresa_id');
       setLoading(false);
     }
-  }, [userRole, isMaster, isAdmin, userEmpresaId]);
+  }, [userRole, isMaster, isAdmin, userEmpresaId, user?.email]);
 
   console.log('Admins para renderizar:', admins);
 
