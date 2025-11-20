@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { documentoService } from '@/services/documento';
 import { AcolhimentoSection } from '../../../../src/components/AcolhimentoSection';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/auth';
 
 // Exemplo de dados iniciais (edição)
 const dadosIniciais = {
@@ -66,7 +67,7 @@ const dadosIniciais = {
   telefone_escola: '',
 };
 
-const isMaster = true; // Troque para lógica real de permissão
+// isMaster e isAdmin serão calculados dinamicamente no componente
 
 const generoOptions = [
   'Masculino',
@@ -142,30 +143,95 @@ export default function AcolhidoCadastroEdicao() {
   const [cpfExiste, setCpfExiste] = useState(false);
   const [cpfVerificando, setCpfVerificando] = useState(false);
   const [fotosSalvas, setFotosSalvas] = useState([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userEmpresaId, setUserEmpresaId] = useState<string | null>(null);
+
+  // Calcular isMaster e isAdmin dinamicamente
+  const isMaster = userRole === 'master' || user?.email === 'saicaacolhimento2025@gmail.com';
+  const isAdmin = userRole === 'admin' || isMaster;
+
+  // Buscar dados completos do usuário para determinar role e empresa_id
+  useEffect(() => {
+    async function fetchUserData() {
+      if (user?.id) {
+        try {
+          const fullUser = await authService.getCurrentUser();
+          if (fullUser) {
+            const role = fullUser.role || null;
+            const empresaId = fullUser.empresa_id || null;
+            
+            setUserRole(role);
+            setUserEmpresaId(empresaId);
+            
+            // Se for admin (não master), preencher automaticamente empresa_id e abrigo_id
+            const isUserMaster = role === 'master' || user?.email === 'saicaacolhimento2025@gmail.com';
+            if (role === 'admin' && !isUserMaster && empresaId && !id) {
+              console.log('[Cadastro] Admin logado, vinculando automaticamente à empresa:', empresaId);
+              setForm(prev => ({
+                ...prev,
+                empresa_id: empresaId,
+                abrigo_id: empresaId
+              }));
+            }
+          }
+        } catch (err) {
+          console.error('[Cadastro] Erro ao buscar dados do usuário:', err);
+        }
+      }
+    }
+    fetchUserData();
+  }, [user?.id, user?.email, id]);
 
   useEffect(() => {
     console.log('[Cadastro] Estado inicial:', {
       user: user ? { id: user.id, email: user.email } : null,
+      userRole,
+      userEmpresaId,
+      isMaster,
+      isAdmin,
       session: session ? {
         expires_at: session.expires_at,
         access_token: session.access_token ? 'presente' : 'ausente'
       } : null
     });
 
+    // Aguardar dados do usuário serem carregados antes de buscar dados do acolhido
+    if (user?.id && userRole === null) {
+      console.log('[Cadastro] Aguardando dados do usuário serem carregados...');
+      return;
+    }
+
     async function fetchData() {
       setLoading(true);
       try {
         if (isMaster) {
-          console.log('[Cadastro] Buscando lista de abrigos...');
+          console.log('[Cadastro] Master logado, buscando lista de abrigos...');
           const lista = await shelterService.getShelters(1, 100);
-          setAbrigos(lista.map((a: any) => ({ id: a.id, nome: a.nome })));
-          console.log('[Cadastro] Abrigos carregados:', lista.length);
+          const abrigosList = lista.filter((a: any) => a.tipo === 'ABRIGO');
+          setAbrigos(abrigosList.map((a: any) => ({ id: a.id, nome: a.nome })));
+          console.log('[Cadastro] Abrigos carregados:', abrigosList.length);
         }
         if (id) {
           console.log('[Cadastro] Buscando dados do acolhido:', id);
           const acolhido = await acolhidoService.getAcolhidoById(id);
-          setForm(acolhido);
+          // Mapear abrigo_id para empresa_id se necessário
+          if (acolhido.abrigo_id) {
+            setForm({ ...acolhido, empresa_id: acolhido.abrigo_id });
+          } else {
+            setForm(acolhido);
+          }
           console.log('[Cadastro] Dados do acolhido carregados');
+          
+          // Se for admin editando, garantir que empresa_id está preenchido
+          if (isAdmin && !isMaster && userEmpresaId) {
+            console.log('[Cadastro] Admin editando, garantindo vínculo com empresa:', userEmpresaId);
+            setForm(prev => ({
+              ...prev,
+              empresa_id: userEmpresaId,
+              abrigo_id: userEmpresaId
+            }));
+          }
+          
           const fotosSalvas = await acolhidoService.getAcolhidoFotos(id);
           setFotosSalvas(fotosSalvas);
         }
@@ -182,7 +248,7 @@ export default function AcolhidoCadastroEdicao() {
     }
 
     fetchData();
-  }, [id]);
+  }, [id, isMaster, isAdmin, userRole, userEmpresaId, user?.id]);
 
   // Função para renderizar campo com edição inline
   const renderEditableField = (label: string, name: string, type = 'text', required = false) => {
@@ -388,7 +454,7 @@ export default function AcolhidoCadastroEdicao() {
           <label className="w-48 font-medium">{label}{required && <span className="text-red-500 ml-1">*</span>}</label>
           <Input
             type="text"
-            value={form.cpf.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, '$1.$2.$3-$4')}
+            value={(form.cpf || '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, '$1.$2.$3-$4')}
             onChange={e => {
               let v = e.target.value.replace(/\D/g, '').slice(0, 11);
               setForm(f => ({ ...f, cpf: v }));
@@ -435,7 +501,7 @@ export default function AcolhidoCadastroEdicao() {
           <label className="w-48 font-medium">{label}{required && <span className="text-red-500 ml-1">*</span>}</label>
           <Input
             type="text"
-            value={form.cpf_responsavel.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, '$1.$2.$3-$4')}
+            value={(form.cpf_responsavel || '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, '$1.$2.$3-$4')}
             onChange={e => {
               let v = e.target.value.replace(/\D/g, '').slice(0, 11);
               setForm(f => ({ ...f, cpf_responsavel: v }));
@@ -449,12 +515,14 @@ export default function AcolhidoCadastroEdicao() {
     }
     // Máscara para Telefone do responsável
     if (name === 'telefone_responsavel') {
+      const telefoneValue = form.telefone_responsavel || '';
+      const telefoneFormatado = telefoneValue.replace(/(\d{2})(\d)/, '$1 $2').replace(/(\d{2}) (\d{5})(\d{1,4})/, '$1 $2-$3');
       return (
         <div className="mb-4 flex items-center gap-2">
           <label className="w-48 font-medium">{label}{required && <span className="text-red-500 ml-1">*</span>}</label>
           <Input
             type="text"
-            value={form.telefone_responsavel}
+            value={telefoneFormatado}
             onChange={e => {
               let v = e.target.value.replace(/\D/g, '').slice(0, 11);
               v = v.replace(/(\d{2})(\d)/, '$1 $2');
@@ -475,7 +543,7 @@ export default function AcolhidoCadastroEdicao() {
           <label className="w-48 font-medium">{label}{required && <span className="text-red-500 ml-1">*</span>}</label>
           <Input
             type="text"
-            value={form.telefone_familia.replace(/(\d{2})(\d)/, '$1 $2').replace(/(\d{2}) (\d{5})(\d{1,4})/, '$1 $2-$3')}
+            value={(form.telefone_familia || '').replace(/(\d{2})(\d)/, '$1 $2').replace(/(\d{2}) (\d{5})(\d{1,4})/, '$1 $2-$3')}
             onChange={e => {
               let v = e.target.value.replace(/\D/g, '').slice(0, 11);
               setForm(f => ({ ...f, telefone_familia: v }));
@@ -494,7 +562,7 @@ export default function AcolhidoCadastroEdicao() {
           <label className="w-48 font-medium">{label}{required && <span className="text-red-500 ml-1">*</span>}</label>
           <Input
             type="text"
-            value={form.telefone_escola.replace(/(\d{2})(\d)/, '$1 $2').replace(/(\d{2}) (\d{5})(\d{1,4})/, '$1 $2-$3')}
+            value={(form.telefone_escola || '').replace(/(\d{2})(\d)/, '$1 $2').replace(/(\d{2}) (\d{5})(\d{1,4})/, '$1 $2-$3')}
             onChange={e => {
               let v = e.target.value.replace(/\D/g, '').slice(0, 11);
               setForm(f => ({ ...f, telefone_escola: v }));
@@ -545,32 +613,45 @@ export default function AcolhidoCadastroEdicao() {
   };
 
   // Substituir campo de abrigo por select se master
-  const renderAbrigoField = () => (
-    isMaster ? (
-      <div className="mb-4 flex items-center gap-2">
-        <label className="w-48 font-medium">Empresa <span className="text-red-500">*</span></label>
-        <select
-          className="w-64 border rounded px-2 py-1"
-          value={form.empresa_id}
-          onChange={e => setForm(f => ({ ...f, empresa_id: e.target.value }))}
-          required
-        >
-          <option value="">Selecione a empresa</option>
-          {abrigos.map(a => (
-            <option key={a.id} value={a.id}>{a.nome}</option>
-          ))}
-        </select>
-      </div>
-    ) : null
-  );
+  // Se for admin (não master), NÃO mostrar campo - empresa será vinculada automaticamente
+  const renderAbrigoField = () => {
+    // Se for admin (não master), NÃO mostrar campo - empresa será vinculada automaticamente
+    if (isAdmin && !isMaster) {
+      return null; // Não mostrar nada, empresa será vinculada automaticamente
+    }
+    
+    // Se for master, mostrar select com lista de abrigos
+    if (isMaster) {
+      return (
+        <div className="mb-4 flex items-center gap-2">
+          <label className="w-48 font-medium">Empresa <span className="text-red-500">*</span></label>
+          <select
+            className="w-64 border rounded px-2 py-1"
+            value={form.empresa_id}
+            onChange={e => setForm(f => ({ ...f, empresa_id: e.target.value }))}
+            required
+          >
+            <option value="">Selecione a empresa</option>
+            {abrigos.map(a => (
+              <option key={a.id} value={a.id}>{a.nome}</option>
+            ))}
+          </select>
+        </div>
+      );
+    }
+    
+    return null;
+  };
 
   // Validação dos campos obrigatórios
   function validarCampos() {
     if (!form.nome) return 'Nome é obrigatório';
     if (!form.data_nascimento) return 'Data de nascimento é obrigatória';
     if (isMaster && !form.empresa_id) return 'Selecione a empresa';
-    if (fotos.length < 1) return 'Selecione pelo menos 1 foto';
-    if (fotos.length > 5) return 'Selecione no máximo 5 fotos';
+    // Para admin, empresa_id será preenchido automaticamente, não precisa validar
+    const totalFotos = fotosSalvas.length + fotos.length;
+    if (totalFotos < 1) return 'Selecione pelo menos 1 foto';
+    if (totalFotos > 5) return 'Selecione no máximo 5 fotos';
     if (!form.genero) return 'Gênero é obrigatório';
     return null;
   }
@@ -628,14 +709,69 @@ export default function AcolhidoCadastroEdicao() {
         } : null
       });
 
+      // Garantir que abrigo_id está preenchido corretamente
+      // Se for admin (não master), usar empresa_id automaticamente
+      let abrigoIdFinal = formFiltrado.abrigo_id || formFiltrado.empresa_id;
+      
+      console.log('[Cadastro] Estado antes de determinar abrigo_id:', {
+        isMaster,
+        isAdmin,
+        userEmpresaId,
+        formAbrigoId: formFiltrado.abrigo_id,
+        formEmpresaId: formFiltrado.empresa_id,
+        abrigoIdFinal
+      });
+      
+      if (!isMaster && isAdmin && userEmpresaId) {
+        // Admin (não master): sempre usar empresa_id do admin
+        console.log('[Cadastro] Admin logado, vinculando automaticamente à empresa:', userEmpresaId);
+        abrigoIdFinal = userEmpresaId;
+      } else if (isMaster && formFiltrado.empresa_id) {
+        // Master: usar empresa_id selecionada
+        console.log('[Cadastro] Master logado, usando empresa selecionada:', formFiltrado.empresa_id);
+        abrigoIdFinal = formFiltrado.empresa_id;
+      }
+      
+      console.log('[Cadastro] abrigo_id final determinado:', abrigoIdFinal);
+
+      // Validar se abrigo_id está preenchido
+      if (!abrigoIdFinal) {
+        const errorMsg = isMaster 
+          ? 'Selecione a empresa' 
+          : 'Erro: Admin não está vinculado a uma empresa. Entre em contato com o suporte.';
+        console.error('[Cadastro] Erro: abrigo_id não preenchido');
+        toast({
+          title: 'Erro',
+          description: errorMsg,
+          variant: 'destructive'
+        });
+        setSaving(false);
+        return;
+      }
+
+      // Preparar dados para envio (usar abrigo_id, não empresa_id)
+      const dataToSend: any = {
+        ...formFiltrado,
+        abrigo_id: abrigoIdFinal
+      };
+      
+      // Remover empresa_id do payload (não existe na tabela acolhidos)
+      delete dataToSend.empresa_id;
+      
+      // Remover campos que não existem na tabela
+      delete dataToSend.foto_url; // foto_url não é usado, fotos vão em acolhido_fotos
+      delete dataToSend.escola_anterior; // campo não existe
+
+      console.log('[Cadastro] Dados que serão enviados:', JSON.stringify(dataToSend, null, 2));
+
       // 1. Salvar ou atualizar acolhido
       if (id) {
         console.log('[Cadastro] Atualizando acolhido:', id);
-        await acolhidoService.updateAcolhido(id, formFiltrado);
+        await acolhidoService.updateAcolhido(id, dataToSend);
         console.log('[Cadastro] Acolhido atualizado com sucesso');
       } else {
-        console.log('[Cadastro] Criando novo acolhido');
-        const novo = await acolhidoService.createAcolhido(formFiltrado);
+        console.log('[Cadastro] Criando novo acolhido com abrigo_id:', abrigoIdFinal);
+        const novo = await acolhidoService.createAcolhido(dataToSend);
         acolhidoId = novo.id;
         console.log('[Cadastro] Novo acolhido criado:', acolhidoId);
       }
