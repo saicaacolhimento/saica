@@ -72,3 +72,41 @@ Este projeto está em um estado **FUNCIONANDO**. Antes de fazer qualquer modific
 
 **Última atualização:** Código funcionando - login rápido, busca de acolhidos funcionando, cards/botões filtrados corretamente
 
+---
+
+## Correção de Tela de Usuários (2025-01-07)
+
+### Problema:
+A tela de usuários estava mostrando todos os usuários do sistema, mesmo quando logado como admin (não master). Além disso, botões de editar/deletar apareciam para usuários admin quando logado como admin.
+
+### Solução:
+
+**1. Filtragem por Empresa:**
+- Adicionada lógica para verificar se o usuário logado é `master` ou `admin`
+- **Master:** Vê todos os admins do sistema (comportamento original)
+- **Admin (não master):** Vê apenas usuários vinculados à sua empresa (`empresa_id`)
+- Função `fetchUsuariosEmpresa()` busca apenas usuários da empresa do admin logado
+
+**2. Proteção de Botões:**
+- Botões de "Editar" e "Excluir" são ocultados para usuários com `role === 'admin'` quando logado como admin (não master)
+- Exibe mensagem "Apenas master pode gerenciar" no lugar dos botões
+
+**3. Posicionamento do Botão "Criar Usuário":**
+- Botão movido para o topo da página, lado direito, acima do card de usuários
+- Aparece apenas para admins (não master)
+
+**4. Melhorias no Serviço:**
+- `getUsersByEmpresa()` atualizado para tentar usar função RPC `get_users_by_empresa` primeiro (com `SECURITY DEFINER` para bypassar RLS)
+- Fallback para query direta se RPC não estiver disponível
+- Logs adicionados para debug
+
+### Arquivos Modificados:
+- `project/src/pages/admin/Usuarios.tsx` - Lógica de filtragem e renderização condicional
+- `project/src/services/auth.ts` - Função `getUsersByEmpresa()` melhorada
+
+### ⚠️ NÃO REVERTER:
+- ❌ **NÃO** remover a verificação `!isMaster && user.role === 'admin'` para ocultar botões
+- ❌ **NÃO** remover a lógica de `fetchUsuariosEmpresa()` para admins
+- ❌ **NÃO** fazer `fetchAdmins()` quando logado como admin (não master)
+- ✅ **SEMPRE** verificar `isMaster` e `isAdmin` antes de decidir qual lista mostrar
+

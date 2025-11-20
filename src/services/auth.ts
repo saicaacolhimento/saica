@@ -210,11 +210,38 @@ export const authService = {
   },
 
   async getUsersByEmpresa(empresa_id: string): Promise<{ data: any[]; error: any }> {
+    console.log('[authService] Buscando usuários da empresa:', empresa_id);
+    
+    // Tentar usar RPC function primeiro (se existir)
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_users_by_empresa', {
+        p_empresa_id: empresa_id
+      });
+      
+      if (!rpcError && rpcData) {
+        console.log('[authService] Usuários encontrados via RPC:', rpcData.length);
+        return { data: rpcData || [], error: null };
+      }
+    } catch (rpcErr) {
+      console.log('[authService] RPC function não disponível, usando query direta');
+    }
+    
+    // Fallback: query direta (pode ter limitações de RLS)
     const { data, error } = await supabase
       .from('usuarios')
       .select('id, nome, email, telefone, cargo, role, status, empresa_id')
-      .eq('empresa_id', empresa_id);
-    return { data, error };
+      .eq('empresa_id', empresa_id)
+      .order('nome', { ascending: true });
+    
+    console.log('[authService] Usuários encontrados:', data?.length || 0, data);
+    if (error) {
+      console.error('[authService] Erro ao buscar usuários:', error);
+      // Se for erro de RLS, tentar buscar via função SQL
+      if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy')) {
+        console.warn('[authService] Erro de permissão RLS detectado. Pode ser necessário criar função SQL com SECURITY DEFINER.');
+      }
+    }
+    return { data: data || [], error };
   },
 
   async getAllAdmins(): Promise<any[]> {
