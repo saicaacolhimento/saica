@@ -15,10 +15,23 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { authService } from '@/services/auth';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchUserRole() {
+      const currentUser = await authService.getCurrentUser();
+      setUserRole(currentUser?.role || null);
+    }
+    fetchUserRole();
+  }, [user]);
+
+  // Verificar se é master
+  const isMaster = user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master';
 
   const modules = [
     {
@@ -27,7 +40,8 @@ export default function Dashboard() {
       route: '/admin/empresas',
       icon: Home,
       bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600'
+      iconColor: 'text-blue-600',
+      masterOnly: true // ⚠️ APENAS MASTER PODE VER ESTE CARD
     },
     {
       title: 'Gestão de Usuários',
@@ -110,7 +124,13 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {modules.map((module, index) => (
+        {modules
+          .filter(module => {
+            // ⚠️ FILTRO CRÍTICO: Se masterOnly=true, só mostra para master
+            if (module.masterOnly && !isMaster) return false;
+            return true;
+          })
+          .map((module, index) => (
           <Card
             key={index}
             className="w-full hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
