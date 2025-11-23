@@ -15,14 +15,31 @@ import {
   DollarSign
 } from 'lucide-react';
 import logoSaica from '@/assets/images/logo-saica.png';
+import { useEffect, useState } from 'react';
+import { authService } from '@/services/auth';
 
 export default function AdminLayout() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // ⚠️ CRÍTICO: Buscar role do usuário para filtrar menu
+  useEffect(() => {
+    async function fetchUserRole() {
+      const currentUser = await authService.getCurrentUser();
+      setUserRole(currentUser?.role || null);
+    }
+    if (user) {
+      fetchUserRole();
+    }
+  }, [user]);
+
+  // ⚠️ CRÍTICO: Detecção de master
+  const isMaster = user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master';
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', route: '/admin/dashboard' },
-    { icon: Home, label: 'Empresas', route: '/admin/empresas' },
+    { icon: Home, label: 'Empresas', route: '/admin/empresas', masterOnly: true }, // ⚠️ CRÍTICO: Apenas master
     { icon: Users, label: 'Usuários', route: '/admin/usuarios' },
     { icon: Baby, label: 'Acolhidos', route: '/admin/criancas' },
     { icon: Calendar, label: 'Agenda', route: '/admin/agenda' },
@@ -53,16 +70,26 @@ export default function AdminLayout() {
         </div>
         
         <nav className="space-y-1 px-2">
-          {menuItems.map((item, index) => (
-            <Link
-              key={index}
-              to={item.route}
-              className="flex items-center space-x-2 px-4 py-2 text-sm rounded-lg hover:bg-[#2D3B4E] transition-colors"
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {/* ⚠️ CRÍTICO: Filtrar menu baseado em isMaster - "Empresas" apenas para master */}
+          {menuItems
+            .filter(item => {
+              // Se o item tem masterOnly, só mostra para master
+              if (item.masterOnly) {
+                return isMaster;
+              }
+              // Caso contrário, mostra para todos
+              return true;
+            })
+            .map((item, index) => (
+              <Link
+                key={index}
+                to={item.route}
+                className="flex items-center space-x-2 px-4 py-2 text-sm rounded-lg hover:bg-[#2D3B4E] transition-colors"
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
         </nav>
 
         <div className="mt-auto w-64 p-2">

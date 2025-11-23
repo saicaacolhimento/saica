@@ -15,10 +15,26 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { authService } from '@/services/auth';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // ⚠️ CRÍTICO: Buscar role do usuário para filtrar cards
+  useEffect(() => {
+    async function fetchUserRole() {
+      const currentUser = await authService.getCurrentUser();
+      setUserRole(currentUser?.role || null);
+    }
+    if (user) {
+      fetchUserRole();
+    }
+  }, [user]);
+
+  // ⚠️ CRÍTICO: Detecção de master
+  const isMaster = user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master';
 
   const modules = [
     {
@@ -27,7 +43,8 @@ export default function Dashboard() {
       route: '/admin/empresas',
       icon: Home,
       bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600'
+      iconColor: 'text-blue-600',
+      masterOnly: true // ⚠️ CRÍTICO: Apenas master pode ver
     },
     {
       title: 'Gestão de Usuários',
@@ -110,24 +127,34 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {modules.map((module, index) => (
-          <Card
-            key={index}
-            className="w-full hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
-            onClick={() => navigate(module.route)}
-            tabIndex={0}
-          >
-            <CardHeader className="flex flex-col items-center pb-2">
-              <div className={`p-2 ${module.bgColor} rounded-lg mb-2`}>
-                <module.icon className={`h-8 w-8 md:h-10 md:w-10 ${module.iconColor}`} />
-              </div>
-              <CardTitle className="text-base md:text-lg text-center w-full truncate">{module.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 text-center break-words">{module.description}</p>
-            </CardContent>
-          </Card>
-        ))}
+        {/* ⚠️ CRÍTICO: Filtrar cards baseado em isMaster - "Gestão de Empresas" apenas para master */}
+        {modules
+          .filter(module => {
+            // Se o módulo tem masterOnly, só mostra para master
+            if (module.masterOnly) {
+              return isMaster;
+            }
+            // Caso contrário, mostra para todos
+            return true;
+          })
+          .map((module, index) => (
+            <Card
+              key={index}
+              className="w-full hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
+              onClick={() => navigate(module.route)}
+              tabIndex={0}
+            >
+              <CardHeader className="flex flex-col items-center pb-2">
+                <div className={`p-2 ${module.bgColor} rounded-lg mb-2`}>
+                  <module.icon className={`h-8 w-8 md:h-10 md:w-10 ${module.iconColor}`} />
+                </div>
+                <CardTitle className="text-base md:text-lg text-center w-full truncate">{module.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 text-center break-words">{module.description}</p>
+              </CardContent>
+            </Card>
+          ))}
       </div>
     </div>
   );
