@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Input } from './input';
-import cidadesData from '@/data/cidades1.json.json';
+import cidadesData from '../../data/cidades1.json.json';
 
 interface CityAutocompleteProps {
   value: string;
