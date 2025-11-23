@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import PermissoesEmpresa from '../../../../../src/pages/admin/PermissoesEmpresa'
+// PermissoesEmpresa removido - arquivo não existe no projeto
 
 export const ConfiguracaoList = () => {
   const navigate = useNavigate()
@@ -76,7 +76,10 @@ export const ConfiguracaoList = () => {
       </div>
       <div className="flex-1 space-y-4">
         {showPermissoes ? (
-          <PermissoesEmpresa />
+          <div className="p-8 text-center text-muted-foreground">
+            <p className="text-lg mb-2">Funcionalidade de Permissões</p>
+            <p className="text-sm">Em desenvolvimento</p>
+          </div>
         ) : (
           <div className="grid gap-4">
             {filteredConfiguracoes?.map((configuracao) => (
