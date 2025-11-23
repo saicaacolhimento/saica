@@ -79,3 +79,4 @@ GRANT EXECUTE ON FUNCTION public.get_acolhidos(INTEGER, INTEGER) TO anon;
 COMMENT ON FUNCTION public.get_acolhidos(INTEGER, INTEGER) IS
 'Busca acolhidos rapidamente. Master vê todos, admin vê apenas da sua empresa.';
 
+

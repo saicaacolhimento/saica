@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: saica-backend
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3333
+      - key: SUPABASE_URL
+        sync: false  # Será configurado manualmente no painel do Render
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false  # Será configurado manualmente no painel do Render
+      - key: CORS_ORIGIN
+        value: https://saica.com.br
+    healthCheckPath: /health
+    domains:
+      - api.saica.com.br
+

@@ -1,6 +1,7 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  # Nota: Se o projeto estiver em subdiretório, configure o "Base directory" no painel do Netlify
 
 [[redirects]]
   from = "/*"
@@ -9,6 +10,9 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  # Variáveis de ambiente serão configuradas no painel do Netlify
+  # VITE_SUPABASE_URL
+  # VITE_SUPABASE_ANON_KEY
 
 [[headers]]
   for = "/*"
@@ -18,4 +22,21 @@
     X-Content-Type-Options = "nosniff"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()" 
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # Cache para assets estáticos
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable" 

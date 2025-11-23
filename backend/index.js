@@ -7,7 +7,27 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:5173' }));
+
+// CORS configurado para aceitar localhost (dev) e domínio de produção
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://saica.com.br',
+  'https://www.saica.com.br',
+  process.env.CORS_ORIGIN
+].filter(Boolean);
+
+app.use(cors({ 
+  origin: function (origin, callback) {
+    // Permite requisições sem origin (ex: mobile apps, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -66,7 +86,14 @@ app.post('/admin/alterar-senha', async (req, res) => {
   }
 });
 
+// Health check endpoint para Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 const PORT = process.env.PORT || 3333;
 app.listen(PORT, () => {
   console.log(`Backend rodando na porta ${PORT}`);
+  console.log(`Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`CORS permitido para: ${allowedOrigins.join(', ')}`);
 }); 
