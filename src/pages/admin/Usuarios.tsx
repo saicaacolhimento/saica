@@ -40,11 +40,20 @@ export default function UsuariosAdminList() {
   // Buscar role e empresa_id do usuário logado
   useEffect(() => {
     async function fetchUserData() {
+      console.log('[Usuarios] Buscando dados do usuário logado...');
       const currentUser = await authService.getCurrentUser();
+      console.log('[Usuarios] Dados do usuário retornados:', { 
+        role: currentUser?.role, 
+        empresa_id: currentUser?.empresa_id,
+        email: currentUser?.email,
+        nome: currentUser?.nome
+      });
       setUserRole(currentUser?.role || null);
       setUserEmpresaId(currentUser?.empresa_id || null);
     }
-    fetchUserData();
+    if (user) {
+      fetchUserData();
+    }
   }, [user]);
 
   // ⚠️ CRÍTICO: Buscar dados baseado no role
@@ -59,27 +68,35 @@ export default function UsuariosAdminList() {
     }
   }
 
-  // ⚠️ CRÍTICO: Buscar apenas usuários da empresa do admin
+  // ⚠️ CRÍTICO: Buscar TODOS os usuários da empresa do admin (incluindo admin e usuários criados)
   async function fetchUsuariosEmpresa() {
+    console.log('[Usuarios] fetchUsuariosEmpresa chamado com empresa_id:', userEmpresaId);
     if (!userEmpresaId) {
-      console.warn('[Usuarios] Admin sem empresa_id');
+      console.warn('[Usuarios] ⚠️ Admin sem empresa_id, não pode buscar usuários');
       setUsuariosEmpresa([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
+      console.log('[Usuarios] Chamando authService.getUsersByEmpresa com empresa_id:', userEmpresaId);
       const { data, error } = await authService.getUsersByEmpresa(userEmpresaId);
+      console.log('[Usuarios] Resposta de getUsersByEmpresa:', { 
+        quantidade: data?.length || 0, 
+        usuarios: data?.map((u: any) => ({ nome: u.nome, role: u.role, email: u.email })),
+        error 
+      });
       if (error) {
-        console.error('[Usuarios] Erro ao buscar usuários da empresa:', error);
-        toast({ title: 'Erro ao buscar usuários', description: error, variant: 'destructive' });
+        console.error('[Usuarios] ❌ Erro ao buscar usuários da empresa:', error);
+        toast({ title: 'Erro ao buscar usuários', description: error?.message || String(error), variant: 'destructive' });
         setUsuariosEmpresa([]);
       } else {
-        console.log('[Usuarios] Usuários da empresa encontrados:', data);
+        console.log('[Usuarios] ✅ Usuários da empresa encontrados:', data?.length || 0, 'usuários');
+        // ⚠️ CRÍTICO: Incluir TODOS os usuários (admin + usuários criados)
         setUsuariosEmpresa(data || []);
       }
     } catch (e: any) {
-      console.error('[Usuarios] Erro ao buscar usuários da empresa:', e);
+      console.error('[Usuarios] ❌ Erro ao buscar usuários da empresa (catch):', e);
       toast({ title: 'Erro ao buscar usuários', description: e.message, variant: 'destructive' });
       setUsuariosEmpresa([]);
     } finally {
@@ -89,22 +106,44 @@ export default function UsuariosAdminList() {
 
   // ⚠️ CRÍTICO: Buscar dados baseado no role
   useEffect(() => {
+    console.log('[Usuarios] useEffect buscar dados - estado atual:', { 
+      userEmail: user?.email, 
+      userRole, 
+      userEmpresaId,
+      isMaster: user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master'
+    });
+
     // Detecção imediata pelo email (mais rápido)
     if (user?.email === 'saicaacolhimento2025@gmail.com') {
+      console.log('[Usuarios] Master detectado pelo email, buscando admins...');
       fetchAdmins(); // Master vê todos os admins
       return;
     }
 
     // Aguardar userRole e userEmpresaId serem carregados
     if (userRole === 'master') {
+      console.log('[Usuarios] Master detectado pelo role, buscando admins...');
       fetchAdmins(); // Master vê todos os admins
     } else if (userRole === 'admin' && userEmpresaId) {
+      console.log('[Usuarios] Admin detectado com empresa_id, buscando usuários da empresa:', userEmpresaId);
       fetchUsuariosEmpresa(); // Admin vê apenas usuários da sua empresa
     } else if (userRole === 'admin' && !userEmpresaId) {
-      console.warn('[Usuarios] Admin sem empresa_id, não pode buscar usuários');
+      console.warn('[Usuarios] ⚠️ Admin sem empresa_id, não pode buscar usuários');
       setLoading(false);
+    } else if (!userRole) {
+      console.log('[Usuarios] Aguardando userRole ser carregado...');
     }
   }, [userRole, userEmpresaId, user?.email]);
+
+  console.log('[Usuarios] Estado atual:', {
+    admins: admins.length,
+    usuariosEmpresa: usuariosEmpresa.length,
+    userRole,
+    userEmpresaId,
+    isMaster,
+    isAdmin,
+    loading
+  });
 
   console.log('Admins para renderizar:', admins);
 
@@ -123,6 +162,78 @@ export default function UsuariosAdminList() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // ⚠️ CRÍTICO: Atualizar lista após criar/editar/deletar usuário
+  const handleCreateUser = async () => {
+    if (!form.nome || !form.email || !form.senha || !form.confirmarSenha) {
+      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+    if (form.senha !== form.confirmarSenha) {
+      toast({ title: 'As senhas não coincidem', variant: 'destructive' });
+      return;
+    }
+    setFormLoading(true);
+    try {
+      const empresaIdParaCriar = isMaster ? modalAdmin?.empresa_id : userEmpresaId;
+      console.log('[Usuarios] Criando usuário com empresa_id:', empresaIdParaCriar);
+      console.log('[Usuarios] Dados do usuário a ser criado:', {
+        nome: form.nome,
+        email: form.email,
+        role: 'padrao',
+        empresa_id: empresaIdParaCriar
+      });
+      
+      const novoUsuario = await authService.createUser({
+        nome: form.nome,
+        telefone: form.telefone,
+        cargo: form.cargo,
+        email: form.email,
+        password: form.senha,
+        role: 'padrao',
+        status: 'active',
+        empresa_id: empresaIdParaCriar, // ⚠️ Usar empresa_id do admin se não for master
+      });
+      
+      console.log('[Usuarios] Usuário criado com sucesso:', novoUsuario);
+      console.log('[Usuarios] Verificando se empresa_id foi salvo:', novoUsuario.empresa_id);
+      
+      // ⚠️ CRÍTICO: Verificar diretamente no Supabase se o usuário foi salvo com empresa_id correto
+      if (novoUsuario.id) {
+        console.log('[Usuarios] Verificando usuário criado diretamente no Supabase...');
+        const { data: usuarioVerificado, error: erroVerificacao } = await supabase
+          .from('usuarios')
+          .select('id, nome, email, role, empresa_id')
+          .eq('id', novoUsuario.id)
+          .single();
+        
+        console.log('[Usuarios] Usuário verificado no banco:', usuarioVerificado);
+        console.log('[Usuarios] empresa_id do usuário no banco:', usuarioVerificado?.empresa_id);
+        console.log('[Usuarios] empresa_id esperado:', empresaIdParaCriar);
+        
+        if (erroVerificacao) {
+          console.error('[Usuarios] Erro ao verificar usuário:', erroVerificacao);
+        }
+      }
+      
+      if (isMaster) {
+        await fetchAdmins();
+      } else {
+        // ⚠️ CRÍTICO: Aguardar mais tempo para garantir que o usuário foi salvo no banco
+        console.log('[Usuarios] Aguardando 1 segundo antes de atualizar lista...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('[Usuarios] Atualizando lista de usuários...');
+        await fetchUsuariosEmpresa(); // ⚠️ Atualizar lista de usuários da empresa
+      }
+      toast({ title: 'Usuário criado com sucesso!' });
+      handleCloseModal();
+    } catch (e: any) {
+      console.error('[Usuarios] Erro ao criar usuário:', e);
+      toast({ title: 'Erro ao criar usuário', description: e.message, variant: 'destructive' });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const senhaCoincide = form.senha === form.confirmarSenha;
 
   const handleDeleteUser = useCallback(async (user: any) => {
@@ -130,14 +241,20 @@ export default function UsuariosAdminList() {
     try {
       await authService.deleteUser(user.id);
       toast({ title: 'Usuário excluído com sucesso!' });
-      if (user.empresa_id) {
-        const { data } = await authService.getUsersByEmpresa(user.empresa_id);
-        setEmpresaUsuarios(prev => ({ ...prev, [user.empresa_id]: data || [] }));
+      if (isMaster) {
+        // Se for master, atualizar lista de admins
+        if (user.empresa_id) {
+          const { data } = await authService.getUsersByEmpresa(user.empresa_id);
+          setEmpresaUsuarios(prev => ({ ...prev, [user.empresa_id]: data || [] }));
+        }
+      } else {
+        // Se for admin, atualizar lista de usuários da empresa
+        await fetchUsuariosEmpresa();
       }
     } catch (e: any) {
       toast({ title: 'Erro ao excluir usuário', description: e.message, variant: 'destructive' });
     }
-  }, [setEmpresaUsuarios, toast]);
+  }, [isMaster, userEmpresaId, toast]);
 
   const handleOpenEditModal = (user: any) => {
     setEditUserModal({ open: true, user });
@@ -177,103 +294,6 @@ export default function UsuariosAdminList() {
 
       toast({ title: 'Usuário atualizado com sucesso!' });
       handleCloseEditModal();
-    } catch (e: any) {
-      toast({ title: 'Erro ao atualizar usuário', description: e.message, variant: 'destructive' });
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
-  // ⚠️ CRÍTICO: Atualizar lista após criar/editar/deletar usuário
-  const handleCreateUser = async () => {
-    if (!form.nome || !form.email || !form.senha || !form.confirmarSenha) {
-      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
-      return;
-    }
-    if (form.senha !== form.confirmarSenha) {
-      toast({ title: 'As senhas não coincidem', variant: 'destructive' });
-      return;
-    }
-    setFormLoading(true);
-    try {
-      await authService.createUser({
-        nome: form.nome,
-        telefone: form.telefone,
-        cargo: form.cargo,
-        email: form.email,
-        password: form.senha,
-        role: 'padrao',
-        status: 'active',
-        empresa_id: isMaster ? modalAdmin?.empresa_id : userEmpresaId, // ⚠️ Usar empresa_id do admin se não for master
-      });
-      if (isMaster) {
-        await fetchAdmins();
-      } else {
-        await fetchUsuariosEmpresa(); // ⚠️ Atualizar lista de usuários da empresa
-      }
-      toast({ title: 'Usuário criado com sucesso!' });
-      handleCloseModal();
-    } catch (e: any) {
-      toast({ title: 'Erro ao criar usuário', description: e.message, variant: 'destructive' });
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
-  const handleDeleteUser = useCallback(async (user: any) => {
-    if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
-    try {
-      await authService.deleteUser(user.id);
-      toast({ title: 'Usuário excluído com sucesso!' });
-      if (isMaster) {
-        // Se for master, atualizar lista de admins
-        if (user.empresa_id) {
-          const { data } = await authService.getUsersByEmpresa(user.empresa_id);
-          setEmpresaUsuarios(prev => ({ ...prev, [user.empresa_id]: data || [] }));
-        }
-      } else {
-        // Se for admin, atualizar lista de usuários da empresa
-        await fetchUsuariosEmpresa();
-      }
-    } catch (e: any) {
-      toast({ title: 'Erro ao excluir usuário', description: e.message, variant: 'destructive' });
-    }
-  }, [isMaster, userEmpresaId, toast]);
-
-  const handleEditUser = async () => {
-    if (!editUserModal.user) return;
-    
-    setEditLoading(true);
-    try {
-      await authService.updateUser(
-        editUserModal.user.id,
-        {
-          nome: editForm.nome,
-        }
-      );
-
-      if (editForm.senha && editForm.senha === editForm.confirmarSenha) {
-        const resp = await fetch('http://localhost:3333/admin/alterar-senha', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: editUserModal.user.id,
-            novaSenha: editForm.senha,
-          }),
-        });
-        const result = await resp.json();
-        if (!result.success) throw new Error(result.error || 'Erro ao alterar senha');
-      }
-
-      toast({ title: 'Usuário atualizado com sucesso!' });
-      handleCloseEditModal();
-      
-      // ⚠️ Atualizar lista após edição
-      if (isMaster) {
-        await fetchAdmins();
-      } else {
-        await fetchUsuariosEmpresa();
-      }
     } catch (e: any) {
       toast({ title: 'Erro ao atualizar usuário', description: e.message, variant: 'destructive' });
     } finally {
@@ -323,101 +343,118 @@ export default function UsuariosAdminList() {
                   <TableCell colSpan={8} className="text-center py-8 text-gray-500">Nenhum admin encontrado.</TableCell>
                 </TableRow>
               ) : (
-                admins.filter(admin => admin.role === 'admin').map((admin) => [
-              <TableRow key={admin.id}>
-                <TableCell>{admin.nome}</TableCell>
-                <TableCell className="text-center">{admin.email}</TableCell>
-                <TableCell className="text-center">
-                  {admin.tipo_empresa === 'ABRIGO'
-                    ? (admin.nome_empresa || '-')
-                    : (admin.tipo_empresa || '-')}
-                </TableCell>
-                <TableCell className="text-center">{admin.cidade_empresa || '-'}</TableCell>
-                <TableCell className="text-center">{admin.estado_empresa || '-'}</TableCell>
-                <TableCell>{admin.status}</TableCell>
-                <TableCell>{admin.cargo || '-'}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleOpenModal(admin)}>
-                      Criar Usuário
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={async () => {
-                      if (expandedAdminId === admin.id) {
-                        setExpandedAdminId(null);
-                      } else {
-                        setLoadingUsuarios(admin.id);
-                        if (!empresaUsuarios[admin.empresa_id]) {
-                          const { data, error } = await authService.getUsersByEmpresa(admin.empresa_id);
-                          setEmpresaUsuarios(prev => ({ ...prev, [admin.empresa_id]: data || [] }));
-                        }
-                        setExpandedAdminId(admin.id);
-                        setLoadingUsuarios(null);
-                      }
-                    }}>
-                      {expandedAdminId === admin.id ? 'Ocultar usuários' : '+ Usuários'}
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>,
-              expandedAdminId === admin.id && (
-                <TableRow key={admin.id + '-usuarios'}>
-                  <TableCell colSpan={8} className="bg-gray-50 p-0">
-                    {loadingUsuarios === admin.id ? (
-                      <div className="text-center p-4">Carregando usuários...</div>
-                    ) : (
-                      <div className="p-4">
-                        <strong>Usuários vinculados:</strong>
-                        {empresaUsuarios[admin.empresa_id]?.length ? (
-                          <Table className="mt-2">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Cargo</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-center">Ações</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {empresaUsuarios[admin.empresa_id].map((user: any) => (
-                                <TableRow key={user.id}>
-                                  <TableCell>{user.nome}</TableCell>
-                                  <TableCell>{user.email}</TableCell>
-                                  <TableCell>{user.cargo || '-'}</TableCell>
-                                  <TableCell>{user.status}</TableCell>
-                                  <TableCell className="text-center">
-                                    {user.role === 'admin' ? (
-                                      <span className="text-gray-400 text-sm">Apenas master pode gerenciar</span>
-                                    ) : (
-                                      <>
-                                        <Button variant="outline" size="sm" onClick={() => handleOpenEditModal(user)}>Editar</Button>
-                                        <Button
-                                          variant="destructive"
-                                          size="icon"
-                                          className="ml-2"
-                                          title="Excluir usuário"
-                                          onClick={() => handleDeleteUser(user)}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        ) : (
-                          <div className="text-gray-500 mt-2">Nenhum usuário vinculado.</div>
-                        )}
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              )
-            ])}
-          </TableBody>
-        </Table>
+                admins.filter(admin => admin.role === 'admin').flatMap((admin) => {
+                  const rows = [
+                    <TableRow key={admin.id}>
+                      <TableCell>{admin.nome}</TableCell>
+                      <TableCell className="text-center">{admin.email}</TableCell>
+                      <TableCell className="text-center">
+                        {admin.tipo_empresa === 'ABRIGO'
+                          ? (admin.nome_empresa || '-')
+                          : (admin.tipo_empresa || '-')}
+                      </TableCell>
+                      <TableCell className="text-center">{admin.cidade_empresa || '-'}</TableCell>
+                      <TableCell className="text-center">{admin.estado_empresa || '-'}</TableCell>
+                      <TableCell>{admin.status}</TableCell>
+                      <TableCell>{admin.cargo || '-'}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleOpenModal(admin)}>
+                            Criar Usuário
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={async () => {
+                            if (expandedAdminId === admin.id) {
+                              setExpandedAdminId(null);
+                            } else {
+                              setLoadingUsuarios(admin.id);
+                              console.log('[Usuarios] Master expandindo admin:', admin.id, 'empresa_id:', admin.empresa_id);
+                              if (!empresaUsuarios[admin.empresa_id]) {
+                                console.log('[Usuarios] Buscando usuários da empresa:', admin.empresa_id);
+                                const { data, error } = await authService.getUsersByEmpresa(admin.empresa_id);
+                                console.log('[Usuarios] Usuários encontrados:', { quantidade: data?.length || 0, usuarios: data, error });
+                                if (error) {
+                                  console.error('[Usuarios] Erro ao buscar usuários:', error);
+                                  toast({ title: 'Erro ao buscar usuários', description: error?.message || String(error), variant: 'destructive' });
+                                }
+                                setEmpresaUsuarios(prev => ({ ...prev, [admin.empresa_id]: data || [] }));
+                              } else {
+                                console.log('[Usuarios] Usuários já carregados em cache:', empresaUsuarios[admin.empresa_id]?.length || 0);
+                              }
+                              setExpandedAdminId(admin.id);
+                              setLoadingUsuarios(null);
+                            }
+                          }}>
+                            {expandedAdminId === admin.id ? 'Ocultar usuários' : '+ Usuários'}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ];
+                  
+                  if (expandedAdminId === admin.id) {
+                    rows.push(
+                      <TableRow key={admin.id + '-usuarios'}>
+                        <TableCell colSpan={8} className="bg-gray-50 p-0">
+                          {loadingUsuarios === admin.id ? (
+                            <div className="text-center p-4">Carregando usuários...</div>
+                          ) : (
+                            <div className="p-4">
+                              <strong>Usuários vinculados:</strong>
+                              {empresaUsuarios[admin.empresa_id]?.length ? (
+                                <Table className="mt-2">
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Nome</TableHead>
+                                      <TableHead>Email</TableHead>
+                                      <TableHead>Cargo</TableHead>
+                                      <TableHead>Status</TableHead>
+                                      <TableHead className="text-center">Ações</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {empresaUsuarios[admin.empresa_id].map((user: any) => (
+                                      <TableRow key={user.id}>
+                                        <TableCell>{user.nome}</TableCell>
+                                        <TableCell>{user.email}</TableCell>
+                                        <TableCell>{user.cargo || '-'}</TableCell>
+                                        <TableCell>{user.status}</TableCell>
+                                        <TableCell className="text-center">
+                                          {user.role === 'admin' ? (
+                                            <span className="text-gray-400 text-sm">Apenas master pode gerenciar</span>
+                                          ) : (
+                                            <>
+                                              <Button variant="outline" size="sm" onClick={() => handleOpenEditModal(user)}>Editar</Button>
+                                              <Button
+                                                variant="destructive"
+                                                size="icon"
+                                                className="ml-2"
+                                                title="Excluir usuário"
+                                                onClick={() => handleDeleteUser(user)}
+                                              >
+                                                <Trash2 className="h-4 w-4" />
+                                              </Button>
+                                            </>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              ) : (
+                                <div className="text-gray-500 mt-2">Nenhum usuário vinculado.</div>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+                  
+                  return rows;
+                })
+              )}
+            </TableBody>
+          </Table>
         ) : (
           // ADMIN: Vê apenas usuários da sua empresa
           <Table>

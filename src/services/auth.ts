@@ -76,9 +76,10 @@ export const authService = {
     }
 
     // Se não for master admin, busca dados do usuário normal
+    // ⚠️ CRÍTICO: Não usar '*, abrigos(*)' pois causa erro 400
     const { data: userData, error: userError } = await supabase
       .from('usuarios')
-      .select('*, abrigos(*)')
+      .select('id, nome, email, role, status, empresa_id, cargo, telefone, created_at, updated_at')
       .eq('id', user.id)
       .single();
 
@@ -191,11 +192,52 @@ export const authService = {
   },
 
   async getUsersByEmpresa(empresa_id: string): Promise<{ data: any[]; error: any }> {
+    console.log('[authService] getUsersByEmpresa chamado com empresa_id:', empresa_id);
+    
+    // ⚠️ SOLUÇÃO DEFINITIVA: Tentar primeiro usar RPC que bypassa RLS
+    // Se falhar, usar query direta
+    try {
+      console.log('[authService] Tentando usar RPC get_users_by_empresa_rpc...');
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_users_by_empresa_rpc', {
+        empresa_id_param: empresa_id
+      });
+      
+      if (!rpcError && rpcData) {
+        console.log('[authService] ✅ RPC funcionou! Usuários encontrados:', rpcData.length);
+        return { data: rpcData || [], error: null };
+      } else {
+        console.warn('[authService] RPC falhou ou não existe, usando query direta:', rpcError);
+      }
+    } catch (rpcErr: any) {
+      console.warn('[authService] Erro ao chamar RPC, usando query direta:', rpcErr);
+    }
+    
+    // Fallback: Query direta (respeita RLS)
+    console.log('[authService] Usando query direta (respeita RLS)...');
     const { data, error } = await supabase
       .from('usuarios')
-      .select('id, nome, email, telefone, cargo, role, status, empresa_id')
-      .eq('empresa_id', empresa_id);
-    return { data, error };
+      .select('id, nome, email, telefone, cargo, role, status, empresa_id, created_at, updated_at')
+      .eq('empresa_id', empresa_id)
+      .order('created_at', { ascending: false });
+    
+    console.log('[authService] getUsersByEmpresa resultado:', { 
+      empresa_id_buscado: empresa_id,
+      quantidade: data?.length || 0, 
+      usuarios: data?.map(u => ({ 
+        nome: u.nome, 
+        role: u.role, 
+        email: u.email, 
+        empresa_id: u.empresa_id 
+      })),
+      error 
+    });
+    
+    if (error) {
+      console.error('[authService] ❌ Erro na query getUsersByEmpresa:', error);
+      console.error('[authService] ⚠️ Erro de permissão RLS. Execute o script FIX_DEFINITIVO_USUARIOS.sql no Supabase');
+    }
+    
+    return { data: data || [], error };
   },
 
   async getAllAdmins(): Promise<any[]> {

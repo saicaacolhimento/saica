@@ -316,10 +316,14 @@ CREATE POLICY "Master admin can do everything on usuarios"
 ON public.usuarios
 FOR ALL
 USING (
+    -- Master na tabela master_admin
     EXISTS (
         SELECT 1 FROM public.master_admin
         WHERE id = auth.uid()
     )
+    OR
+    -- Master pelo UID específico (fallback)
+    auth.uid() = '744e43fe-2c07-476c-bf0b-b7f5a0a1a059'::uuid
 );
 
 DROP POLICY IF EXISTS "Users can view their own record" ON public.usuarios;

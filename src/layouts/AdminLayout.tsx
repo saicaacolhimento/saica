@@ -1,8 +1,6 @@
 import { Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
-import { authService } from '@/services/auth';
 import {
   LayoutDashboard,
   Users,
@@ -21,29 +19,17 @@ import logoSaica from '@/assets/images/logo-saica.png';
 export default function AdminLayout() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
-  const [userRole, setUserRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchUserRole() {
-      const currentUser = await authService.getCurrentUser();
-      setUserRole(currentUser?.role || null);
-    }
-    fetchUserRole();
-  }, [user]);
-
-  // Verificar se é master
-  const isMaster = user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master';
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', route: '/admin/dashboard', show: true },
-    { icon: Home, label: 'Empresas', route: '/admin/empresas', show: isMaster }, // ⚠️ APENAS MASTER PODE VER
-    { icon: Users, label: 'Usuários', route: '/admin/usuarios', show: true },
-    { icon: Baby, label: 'Acolhidos', route: '/admin/criancas', show: true },
-    { icon: Calendar, label: 'Agenda', route: '/admin/agenda', show: true },
-    { icon: DollarSign, label: 'Financeiro', route: '/admin/financeiro', show: true },
-    { icon: FileBox, label: 'Documentos', route: '/admin/documentos', show: true },
-    { icon: Activity, label: 'Atividades', route: '/admin/atividades', show: true },
-    { icon: Settings, label: 'Configurações', route: '/admin/configuracoes', show: true }
+    { icon: LayoutDashboard, label: 'Dashboard', route: '/admin/dashboard' },
+    { icon: Home, label: 'Empresas', route: '/admin/empresas' },
+    { icon: Users, label: 'Usuários', route: '/admin/usuarios' },
+    { icon: Baby, label: 'Acolhidos', route: '/admin/criancas' },
+    { icon: Calendar, label: 'Agenda', route: '/admin/agenda' },
+    { icon: DollarSign, label: 'Financeiro', route: '/admin/financeiro' },
+    { icon: FileBox, label: 'Documentos', route: '/admin/documentos' },
+    { icon: Activity, label: 'Atividades', route: '/admin/atividades' },
+    { icon: Settings, label: 'Configurações', route: '/admin/configuracoes' }
   ];
 
   const handleLogout = async () => {
@@ -67,9 +53,7 @@ export default function AdminLayout() {
         </div>
         
         <nav className="space-y-1 px-2">
-          {menuItems
-            .filter(item => item.show) // ⚠️ FILTRO CRÍTICO: Só mostra itens com show=true
-            .map((item, index) => (
+          {menuItems.map((item, index) => (
             <Link
               key={index}
               to={item.route}
