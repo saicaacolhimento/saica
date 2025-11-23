@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { authService } from '@/services/auth';
+import { supabase } from '@/config/supabase';
 import {
   Users,
   Home,
@@ -19,25 +19,6 @@ import { useEffect, useState } from 'react';
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [userNome, setUserNome] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
-
-  // Buscar dados completos do usuário em background
-  useEffect(() => {
-    if (user?.id) {
-      authService.getCurrentUser().then(fullUser => {
-        if (fullUser) {
-          setUserNome(fullUser.nome || null);
-          setUserRole(fullUser.role || null);
-        }
-      }).catch(() => {
-        // Silencioso
-      });
-    }
-  }, [user?.id]);
-
-  const isMaster = userRole === 'master' || user?.email === 'saicaacolhimento2025@gmail.com';
-  const isAdmin = userRole === 'admin' || isMaster;
 
   const modules = [
     {
@@ -46,8 +27,7 @@ export default function Dashboard() {
       route: '/admin/empresas',
       icon: Home,
       bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600',
-      masterOnly: true // ⚠️ SÓ PARA MASTER
+      iconColor: 'text-blue-600'
     },
     {
       title: 'Gestão de Usuários',
@@ -55,8 +35,7 @@ export default function Dashboard() {
       route: '/admin/usuarios',
       icon: Users,
       bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600',
-      adminOnly: true // ⚠️ PARA ADMIN E MASTER (NÃO PARA USUÁRIO NORMAL)
+      iconColor: 'text-purple-600'
     },
     {
       title: 'Gestão de Acolhido',
@@ -124,54 +103,31 @@ export default function Dashboard() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-bold">
-            {(() => {
-              if (isMaster) {
-                return 'Olá, Administrador';
-              }
-              const nomeCompleto = userNome;
-              if (nomeCompleto && nomeCompleto.trim()) {
-                const primeiroNome = nomeCompleto.trim().split(' ')[0];
-                return `Olá, ${primeiroNome}`;
-              }
-              return 'Olá, Usuário';
-            })()}
+            {user?.email === 'saicaacolhimento2025@gmail.com' ? 'Olá, Administrador' : `Olá, ${user?.user_metadata?.nome || user?.nome || ''}`}
           </h1>
           <p className="text-gray-600">Acesso total ao sistema</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {modules
-          .filter(module => {
-            // Se o módulo for masterOnly, só exibe se o usuário for master
-            if (module.masterOnly) {
-              return isMaster;
-            }
-            // Se o módulo for adminOnly, só exibe se o usuário for admin ou master
-            if (module.adminOnly) {
-              return isAdmin;
-            }
-            // Outros módulos são exibidos para todos
-            return true;
-          })
-          .map((module, index) => (
-            <Card
-              key={index}
-              className="w-full hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={() => navigate(module.route)}
-              tabIndex={0}
-            >
-              <CardHeader className="flex flex-col items-center pb-2">
-                <div className={`p-2 ${module.bgColor} rounded-lg mb-2`}>
-                  <module.icon className={`h-8 w-8 md:h-10 md:w-10 ${module.iconColor}`} />
-                </div>
-                <CardTitle className="text-base md:text-lg text-center w-full truncate">{module.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 text-center break-words">{module.description}</p>
-              </CardContent>
-            </Card>
-          ))}
+        {modules.map((module, index) => (
+          <Card
+            key={index}
+            className="w-full hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
+            onClick={() => navigate(module.route)}
+            tabIndex={0}
+          >
+            <CardHeader className="flex flex-col items-center pb-2">
+              <div className={`p-2 ${module.bgColor} rounded-lg mb-2`}>
+                <module.icon className={`h-8 w-8 md:h-10 md:w-10 ${module.iconColor}`} />
+              </div>
+              <CardTitle className="text-base md:text-lg text-center w-full truncate">{module.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 text-center break-words">{module.description}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

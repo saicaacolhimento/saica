@@ -40,7 +40,7 @@ export const authService = {
     console.log('Buscando dados do usuário normal...');
     const { data: userData, error: userError } = await supabase
       .from('usuarios')
-      .select('id, nome, email, role, status, empresa_id, cargo, telefone, created_at, updated_at')
+      .select('*, abrigos(*)')
       .eq('id', authData.user.id)
       .single();
 
@@ -58,52 +58,33 @@ export const authService = {
   },
 
   async getCurrentUser(): Promise<User | null> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('[authService] Nenhum usuário autenticado');
-        return null;
-      }
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return null;
 
-      // Verifica se é master admin
-      if (user.email === MASTER_ADMIN.email && user.id === MASTER_ADMIN.uid) {
-        console.log('[authService] Usuário é master admin');
-        return {
-          id: MASTER_ADMIN.uid,
-          email: MASTER_ADMIN.email,
-          nome: 'Master Admin',
-          role: 'master' as const,
-          status: 'active',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-      }
-
-      // Se não for master admin, busca dados do usuário normal
-      console.log('[authService] Buscando dados do usuário normal:', user.id);
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('id, nome, email, role, status, empresa_id, cargo, telefone, created_at, updated_at')
-        .eq('id', user.id)
-        .single();
-
-      if (userError) {
-        console.error('[authService] Erro ao buscar dados do usuário:', userError);
-        return null;
-      }
-
-      console.log('[authService] Dados do usuário encontrados:', { 
-        id: userData?.id, 
-        role: userData?.role, 
-        empresa_id: userData?.empresa_id 
-      });
-
-      return userData;
-    } catch (error) {
-      console.error('[authService] Erro inesperado em getCurrentUser:', error);
-      return null;
+    // Verifica se é master admin
+    if (user.email === MASTER_ADMIN.email && user.id === MASTER_ADMIN.uid) {
+      return {
+        id: MASTER_ADMIN.uid,
+        email: MASTER_ADMIN.email,
+        nome: 'Master Admin',
+        role: 'master' as const,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
     }
+
+    // Se não for master admin, busca dados do usuário normal
+    const { data: userData, error: userError } = await supabase
+      .from('usuarios')
+      .select('*, abrigos(*)')
+      .eq('id', user.id)
+      .single();
+
+    if (userError) return null;
+
+    return userData;
   },
 
   async getUserById(id: string): Promise<User> {
@@ -210,38 +191,11 @@ export const authService = {
   },
 
   async getUsersByEmpresa(empresa_id: string): Promise<{ data: any[]; error: any }> {
-    console.log('[authService] Buscando usuários da empresa:', empresa_id);
-    
-    // Tentar usar RPC function primeiro (se existir)
-    try {
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_users_by_empresa', {
-        p_empresa_id: empresa_id
-      });
-      
-      if (!rpcError && rpcData) {
-        console.log('[authService] Usuários encontrados via RPC:', rpcData.length);
-        return { data: rpcData || [], error: null };
-      }
-    } catch (rpcErr) {
-      console.log('[authService] RPC function não disponível, usando query direta');
-    }
-    
-    // Fallback: query direta (pode ter limitações de RLS)
     const { data, error } = await supabase
       .from('usuarios')
       .select('id, nome, email, telefone, cargo, role, status, empresa_id')
-      .eq('empresa_id', empresa_id)
-      .order('nome', { ascending: true });
-    
-    console.log('[authService] Usuários encontrados:', data?.length || 0, data);
-    if (error) {
-      console.error('[authService] Erro ao buscar usuários:', error);
-      // Se for erro de RLS, tentar buscar via função SQL
-      if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy')) {
-        console.warn('[authService] Erro de permissão RLS detectado. Pode ser necessário criar função SQL com SECURITY DEFINER.');
-      }
-    }
-    return { data: data || [], error };
+      .eq('empresa_id', empresa_id);
+    return { data, error };
   },
 
   async getAllAdmins(): Promise<any[]> {

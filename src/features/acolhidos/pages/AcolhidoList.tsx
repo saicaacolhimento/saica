@@ -17,7 +17,6 @@ import { acolhidoService } from '@/services/acolhido'
 import { useAuth } from '@/contexts/AuthContext'
 import { Acolhido } from '@/types/acolhido'
 import { shelterService } from '@/services/shelter'
-import { supabase } from '@/config/supabase'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,23 +57,13 @@ export function AcolhidoList() {
   const [acolhidoToDelete, setAcolhidoToDelete] = useState<Acolhido | null>(null);
 
   // Buscar acolhidos usando React Query
-  const { data: acolhidosData, isLoading, error, isError } = useQuery({
+  const { data: acolhidosData, isLoading, error } = useQuery({
     queryKey: ['acolhidos', paginaAtual],
     queryFn: async () => {
-      try {
-        console.log('[AcolhidoList] Buscando acolhidos...', { paginaAtual, itensPorPagina });
-        const result = await acolhidoService.getAcolhidos(paginaAtual, itensPorPagina);
-        console.log('[AcolhidoList] Acolhidos recebidos:', result);
-        return result;
-      } catch (err) {
-        console.error('[AcolhidoList] Erro ao buscar acolhidos:', err);
-        throw err;
-      }
+      return await acolhidoService.getAcolhidos(paginaAtual, itensPorPagina);
     },
     keepPreviousData: true,
     staleTime: 1000 * 60 * 5,
-    retry: 0, // Não tentar novamente automaticamente
-    refetchOnWindowFocus: false,
   });
 
   const acolhidos = acolhidosData?.data || [];
@@ -95,7 +84,7 @@ export function AcolhidoList() {
             let url = fotos[0].url;
             if (url && !url.startsWith('http')) {
               // Supondo que as fotos estão no storage do Supabase
-              const { data } = supabase.storage.from('acolhidos').getPublicUrl(url);
+              const { data } = acolhidoService.supabase.storage.from('acolhidos').getPublicUrl(url);
               url = data.publicUrl;
             }
             map[acolhido.id] = url;
@@ -112,13 +101,12 @@ export function AcolhidoList() {
     fetchFotos();
   }, [acolhidos]);
 
-  // Buscar nomes das empresas (abrigos) - usar abrigo_id
+  // Buscar nomes das empresas (abrigos)
   useEffect(() => {
     async function fetchEmpresas() {
-      if (!acolhidos || acolhidos.length === 0) return;
-      // Usar abrigo_id ao invés de empresa_id
-      const ids = Array.from(new Set(acolhidos.map(a => (a as any).abrigo_id).filter(Boolean)));
-      console.log('[AcolhidoList] IDs de abrigos encontrados nos acolhidos:', ids);
+      if (!acolhidos) return;
+      const ids = Array.from(new Set(acolhidos.map(a => a.empresa_id).filter(Boolean)));
+      console.log('[AcolhidoList] IDs de empresas encontrados nos acolhidos:', ids);
       if (ids.length === 0) return;
       try {
         // Buscar todas as empresas necessárias
@@ -173,35 +161,14 @@ export function AcolhidoList() {
     navigate(`/admin/criancas/${acolhido.id}/visualizar`);
   };
 
-  // Se erro, mostrar mensagem
-  if (isError && error) {
-    console.error('[AcolhidoList] Erro:', { isError, error });
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorDetails = error instanceof Error && (error as any).code ? `Código: ${(error as any).code}` : '';
+  if (error) {
+    console.error('[AcolhidoList] Erro ao carregar acolhidos:', error);
     return (
       <div className="container mx-auto p-6">
-        <div className="text-red-500 bg-red-50 p-4 rounded-lg">
-          <h2 className="font-bold mb-2">Erro ao carregar acolhidos</h2>
-          <p className="mb-2">Por favor, tente novamente.</p>
-          <small className="block mt-2">
-            <strong>Detalhes:</strong> {errorMessage}
-            {errorDetails && <><br />{errorDetails}</>}
-          </small>
-          <div className="mt-4 flex gap-2">
-            <Button 
-              onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['acolhidos'] });
-              }}
-            >
-              Tentar Novamente
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => window.location.reload()}
-            >
-              Recarregar Página
-            </Button>
-          </div>
+        <div className="text-red-500">
+          Erro ao carregar acolhidos. Por favor, tente novamente.
+          <br />
+          <small>Detalhes: {error instanceof Error ? error.message : 'Erro desconhecido'}</small>
         </div>
       </div>
     );
@@ -229,10 +196,9 @@ export function AcolhidoList() {
 
       <div className="bg-white rounded-lg shadow">
         {isLoading ? (
-          <div className="flex flex-col justify-center items-center p-8">
+          <div className="flex justify-center items-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            <span className="ml-2 mt-2">Carregando acolhidos...</span>
-            <small className="text-gray-500 mt-2">Se demorar muito, verifique o console do navegador (F12)</small>
+            <span className="ml-2">Carregando acolhidos...</span>
           </div>
         ) : (
           <Table>
@@ -279,7 +245,7 @@ export function AcolhidoList() {
                     <TableCell className="text-center font-medium">{acolhido.nome}</TableCell>
                     <TableCell className="text-center">{new Date(acolhido.data_nascimento).toLocaleDateString()}</TableCell>
                     <TableCell className="text-center">{calcularIdade(acolhido.data_nascimento)}</TableCell>
-                    <TableCell className="text-center">{abrigosMap[(acolhido as any).abrigo_id] || '-'}</TableCell>
+                    <TableCell className="text-center">{abrigosMap[acolhido.empresa_id] || '-'}</TableCell>
                     <TableCell className="text-center">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         acolhido.status === 'ativo' 

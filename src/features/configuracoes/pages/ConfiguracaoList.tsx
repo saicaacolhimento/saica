@@ -19,7 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import PermissoesEmpresa from '../../../../../src/pages/admin/PermissoesEmpresa'
+// import PermissoesEmpresa from '../../../../../src/pages/admin/PermissoesEmpresa'
+// Arquivo PermissoesEmpresa.tsx não existe no projeto - removido temporariamente
 
 export const ConfiguracaoList = () => {
   const navigate = useNavigate()
@@ -76,7 +77,9 @@ export const ConfiguracaoList = () => {
       </div>
       <div className="flex-1 space-y-4">
         {showPermissoes ? (
-          <PermissoesEmpresa />
+          <div className="p-4 text-center text-muted-foreground">
+            Funcionalidade de Permissões em desenvolvimento
+          </div>
         ) : (
           <div className="grid gap-4">
             {filteredConfiguracoes?.map((configuracao) => (
