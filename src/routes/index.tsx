@@ -14,7 +14,7 @@ import EditShelter from '@/features/shelters/pages/EditShelter';
 import { AcolhidoList } from '@/features/acolhidos/pages/AcolhidoList';
 import PrivateRoute from '@/components/PrivateRoute';
 import UsuariosAdminList from '@/pages/admin/Usuarios';
-import AcolhidoCadastroEdicao from '../pages/admin/AcolhidoCadastroEdicao';
+import AcolhidoCadastroEdicao from '@/pages/admin/AcolhidoCadastroEdicao';
 import AgendamentoList from '@/features/agendamentos/pages/AgendamentoList';
 import { AcolhidoDetails } from '@/features/acolhidos/pages/AcolhidoDetails';
 import { ConfiguracaoList } from '@/features/configuracoes/pages/ConfiguracaoList';
