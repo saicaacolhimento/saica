@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch'
 import { usePermissions, MODULES, ACOLHIDO_FIELDS } from '@/hooks/usePermissions'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/config/supabase'
-import { Users, Shield, Save, Search, ChevronDown, ChevronRight, Eye } from 'lucide-react'
+import { Users, Shield, Save, Search, Eye, EyeOff } from 'lucide-react'
 
 const MODULE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -35,8 +35,10 @@ interface ModulePerm {
   can_read: boolean
   can_write: boolean
   can_delete: boolean
-  visible_fields?: Record<string, boolean>
+  visible_fields: Record<string, boolean>
 }
+
+const FIELD_GROUPS = [...new Set(ACOLHIDO_FIELDS.map(f => f.group))]
 
 export function PermissionList() {
   const { user } = useAuth()
@@ -49,7 +51,7 @@ export function PermissionList() {
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null)
   const [perms, setPerms] = useState<ModulePerm[]>([])
   const [loadingPerms, setLoadingPerms] = useState(false)
-  const [expandedModule, setExpandedModule] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'modules' | 'fields'>('modules')
 
   useEffect(() => {
     async function fetchUsers() {
@@ -83,7 +85,7 @@ export function PermissionList() {
   const handleSelectUser = useCallback(async (u: UserRow) => {
     setSelectedUser(u)
     setLoadingPerms(true)
-    setExpandedModule(null)
+    setActiveTab('modules')
     try {
       const existing = await getUserPermissions(u.id)
       const existingMap: Record<string, ModulePerm> = {}
@@ -120,27 +122,26 @@ export function PermissionList() {
     }))
   }
 
-  const toggleFieldVisibility = (module: string, fieldKey: string, visible: boolean) => {
+  const toggleFieldVisibility = (fieldKey: string, visible: boolean) => {
     setPerms(prev => prev.map(p => {
-      if (p.module !== module) return p
-      const vf = { ...(p.visible_fields || {}) }
-      vf[fieldKey] = visible
-      return { ...p, visible_fields: vf }
+      if (p.module !== 'acolhidos') return p
+      return { ...p, visible_fields: { ...p.visible_fields, [fieldKey]: visible } }
     }))
   }
 
-  const toggleAllFields = (module: string, visible: boolean) => {
+  const toggleAllFields = (visible: boolean) => {
     setPerms(prev => prev.map(p => {
-      if (p.module !== module) return p
+      if (p.module !== 'acolhidos') return p
       const vf: Record<string, boolean> = {}
       ACOLHIDO_FIELDS.forEach(f => { vf[f.key] = visible })
       return { ...p, visible_fields: vf }
     }))
   }
 
-  const isFieldVisible = (perm: ModulePerm, fieldKey: string): boolean => {
-    if (!perm.visible_fields || Object.keys(perm.visible_fields).length === 0) return true
-    return perm.visible_fields[fieldKey] !== false
+  const getFieldState = (fieldKey: string): boolean => {
+    const acolhidosPerm = perms.find(p => p.module === 'acolhidos')
+    if (!acolhidosPerm?.visible_fields || Object.keys(acolhidosPerm.visible_fields).length === 0) return true
+    return acolhidosPerm.visible_fields[fieldKey] !== false
   }
 
   const handleSave = async () => {
@@ -152,7 +153,12 @@ export function PermissionList() {
     }
   }
 
-  const groups = [...new Set(ACOLHIDO_FIELDS.map(f => f.group))]
+  const acolhidosPerm = perms.find(p => p.module === 'acolhidos')
+  const acolhidosHasRead = acolhidosPerm?.can_read ?? false
+
+  const configuredFieldsCount = acolhidosPerm?.visible_fields
+    ? Object.values(acolhidosPerm.visible_fields).filter(v => v === false).length
+    : 0
 
   return (
     <div className="space-y-4">
@@ -162,6 +168,7 @@ export function PermissionList() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Lista de usuarios */}
         <div className="lg:col-span-1 bg-white rounded-lg border shadow-sm">
           <div className="p-4 border-b">
             <div className="flex items-center gap-2 mb-3">
@@ -199,6 +206,7 @@ export function PermissionList() {
           </div>
         </div>
 
+        {/* Painel de permissoes */}
         <div className="lg:col-span-2 bg-white rounded-lg border shadow-sm">
           {!selectedUser ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-gray-400">
@@ -221,22 +229,62 @@ export function PermissionList() {
                   {isSaving ? 'Salvando...' : 'Salvar'}
                 </Button>
               </div>
-              <div className="p-4 max-h-[550px] overflow-y-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-xs text-gray-500 uppercase border-b">
-                      <th className="text-left py-2 font-medium">Módulo</th>
-                      <th className="text-center py-2 font-medium w-20">Ver</th>
-                      <th className="text-center py-2 font-medium w-20">Editar</th>
-                      <th className="text-center py-2 font-medium w-20">Excluir</th>
-                      <th className="w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {perms.map(p => (
-                      <Fragment key={p.module}>
-                        <tr className="border-b hover:bg-gray-50">
-                          <td className="py-3 text-sm font-medium">{MODULE_LABELS[p.module] || p.module}</td>
+
+              {/* Abas: Modulos | Campos de Acolhidos */}
+              <div className="flex border-b">
+                <button
+                  onClick={() => setActiveTab('modules')}
+                  className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${activeTab === 'modules' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <Shield className="h-4 w-4 inline mr-1.5" />
+                  Módulos
+                </button>
+                <button
+                  onClick={() => {
+                    if (!acolhidosHasRead) {
+                      toast({ title: 'Atenção', description: 'Ative a permissão "Ver" no módulo Acolhidos primeiro', variant: 'destructive' })
+                      return
+                    }
+                    setActiveTab('fields')
+                  }}
+                  className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors relative ${activeTab === 'fields' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : acolhidosHasRead ? 'text-gray-500 hover:text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                >
+                  <Eye className="h-4 w-4 inline mr-1.5" />
+                  Campos de Acolhidos
+                  {configuredFieldsCount > 0 && (
+                    <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                      {configuredFieldsCount} oculto{configuredFieldsCount > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Tab: Modulos */}
+              {activeTab === 'modules' && (
+                <div className="p-4 max-h-[500px] overflow-y-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-xs text-gray-500 uppercase border-b">
+                        <th className="text-left py-2 font-medium">Módulo</th>
+                        <th className="text-center py-2 font-medium w-20">Ver</th>
+                        <th className="text-center py-2 font-medium w-20">Editar</th>
+                        <th className="text-center py-2 font-medium w-20">Excluir</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {perms.map(p => (
+                        <tr key={p.module} className="border-b hover:bg-gray-50">
+                          <td className="py-3 text-sm font-medium">
+                            {MODULE_LABELS[p.module] || p.module}
+                            {p.module === 'acolhidos' && p.can_read && (
+                              <button
+                                onClick={() => setActiveTab('fields')}
+                                className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 font-medium"
+                              >
+                                Configurar campos
+                              </button>
+                            )}
+                          </td>
                           <td className="py-3 text-center">
                             <Switch checked={p.can_read} onCheckedChange={(v) => togglePerm(p.module, 'can_read', v)} />
                           </td>
@@ -246,63 +294,65 @@ export function PermissionList() {
                           <td className="py-3 text-center">
                             <Switch checked={p.can_delete} onCheckedChange={(v) => togglePerm(p.module, 'can_delete', v)} />
                           </td>
-                          <td className="py-3 text-center">
-                            {p.module === 'acolhidos' && p.can_read && (
-                              <button
-                                onClick={() => setExpandedModule(expandedModule === p.module ? null : p.module)}
-                                className="p-1 rounded hover:bg-gray-200"
-                                title="Configurar campos visíveis"
-                              >
-                                {expandedModule === p.module ? (
-                                  <ChevronDown className="h-4 w-4 text-indigo-500" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4 text-gray-400" />
-                                )}
-                              </button>
-                            )}
-                          </td>
                         </tr>
-                        {p.module === 'acolhidos' && expandedModule === 'acolhidos' && p.can_read && (
-                          <tr>
-                            <td colSpan={5} className="p-0">
-                              <div className="bg-indigo-50/50 border-y px-4 py-3">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2">
-                                    <Eye className="h-4 w-4 text-indigo-500" />
-                                    <span className="text-sm font-semibold text-indigo-700">Campos Visíveis em Acolhidos</span>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button onClick={() => toggleAllFields('acolhidos', true)} className="text-xs text-indigo-600 hover:underline">Marcar todos</button>
-                                    <span className="text-gray-300">|</span>
-                                    <button onClick={() => toggleAllFields('acolhidos', false)} className="text-xs text-indigo-600 hover:underline">Desmarcar todos</button>
-                                  </div>
-                                </div>
-                                {groups.map(group => (
-                                  <div key={group} className="mb-3">
-                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1.5">{group}</p>
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-                                      {ACOLHIDO_FIELDS.filter(f => f.group === group).map(f => (
-                                        <label key={f.key} className="flex items-center gap-2 cursor-pointer">
-                                          <Switch
-                                            checked={isFieldVisible(p, f.key)}
-                                            onCheckedChange={(v) => toggleFieldVisibility('acolhidos', f.key, v)}
-                                            className="scale-75"
-                                          />
-                                          <span className="text-sm text-gray-700">{f.label}</span>
-                                        </label>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Tab: Campos de Acolhidos */}
+              {activeTab === 'fields' && acolhidosHasRead && (
+                <div className="p-4 max-h-[500px] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm text-gray-600">
+                      Defina quais campos do cadastro de Acolhidos este usuário pode visualizar.
+                    </p>
+                    <div className="flex gap-2 shrink-0 ml-4">
+                      <Button variant="outline" size="sm" onClick={() => toggleAllFields(true)} className="text-xs h-7">
+                        <Eye className="h-3 w-3 mr-1" /> Marcar todos
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => toggleAllFields(false)} className="text-xs h-7">
+                        <EyeOff className="h-3 w-3 mr-1" /> Ocultar todos
+                      </Button>
+                    </div>
+                  </div>
+
+                  {FIELD_GROUPS.map(group => (
+                    <div key={group} className="mb-5">
+                      <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2 pb-1 border-b border-indigo-100">
+                        {group}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {ACOLHIDO_FIELDS.filter(f => f.group === group).map(f => {
+                          const visible = getFieldState(f.key)
+                          return (
+                            <label
+                              key={f.key}
+                              className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all ${visible ? 'bg-white border-gray-200 hover:border-indigo-300' : 'bg-red-50/50 border-red-200 hover:border-red-300'}`}
+                            >
+                              <Switch
+                                checked={visible}
+                                onCheckedChange={(v) => toggleFieldVisibility(f.key, v)}
+                              />
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {visible ? (
+                                  <Eye className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                ) : (
+                                  <EyeOff className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                                )}
+                                <span className={`text-sm truncate ${visible ? 'text-gray-700' : 'text-red-500 line-through'}`}>
+                                  {f.label}
+                                </span>
                               </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
