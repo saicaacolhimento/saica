@@ -8,14 +8,19 @@ import {
 
 export const agendamentoService = {
   // Agendamentos
-  async getAgendamentos(): Promise<Agendamento[]> {
-    const { data, error } = await supabase
+  async getAgendamentos(userId?: string, role?: string): Promise<Agendamento[]> {
+    let query = supabase
       .from('agendamentos')
       .select('*')
-      .order('data_hora', { ascending: true })
+      .order('data_hora', { ascending: true });
 
-    if (error) throw error
-    return data
+    if (userId && role !== 'master') {
+      query = query.or(`criador_id.eq.${userId},participantes.cs.{${userId}}`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
   },
 
   async getAgendamentoById(id: string): Promise<Agendamento> {

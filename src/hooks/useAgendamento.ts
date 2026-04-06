@@ -2,15 +2,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agendamentoService } from '@/services/agendamento'
 import { useToast } from '@/components/ui/use-toast'
 import { CreateAgendamentoData, UpdateAgendamentoData } from '@/types/agendamento'
+import { useAuth } from '@/contexts/AuthContext'
 
 export const useAgendamento = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { user } = useAuth()
 
-  // Queries
+  const userId = user?.id
+  const userRole = (user as any)?.role
+
   const { data: agendamentos, isLoading: isLoadingAgendamentos } = useQuery({
-    queryKey: ['agendamentos'],
-    queryFn: agendamentoService.getAgendamentos
+    queryKey: ['agendamentos', userId],
+    queryFn: () => agendamentoService.getAgendamentos(userId, userRole),
+    enabled: !!userId,
   })
 
   const getAgendamentoById = (id: string) => {
