@@ -47,43 +47,19 @@ export const shelterService = {
   },
 
   async updateShelter(id: string, shelterData: UpdateShelterData, createdBy?: string): Promise<Shelter> {
-    console.log('🚀 Iniciando updateShelter:', { id, shelterData, createdBy });
-    
-    try {
-      console.log('📝 Preparando dados para atualização:', {
-        ...shelterData,
-        created_by: createdBy,
-        updated_at: new Date().toISOString(),
-      });
-
     const { data, error } = await supabase
       .from('empresas')
       .update({
         ...shelterData,
-          created_by: createdBy,
+        created_by: createdBy,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
       .single();
 
-      if (error) {
-        console.error('❌ Erro na atualização do Supabase:', {
-          error,
-          errorMessage: error.message,
-          errorDetails: error.details,
-          errorHint: error.hint,
-          errorCode: error.code
-        });
-        throw error;
-      }
-
-      console.log('✅ Atualização concluída com sucesso:', data);
+    if (error) throw error;
     return data;
-    } catch (error) {
-      console.error('❌ Erro não tratado em updateShelter:', error);
-      throw error;
-    }
   },
 
   async deleteShelter(id: string): Promise<void> {

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { 
@@ -12,9 +12,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { Pencil, Trash2, Plus, Loader2, Eye } from 'lucide-react'
+import { Pencil, Trash2, Loader2, Eye } from 'lucide-react'
 import { acolhidoService } from '@/services/acolhido'
-import { useAuth } from '@/contexts/AuthContext'
 import { Acolhido } from '@/types/acolhido'
 import { shelterService } from '@/services/shelter'
 import {
@@ -28,7 +27,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-// Função utilitária para calcular idade
 function calcularIdade(dataNascimento: string): number {
   const hoje = new Date();
   const nascimento = new Date(dataNascimento);
@@ -41,10 +39,6 @@ function calcularIdade(dataNascimento: string): number {
 }
 
 export function AcolhidoList() {
-  console.log('[AcolhidoList] Componente montado');
-  const { user, session } = useAuth();
-  console.log('[AcolhidoList] Contexto de autenticação:', { user, session });
-  
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -56,13 +50,10 @@ export function AcolhidoList() {
   const [abrigosMap, setAbrigosMap] = useState<{ [id: string]: string }>({});
   const [acolhidoToDelete, setAcolhidoToDelete] = useState<Acolhido | null>(null);
 
-  // Buscar acolhidos usando React Query
   const { data: acolhidosData, isLoading, error } = useQuery({
     queryKey: ['acolhidos', paginaAtual],
-    queryFn: async () => {
-      return await acolhidoService.getAcolhidos(paginaAtual, itensPorPagina);
-    },
-    keepPreviousData: true,
+    queryFn: () => acolhidoService.getAcolhidos(paginaAtual, itensPorPagina),
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -70,77 +61,76 @@ export function AcolhidoList() {
   const totalAcolhidos = acolhidosData?.total || 0;
   const totalPaginas = Math.ceil(totalAcolhidos / itensPorPagina);
 
-  // Buscar fotos dos acolhidos
+  const filteredAcolhidos = useMemo(() => {
+    if (!searchTerm.trim()) return acolhidos;
+    const term = searchTerm.toLowerCase();
+    return acolhidos.filter(a =>
+      a.nome?.toLowerCase().includes(term) ||
+      a.nome_mae?.toLowerCase().includes(term)
+    );
+  }, [acolhidos, searchTerm]);
+
   useEffect(() => {
     async function fetchFotos() {
-      if (!acolhidos) return;
+      if (!acolhidos || acolhidos.length === 0) return;
       setLoadingFotos(true);
-      const map: { [acolhidoId: string]: string | null } = {};
-      for (const acolhido of acolhidos) {
-        try {
-          const fotos = await acolhidoService.getAcolhidoFotos(acolhido.id);
-          if (fotos && fotos.length > 0) {
-            // Se a url não for pública, gerar a url pública
-            let url = fotos[0].url;
+      try {
+        const ids = acolhidos.map(a => a.id);
+        const allFotos = await acolhidoService.getFotosByAcolhidoIds(ids);
+        const map: { [acolhidoId: string]: string | null } = {};
+        for (const acolhido of acolhidos) {
+          const foto = allFotos.find(f => f.acolhido_id === acolhido.id);
+          if (foto) {
+            let url = foto.url;
             if (url && !url.startsWith('http')) {
-              // Supondo que as fotos estão no storage do Supabase
-              const { data } = acolhidoService.supabase.storage.from('acolhidos').getPublicUrl(url);
-              url = data.publicUrl;
+              url = acolhidoService.getPublicUrl(url);
             }
             map[acolhido.id] = url;
           } else {
             map[acolhido.id] = null;
           }
-        } catch (e) {
-          map[acolhido.id] = null;
         }
+        setFotosMap(map);
+      } catch {
+        const map: { [acolhidoId: string]: string | null } = {};
+        acolhidos.forEach(a => { map[a.id] = null; });
+        setFotosMap(map);
+      } finally {
+        setLoadingFotos(false);
       }
-      setFotosMap(map);
-      setLoadingFotos(false);
     }
     fetchFotos();
   }, [acolhidos]);
 
-  // Buscar nomes das empresas (abrigos)
   useEffect(() => {
     async function fetchEmpresas() {
-      if (!acolhidos) return;
+      if (!acolhidos || acolhidos.length === 0) return;
       const ids = Array.from(new Set(acolhidos.map(a => a.empresa_id).filter(Boolean)));
-      console.log('[AcolhidoList] IDs de empresas encontrados nos acolhidos:', ids);
       if (ids.length === 0) return;
       try {
-        // Buscar todas as empresas necessárias
         const empresas = await shelterService.getSheltersByIds(ids);
-        console.log('[AcolhidoList] Empresas retornadas do banco:', empresas);
         const map: { [id: string]: string } = {};
-        empresas.forEach((empresa: any) => {
+        empresas.forEach((empresa) => {
           map[empresa.id] = empresa.nome;
         });
         setAbrigosMap(map);
-      } catch (e) {
-        console.error('[AcolhidoList] Erro ao buscar empresas:', e);
+      } catch {
         setAbrigosMap({});
       }
     }
     fetchEmpresas();
   }, [acolhidos]);
 
-  // Mutação para deletar acolhido
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      console.log('[AcolhidoList] Deletando acolhido:', id);
-      await acolhidoService.deleteAcolhido(id);
-    },
+    mutationFn: (id: string) => acolhidoService.deleteAcolhido(id),
     onSuccess: () => {
-      console.log('[AcolhidoList] Acolhido deletado com sucesso');
       queryClient.invalidateQueries({ queryKey: ['acolhidos'] });
       toast({
         title: "Sucesso",
         description: "Acolhido removido com sucesso",
       });
     },
-    onError: (error) => {
-      console.error('[AcolhidoList] Erro ao deletar acolhido:', error);
+    onError: () => {
       toast({
         title: "Erro",
         description: "Erro ao remover acolhido",
@@ -149,20 +139,7 @@ export function AcolhidoList() {
     }
   });
 
-  const handleDeleteAcolhido = (acolhido: Acolhido) => {
-    setAcolhidoToDelete(acolhido);
-  };
-
-  const handleEdit = (acolhido: Acolhido) => {
-    navigate(`/admin/criancas/${acolhido.id}`);
-  };
-
-  const handleView = (acolhido: Acolhido) => {
-    navigate(`/admin/criancas/${acolhido.id}/visualizar`);
-  };
-
   if (error) {
-    console.error('[AcolhidoList] Erro ao carregar acolhidos:', error);
     return (
       <div className="container mx-auto p-6">
         <div className="text-red-500">
@@ -216,18 +193,18 @@ export function AcolhidoList() {
             <TableBody>
               {loadingFotos ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     Carregando fotos...
                   </TableCell>
                 </TableRow>
-              ) : acolhidos.length === 0 ? (
+              ) : filteredAcolhidos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     Nenhum acolhido encontrado com os critérios de busca.
                   </TableCell>
                 </TableRow>
               ) : (
-                acolhidos.map((acolhido) => (
+                filteredAcolhidos.map((acolhido) => (
                   <TableRow key={acolhido.id}>
                     <TableCell className="text-center">
                       {fotosMap[acolhido.id] ? (
@@ -260,7 +237,7 @@ export function AcolhidoList() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleView(acolhido)}
+                          onClick={() => navigate(`/admin/criancas/${acolhido.id}/visualizar`)}
                           title="Visualizar"
                         >
                           <Eye className="h-4 w-4" />
@@ -268,7 +245,7 @@ export function AcolhidoList() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEdit(acolhido)}
+                          onClick={() => navigate(`/admin/criancas/${acolhido.id}`)}
                           title="Editar"
                         >
                           <Pencil className="h-4 w-4" />
@@ -276,7 +253,7 @@ export function AcolhidoList() {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDeleteAcolhido(acolhido)}
+                          onClick={() => setAcolhidoToDelete(acolhido)}
                           title="Excluir"
                           disabled={deleteMutation.isPending}
                         >
@@ -292,7 +269,6 @@ export function AcolhidoList() {
         )}
       </div>
 
-      {/* Controles de paginação */}
       {totalPaginas > 1 && (
         <div className="flex justify-center items-center gap-2 mt-4">
           <Button
@@ -315,7 +291,6 @@ export function AcolhidoList() {
         </div>
       )}
 
-      {/* Modal de confirmação de exclusão */}
       <AlertDialog open={!!acolhidoToDelete} onOpenChange={() => setAcolhidoToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -350,4 +325,4 @@ export function AcolhidoList() {
       </AlertDialog>
     </div>
   )
-} 
+}

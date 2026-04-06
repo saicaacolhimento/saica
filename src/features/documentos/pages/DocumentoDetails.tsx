@@ -80,8 +80,7 @@ export function DocumentoDetails() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-    } catch (error) {
-      console.error('Erro ao baixar documento:', error)
+    } catch {
     }
   }
 

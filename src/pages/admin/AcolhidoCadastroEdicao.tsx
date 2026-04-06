@@ -8,8 +8,9 @@ import { acolhidoService } from '@/services/acolhido';
 import { shelterService } from '@/services/shelter';
 import { useToast } from '@/components/ui/use-toast';
 import { documentoService } from '@/services/documento';
-import { AcolhimentoSection } from '../../../../src/components/AcolhimentoSection';
+import { AcolhimentoSection } from '@/components/AcolhimentoSection';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/auth';
 
 // Exemplo de dados iniciais (edição)
 const dadosIniciais = {
@@ -65,8 +66,6 @@ const dadosIniciais = {
   escola_atual: '',
   telefone_escola: '',
 };
-
-const isMaster = true; // Troque para lógica real de permissão
 
 const generoOptions = [
   'Masculino',
@@ -127,7 +126,8 @@ const turnoOptions = [
 export default function AcolhidoCadastroEdicao() {
   const { id } = useParams(); // se existir, é edição
   const navigate = useNavigate();
-  const { user, session } = useAuth();
+  const { user: sessionUser } = useAuth();
+  const [isMaster, setIsMaster] = useState(false);
   const [tab, setTab] = useState('dados');
   const [form, setForm] = useState(dadosIniciais);
   const [editField, setEditField] = useState<string | null>(null);
@@ -144,33 +144,32 @@ export default function AcolhidoCadastroEdicao() {
   const [fotosSalvas, setFotosSalvas] = useState([]);
 
   useEffect(() => {
-    console.log('[Cadastro] Estado inicial:', {
-      user: user ? { id: user.id, email: user.email } : null,
-      session: session ? {
-        expires_at: session.expires_at,
-        access_token: session.access_token ? 'presente' : 'ausente'
-      } : null
-    });
+    async function loadRole() {
+      if (!sessionUser) {
+        setIsMaster(false);
+        return;
+      }
+      const currentUser = await authService.getCurrentUser();
+      setIsMaster(currentUser?.role === 'master');
+    }
+    loadRole();
+  }, [sessionUser]);
 
+  useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
         if (isMaster) {
-          console.log('[Cadastro] Buscando lista de abrigos...');
           const lista = await shelterService.getShelters(1, 100);
           setAbrigos(lista.map((a: any) => ({ id: a.id, nome: a.nome })));
-          console.log('[Cadastro] Abrigos carregados:', lista.length);
         }
         if (id) {
-          console.log('[Cadastro] Buscando dados do acolhido:', id);
           const acolhido = await acolhidoService.getAcolhidoById(id);
           setForm(acolhido);
-          console.log('[Cadastro] Dados do acolhido carregados');
           const fotosSalvas = await acolhidoService.getAcolhidoFotos(id);
           setFotosSalvas(fotosSalvas);
         }
       } catch (error) {
-        console.error('[Cadastro] Erro ao carregar dados iniciais:', error);
         toast({
           title: 'Erro',
           description: 'Erro ao carregar dados. Tente novamente.',
@@ -605,11 +604,9 @@ export default function AcolhidoCadastroEdicao() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    console.log('[Cadastro] Iniciando submissão do formulário');
-    
+
     const erro = validarCampos();
     if (erro) {
-      console.log('[Cadastro] Erro de validação:', erro);
       toast({ title: 'Erro', description: erro, variant: 'destructive' });
       return;
     }
@@ -619,46 +616,29 @@ export default function AcolhidoCadastroEdicao() {
       let acolhidoId = id;
       // Remover campo escola_anterior se existir
       const { escola_anterior, ...formFiltrado } = form;
-      
-      console.log('[Cadastro] Estado da autenticação antes do cadastro:', {
-        user: user ? { id: user.id, email: user.email } : null,
-        session: session ? {
-          expires_at: session.expires_at,
-          access_token: session.access_token ? 'presente' : 'ausente'
-        } : null
-      });
 
       // 1. Salvar ou atualizar acolhido
       if (id) {
-        console.log('[Cadastro] Atualizando acolhido:', id);
         await acolhidoService.updateAcolhido(id, formFiltrado);
-        console.log('[Cadastro] Acolhido atualizado com sucesso');
       } else {
-        console.log('[Cadastro] Criando novo acolhido');
         const novo = await acolhidoService.createAcolhido(formFiltrado);
         acolhidoId = novo.id;
-        console.log('[Cadastro] Novo acolhido criado:', acolhidoId);
       }
 
       // 2. Upload das fotos
       for (const file of fotos) {
         try {
-          console.log('[Cadastro] Iniciando upload da foto:', file.name);
           const url = await acolhidoService.uploadFoto(file, acolhidoId, 'foto_perfil');
-          console.log('[Cadastro] Upload da foto concluído:', url);
           await acolhidoService.createAcolhidoFoto({ acolhido_id: acolhidoId, url, tipo: 'foto_perfil' });
-          console.log('[Cadastro] Registro da foto salvo na tabela acolhido_fotos:', url);
-        } catch (fotoErr) {
-          console.error('[Cadastro] Erro ao enviar foto:', fotoErr);
+        } catch {
+          // upload falhou; continua com próximos arquivos
         }
       }
 
       // 3. Upload dos documentos
       for (const doc of documentos) {
         try {
-          console.log('[Cadastro] Iniciando upload do documento:', doc.file.name);
           const { url } = await documentoService.uploadDocumento(doc.file, acolhidoId);
-          console.log('[Cadastro] Upload do documento concluído:', url);
 
           // Sempre salva como 'outros'
           const tipo: 'outros' = 'outros';
@@ -669,19 +649,10 @@ export default function AcolhidoCadastroEdicao() {
             titulo: doc.nome,
             tipo
           });
-          console.log('[Cadastro] Registro do documento salvo na tabela documentos:', doc.nome, url);
-        } catch (docErr) {
-          console.error('[Cadastro] Erro ao enviar documento:', docErr);
+        } catch {
+          // upload falhou; continua com próximos arquivos
         }
       }
-
-      console.log('[Cadastro] Estado da autenticação após cadastro:', {
-        user: user ? { id: user.id, email: user.email } : null,
-        session: session ? {
-          expires_at: session.expires_at,
-          access_token: session.access_token ? 'presente' : 'ausente'
-        } : null
-      });
 
       toast({
         title: 'Sucesso',
@@ -690,7 +661,6 @@ export default function AcolhidoCadastroEdicao() {
 
       navigate('/admin/criancas');
     } catch (error) {
-      console.error('[Cadastro] Erro ao salvar acolhido:', error);
       toast({
         title: 'Erro',
         description: 'Erro ao salvar acolhido. Tente novamente.',

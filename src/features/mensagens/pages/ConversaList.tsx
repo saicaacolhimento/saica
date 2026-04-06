@@ -38,8 +38,7 @@ export const ConversaList = () => {
     try {
       await deleteConversa(conversaToDelete)
       setConversaToDelete(null)
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 

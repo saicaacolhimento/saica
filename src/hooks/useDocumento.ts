@@ -37,13 +37,12 @@ export const useDocumento = () => {
         description: 'Documento cadastrado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao cadastrar documento',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -57,13 +56,12 @@ export const useDocumento = () => {
         description: 'Documento atualizado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar documento',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -76,13 +74,12 @@ export const useDocumento = () => {
         description: 'Documento excluído com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir documento',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 

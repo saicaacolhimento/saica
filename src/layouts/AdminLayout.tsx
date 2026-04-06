@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   Users,
   Home,
-  FileText,
   Settings,
   LogOut,
   Activity,
@@ -23,7 +22,6 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // ⚠️ CRÍTICO: Buscar role do usuário para filtrar menu
   useEffect(() => {
     async function fetchUserRole() {
       const currentUser = await authService.getCurrentUser();
@@ -34,12 +32,11 @@ export default function AdminLayout() {
     }
   }, [user]);
 
-  // ⚠️ CRÍTICO: Detecção de master
-  const isMaster = user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master';
+  const isMaster = userRole === 'master';
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', route: '/admin/dashboard' },
-    { icon: Home, label: 'Empresas', route: '/admin/empresas', masterOnly: true }, // ⚠️ CRÍTICO: Apenas master
+    { icon: Home, label: 'Empresas', route: '/admin/empresas', masterOnly: true },
     { icon: Users, label: 'Usuários', route: '/admin/usuarios' },
     { icon: Baby, label: 'Acolhidos', route: '/admin/criancas' },
     { icon: Calendar, label: 'Agenda', route: '/admin/agenda' },
@@ -70,14 +67,11 @@ export default function AdminLayout() {
         </div>
         
         <nav className="space-y-1 px-2">
-          {/* ⚠️ CRÍTICO: Filtrar menu baseado em isMaster - "Empresas" apenas para master */}
           {menuItems
             .filter(item => {
-              // Se o item tem masterOnly, só mostra para master
               if (item.masterOnly) {
                 return isMaster;
               }
-              // Caso contrário, mostra para todos
               return true;
             })
             .map((item, index) => (
@@ -118,4 +112,4 @@ export default function AdminLayout() {
       </div>
     </div>
   );
-} 
+}

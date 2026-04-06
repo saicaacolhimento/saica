@@ -101,9 +101,7 @@ export default function ShelterList() {
   const deleteMutation = useMutation({
     mutationFn: shelterService.deleteShelter,
     onSuccess: (_data, deletedId) => {
-      // Log para debug
       queryClient.setQueryData(['shelters', page], (oldData) => {
-        console.log('oldData:', oldData);
         if (!Array.isArray(oldData)) return [];
         return oldData.filter((shelter) => shelter.id !== deletedId);
       });
@@ -127,7 +125,6 @@ export default function ShelterList() {
 
   const confirmDelete = async () => {
     if (shelterToDelete) {
-      console.log('Tentando excluir empresa com id:', shelterToDelete);
       try {
         await deleteMutation.mutateAsync(shelterToDelete);
       } finally {
@@ -546,9 +543,7 @@ export default function ShelterList() {
                   ...dataToSend,
                   logo_url: logoUrl || newShelter.logo_url
                 });
-                console.log('Empresa criada:', empresaCriada);
               } catch (err) {
-                console.error('Erro ao criar empresa:', err);
                 toast({
                   title: 'Erro ao criar empresa',
                   description: err?.message || 'Erro desconhecido',

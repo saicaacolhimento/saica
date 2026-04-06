@@ -112,7 +112,3 @@ export interface UpdateAcolhidoFotoData {
   url?: string
   tipo?: 'foto_perfil' | 'foto_documento'
 } 
-export interface UpdateAcolhidoFotoData {
-  url?: string
-  tipo?: 'foto_perfil' | 'foto_documento'
-} 

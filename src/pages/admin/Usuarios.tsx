@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { authService } from '@/services/auth';
@@ -7,13 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { Eye, EyeOff, Trash2 } from 'lucide-react';
-import { supabase } from '@/config/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function UsuariosAdminList() {
   const { user } = useAuth();
   const [admins, setAdmins] = useState([]);
-  const [usuariosEmpresa, setUsuariosEmpresa] = useState([]); // ⚠️ Usuários da empresa do admin
+  const [usuariosEmpresa, setUsuariosEmpresa] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userEmpresaId, setUserEmpresaId] = useState<string | null>(null);
@@ -22,7 +20,6 @@ export default function UsuariosAdminList() {
   const [form, setForm] = useState({ nome: '', telefone: '', cargo: '', email: '', senha: '', confirmarSenha: '' });
   const [formLoading, setFormLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [showSenha, setShowSenha] = useState(false);
   const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
   const [expandedAdminId, setExpandedAdminId] = useState<string | null>(null);
@@ -33,21 +30,12 @@ export default function UsuariosAdminList() {
   const [editLoading, setEditLoading] = useState(false);
   const [editSenhaCoincide, setEditSenhaCoincide] = useState(true);
 
-  // ⚠️ CRÍTICO: Detecção de master e admin
-  const isMaster = user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master';
+  const isMaster = userRole === 'master';
   const isAdmin = userRole === 'admin' || isMaster;
 
-  // Buscar role e empresa_id do usuário logado
   useEffect(() => {
     async function fetchUserData() {
-      console.log('[Usuarios] Buscando dados do usuário logado...');
       const currentUser = await authService.getCurrentUser();
-      console.log('[Usuarios] Dados do usuário retornados:', { 
-        role: currentUser?.role, 
-        empresa_id: currentUser?.empresa_id,
-        email: currentUser?.email,
-        nome: currentUser?.nome
-      });
       setUserRole(currentUser?.role || null);
       setUserEmpresaId(currentUser?.empresa_id || null);
     }
@@ -56,47 +44,32 @@ export default function UsuariosAdminList() {
     }
   }, [user]);
 
-  // ⚠️ CRÍTICO: Buscar dados baseado no role
   async function fetchAdmins() {
     setLoading(true);
     try {
       const data = await authService.getAllAdmins();
-      console.log('[Usuarios] Admins encontrados:', data);
       setAdmins(data);
     } finally {
       setLoading(false);
     }
   }
 
-  // ⚠️ CRÍTICO: Buscar TODOS os usuários da empresa do admin (incluindo admin e usuários criados)
   async function fetchUsuariosEmpresa() {
-    console.log('[Usuarios] fetchUsuariosEmpresa chamado com empresa_id:', userEmpresaId);
     if (!userEmpresaId) {
-      console.warn('[Usuarios] ⚠️ Admin sem empresa_id, não pode buscar usuários');
       setUsuariosEmpresa([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      console.log('[Usuarios] Chamando authService.getUsersByEmpresa com empresa_id:', userEmpresaId);
       const { data, error } = await authService.getUsersByEmpresa(userEmpresaId);
-      console.log('[Usuarios] Resposta de getUsersByEmpresa:', { 
-        quantidade: data?.length || 0, 
-        usuarios: data?.map((u: any) => ({ nome: u.nome, role: u.role, email: u.email })),
-        error 
-      });
       if (error) {
-        console.error('[Usuarios] ❌ Erro ao buscar usuários da empresa:', error);
         toast({ title: 'Erro ao buscar usuários', description: error?.message || String(error), variant: 'destructive' });
         setUsuariosEmpresa([]);
       } else {
-        console.log('[Usuarios] ✅ Usuários da empresa encontrados:', data?.length || 0, 'usuários');
-        // ⚠️ CRÍTICO: Incluir TODOS os usuários (admin + usuários criados)
         setUsuariosEmpresa(data || []);
       }
     } catch (e: any) {
-      console.error('[Usuarios] ❌ Erro ao buscar usuários da empresa (catch):', e);
       toast({ title: 'Erro ao buscar usuários', description: e.message, variant: 'destructive' });
       setUsuariosEmpresa([]);
     } finally {
@@ -104,48 +77,17 @@ export default function UsuariosAdminList() {
     }
   }
 
-  // ⚠️ CRÍTICO: Buscar dados baseado no role
   useEffect(() => {
-    console.log('[Usuarios] useEffect buscar dados - estado atual:', { 
-      userEmail: user?.email, 
-      userRole, 
-      userEmpresaId,
-      isMaster: user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master'
-    });
-
-    // Detecção imediata pelo email (mais rápido)
-    if (user?.email === 'saicaacolhimento2025@gmail.com') {
-      console.log('[Usuarios] Master detectado pelo email, buscando admins...');
-      fetchAdmins(); // Master vê todos os admins
-      return;
-    }
-
-    // Aguardar userRole e userEmpresaId serem carregados
     if (userRole === 'master') {
-      console.log('[Usuarios] Master detectado pelo role, buscando admins...');
-      fetchAdmins(); // Master vê todos os admins
+      fetchAdmins();
     } else if (userRole === 'admin' && userEmpresaId) {
-      console.log('[Usuarios] Admin detectado com empresa_id, buscando usuários da empresa:', userEmpresaId);
-      fetchUsuariosEmpresa(); // Admin vê apenas usuários da sua empresa
+      fetchUsuariosEmpresa();
     } else if (userRole === 'admin' && !userEmpresaId) {
-      console.warn('[Usuarios] ⚠️ Admin sem empresa_id, não pode buscar usuários');
       setLoading(false);
-    } else if (!userRole) {
-      console.log('[Usuarios] Aguardando userRole ser carregado...');
+    } else if (userRole != null && userRole !== 'master' && userRole !== 'admin') {
+      setLoading(false);
     }
-  }, [userRole, userEmpresaId, user?.email]);
-
-  console.log('[Usuarios] Estado atual:', {
-    admins: admins.length,
-    usuariosEmpresa: usuariosEmpresa.length,
-    userRole,
-    userEmpresaId,
-    isMaster,
-    isAdmin,
-    loading
-  });
-
-  console.log('Admins para renderizar:', admins);
+  }, [userRole, userEmpresaId]);
 
   const handleOpenModal = (admin: any) => {
     setModalAdmin(admin);
@@ -162,7 +104,6 @@ export default function UsuariosAdminList() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ⚠️ CRÍTICO: Atualizar lista após criar/editar/deletar usuário
   const handleCreateUser = async () => {
     if (!form.nome || !form.email || !form.senha || !form.confirmarSenha) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
@@ -175,15 +116,8 @@ export default function UsuariosAdminList() {
     setFormLoading(true);
     try {
       const empresaIdParaCriar = isMaster ? modalAdmin?.empresa_id : userEmpresaId;
-      console.log('[Usuarios] Criando usuário com empresa_id:', empresaIdParaCriar);
-      console.log('[Usuarios] Dados do usuário a ser criado:', {
-        nome: form.nome,
-        email: form.email,
-        role: 'padrao',
-        empresa_id: empresaIdParaCriar
-      });
-      
-      const novoUsuario = await authService.createUser({
+
+      await authService.createUser({
         nome: form.nome,
         telefone: form.telefone,
         cargo: form.cargo,
@@ -191,43 +125,17 @@ export default function UsuariosAdminList() {
         password: form.senha,
         role: 'padrao',
         status: 'active',
-        empresa_id: empresaIdParaCriar, // ⚠️ Usar empresa_id do admin se não for master
+        empresa_id: empresaIdParaCriar,
       });
-      
-      console.log('[Usuarios] Usuário criado com sucesso:', novoUsuario);
-      console.log('[Usuarios] Verificando se empresa_id foi salvo:', novoUsuario.empresa_id);
-      
-      // ⚠️ CRÍTICO: Verificar diretamente no Supabase se o usuário foi salvo com empresa_id correto
-      if (novoUsuario.id) {
-        console.log('[Usuarios] Verificando usuário criado diretamente no Supabase...');
-        const { data: usuarioVerificado, error: erroVerificacao } = await supabase
-          .from('usuarios')
-          .select('id, nome, email, role, empresa_id')
-          .eq('id', novoUsuario.id)
-          .single();
-        
-        console.log('[Usuarios] Usuário verificado no banco:', usuarioVerificado);
-        console.log('[Usuarios] empresa_id do usuário no banco:', usuarioVerificado?.empresa_id);
-        console.log('[Usuarios] empresa_id esperado:', empresaIdParaCriar);
-        
-        if (erroVerificacao) {
-          console.error('[Usuarios] Erro ao verificar usuário:', erroVerificacao);
-        }
-      }
-      
+
       if (isMaster) {
         await fetchAdmins();
       } else {
-        // ⚠️ CRÍTICO: Aguardar mais tempo para garantir que o usuário foi salvo no banco
-        console.log('[Usuarios] Aguardando 1 segundo antes de atualizar lista...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('[Usuarios] Atualizando lista de usuários...');
-        await fetchUsuariosEmpresa(); // ⚠️ Atualizar lista de usuários da empresa
+        await fetchUsuariosEmpresa();
       }
       toast({ title: 'Usuário criado com sucesso!' });
       handleCloseModal();
     } catch (e: any) {
-      console.error('[Usuarios] Erro ao criar usuário:', e);
       toast({ title: 'Erro ao criar usuário', description: e.message, variant: 'destructive' });
     } finally {
       setFormLoading(false);
@@ -236,29 +144,27 @@ export default function UsuariosAdminList() {
 
   const senhaCoincide = form.senha === form.confirmarSenha;
 
-  const handleDeleteUser = useCallback(async (user: any) => {
+  const handleDeleteUser = useCallback(async (userRow: any) => {
     if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
     try {
-      await authService.deleteUser(user.id);
+      await authService.deleteUser(userRow.id);
       toast({ title: 'Usuário excluído com sucesso!' });
       if (isMaster) {
-        // Se for master, atualizar lista de admins
-        if (user.empresa_id) {
-          const { data } = await authService.getUsersByEmpresa(user.empresa_id);
-          setEmpresaUsuarios(prev => ({ ...prev, [user.empresa_id]: data || [] }));
+        if (userRow.empresa_id) {
+          const { data } = await authService.getUsersByEmpresa(userRow.empresa_id);
+          setEmpresaUsuarios(prev => ({ ...prev, [userRow.empresa_id]: data || [] }));
         }
       } else {
-        // Se for admin, atualizar lista de usuários da empresa
         await fetchUsuariosEmpresa();
       }
     } catch (e: any) {
       toast({ title: 'Erro ao excluir usuário', description: e.message, variant: 'destructive' });
     }
-  }, [isMaster, userEmpresaId, toast]);
+  }, [isMaster, toast]);
 
-  const handleOpenEditModal = (user: any) => {
-    setEditUserModal({ open: true, user });
-    setEditForm({ nome: user.nome, email: user.email, senha: '', confirmarSenha: '' });
+  const handleOpenEditModal = (userRow: any) => {
+    setEditUserModal({ open: true, user: userRow });
+    setEditForm({ nome: userRow.nome, email: userRow.email, senha: '', confirmarSenha: '' });
   };
 
   const handleCloseEditModal = () => {
@@ -275,7 +181,6 @@ export default function UsuariosAdminList() {
         editUserModal.user.id,
         {
           nome: editForm.nome,
-          // outros campos...
         }
       );
 
@@ -305,10 +210,9 @@ export default function UsuariosAdminList() {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Usuários</h1>
-        {/* ⚠️ Botão "Criar Usuário" apenas para admin (não master) */}
         {!isMaster && isAdmin && (
           <Button onClick={() => {
-            setModalAdmin({ empresa_id: userEmpresaId }); // Usar empresa_id do admin logado
+            setModalAdmin({ empresa_id: userEmpresaId });
             setForm({ nome: '', telefone: '', cargo: '', email: '', senha: '', confirmarSenha: '' });
             setModalOpen(true);
           }}>
@@ -317,9 +221,7 @@ export default function UsuariosAdminList() {
         )}
       </div>
       <div className="bg-white rounded-lg shadow">
-        {/* ⚠️ CRÍTICO: Renderização condicional baseada em isMaster */}
         {isMaster ? (
-          // MASTER: Vê todos os admins
           <Table>
             <TableHeader>
               <TableRow>
@@ -367,18 +269,12 @@ export default function UsuariosAdminList() {
                               setExpandedAdminId(null);
                             } else {
                               setLoadingUsuarios(admin.id);
-                              console.log('[Usuarios] Master expandindo admin:', admin.id, 'empresa_id:', admin.empresa_id);
                               if (!empresaUsuarios[admin.empresa_id]) {
-                                console.log('[Usuarios] Buscando usuários da empresa:', admin.empresa_id);
                                 const { data, error } = await authService.getUsersByEmpresa(admin.empresa_id);
-                                console.log('[Usuarios] Usuários encontrados:', { quantidade: data?.length || 0, usuarios: data, error });
                                 if (error) {
-                                  console.error('[Usuarios] Erro ao buscar usuários:', error);
                                   toast({ title: 'Erro ao buscar usuários', description: error?.message || String(error), variant: 'destructive' });
                                 }
                                 setEmpresaUsuarios(prev => ({ ...prev, [admin.empresa_id]: data || [] }));
-                              } else {
-                                console.log('[Usuarios] Usuários já carregados em cache:', empresaUsuarios[admin.empresa_id]?.length || 0);
                               }
                               setExpandedAdminId(admin.id);
                               setLoadingUsuarios(null);
@@ -412,24 +308,24 @@ export default function UsuariosAdminList() {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {empresaUsuarios[admin.empresa_id].map((user: any) => (
-                                      <TableRow key={user.id}>
-                                        <TableCell>{user.nome}</TableCell>
-                                        <TableCell>{user.email}</TableCell>
-                                        <TableCell>{user.cargo || '-'}</TableCell>
-                                        <TableCell>{user.status}</TableCell>
+                                    {empresaUsuarios[admin.empresa_id].map((u: any) => (
+                                      <TableRow key={u.id}>
+                                        <TableCell>{u.nome}</TableCell>
+                                        <TableCell>{u.email}</TableCell>
+                                        <TableCell>{u.cargo || '-'}</TableCell>
+                                        <TableCell>{u.status}</TableCell>
                                         <TableCell className="text-center">
-                                          {user.role === 'admin' ? (
+                                          {u.role === 'admin' ? (
                                             <span className="text-gray-400 text-sm">Apenas master pode gerenciar</span>
                                           ) : (
                                             <>
-                                              <Button variant="outline" size="sm" onClick={() => handleOpenEditModal(user)}>Editar</Button>
+                                              <Button variant="outline" size="sm" onClick={() => handleOpenEditModal(u)}>Editar</Button>
                                               <Button
                                                 variant="destructive"
                                                 size="icon"
                                                 className="ml-2"
                                                 title="Excluir usuário"
-                                                onClick={() => handleDeleteUser(user)}
+                                                onClick={() => handleDeleteUser(u)}
                                               >
                                                 <Trash2 className="h-4 w-4" />
                                               </Button>
@@ -456,7 +352,6 @@ export default function UsuariosAdminList() {
             </TableBody>
           </Table>
         ) : (
-          // ADMIN: Vê apenas usuários da sua empresa
           <Table>
             <TableHeader>
               <TableRow>
@@ -475,23 +370,22 @@ export default function UsuariosAdminList() {
               ) : usuariosEmpresa.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                    Nenhum usuário cadastrado. Clique em "Criar Usuário" para adicionar.
+                    Nenhum usuário cadastrado. Clique em &quot;Criar Usuário&quot; para adicionar.
                   </TableCell>
                 </TableRow>
               ) : (
-                usuariosEmpresa.map((user: any) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.nome}</TableCell>
-                    <TableCell className="text-center">{user.email}</TableCell>
-                    <TableCell className="text-center">{user.cargo || '-'}</TableCell>
-                    <TableCell className="text-center">{user.status}</TableCell>
+                usuariosEmpresa.map((u: any) => (
+                  <TableRow key={u.id}>
+                    <TableCell>{u.nome}</TableCell>
+                    <TableCell className="text-center">{u.email}</TableCell>
+                    <TableCell className="text-center">{u.cargo || '-'}</TableCell>
+                    <TableCell className="text-center">{u.status}</TableCell>
                     <TableCell className="text-center">
-                      {/* ⚠️ CRÍTICO: Admin não pode editar/deletar outros admins */}
-                      {user.role === 'admin' ? (
+                      {u.role === 'admin' ? (
                         <span className="text-gray-400 text-sm">Apenas master pode gerenciar</span>
                       ) : (
                         <>
-                          <Button variant="outline" size="sm" onClick={() => handleOpenEditModal(user)}>
+                          <Button variant="outline" size="sm" onClick={() => handleOpenEditModal(u)}>
                             Editar
                           </Button>
                           <Button
@@ -499,7 +393,7 @@ export default function UsuariosAdminList() {
                             size="icon"
                             className="ml-2"
                             title="Excluir usuário"
-                            onClick={() => handleDeleteUser(user)}
+                            onClick={() => handleDeleteUser(u)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -514,7 +408,6 @@ export default function UsuariosAdminList() {
         )}
       </div>
 
-      {/* Modal de criação de usuário */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -632,7 +525,6 @@ export default function UsuariosAdminList() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de edição de usuário */}
       <Dialog open={editUserModal.open} onOpenChange={(open) => !open && handleCloseEditModal()}>
         <DialogContent>
           <DialogHeader>
@@ -706,4 +598,4 @@ export default function UsuariosAdminList() {
       </Dialog>
     </div>
   );
-} 
+}

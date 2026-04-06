@@ -147,16 +147,13 @@ export const notificacaoService = {
   // Envio de Notificações
   async enviarEmail(destinatario: string, titulo: string, mensagem: string): Promise<void> {
     // TODO: Implementar integração com serviço de email
-    console.log('Enviando email:', { destinatario, titulo, mensagem })
   },
 
   async enviarSMS(destinatario: string, mensagem: string): Promise<void> {
     // TODO: Implementar integração com serviço de SMS
-    console.log('Enviando SMS:', { destinatario, mensagem })
   },
 
   async enviarWhatsApp(destinatario: string, mensagem: string): Promise<void> {
     // TODO: Implementar integração com API do WhatsApp
-    console.log('Enviando WhatsApp:', { destinatario, mensagem })
   }
 } 

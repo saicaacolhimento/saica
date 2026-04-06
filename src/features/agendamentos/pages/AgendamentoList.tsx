@@ -24,15 +24,10 @@ export default function AgendamentoList() {
     async function fetchData() {
       try {
         const usuariosData = await authService.getAllUsuarios?.() || [];
-        // ⚠️ CRÍTICO: getAcolhidos retorna { data: Acolhido[], total: number }
-        // Buscar todos os acolhidos (sem paginação para o formulário)
         const acolhidosResponse = await acolhidoService.getAcolhidos(1, 1000);
         setUsuarios(usuariosData);
-        // Extrair o array data do retorno
         setAcolhidos(acolhidosResponse?.data || []);
-        console.log('[AgendamentoList] Acolhidos carregados:', acolhidosResponse?.data?.length || 0);
-      } catch (e) {
-        console.error('[AgendamentoList] Erro ao carregar dados:', e);
+      } catch {
         setUsuarios([]);
         setAcolhidos([]);
       }

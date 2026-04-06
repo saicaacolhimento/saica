@@ -14,8 +14,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true
   }
 })
-
-// Expor supabase no window para debug
-if (typeof window !== 'undefined') {
-  window.supabase = supabase;
-} 

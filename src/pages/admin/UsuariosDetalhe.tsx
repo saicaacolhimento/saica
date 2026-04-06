@@ -16,22 +16,14 @@ export default function UsuariosDetalhe() {
     async function fetchUsuarios() {
       setLoading(true);
       try {
-        console.log('Buscando admin pelo id:', id);
         const admin = await authService.getUserById(id);
-        console.log('Admin encontrado:', admin);
         if (!admin.empresa_id) {
-          console.warn('Admin sem empresa_id');
           return;
         }
-        console.log('Buscando usuários da empresa:', admin.empresa_id);
-        const { data, error } = await authService.getUsersByEmpresa(admin.empresa_id);
-        if (error) {
-          console.error('Erro ao buscar usuários da empresa:', error);
-        }
-        console.log('Usuários encontrados:', data);
+        const { data } = await authService.getUsersByEmpresa(admin.empresa_id);
         setUsuarios(data);
-      } catch (e) {
-        console.error('Erro geral no fetchUsuarios:', e);
+      } catch {
+        // ignorado
       } finally {
         setLoading(false);
       }

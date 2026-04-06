@@ -49,13 +49,12 @@ export const useNotificacao = () => {
         description: 'Notificação criada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao criar notificação',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -69,13 +68,12 @@ export const useNotificacao = () => {
         description: 'Notificação atualizada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar notificação',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -88,13 +86,12 @@ export const useNotificacao = () => {
         description: 'Notificação excluída com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir notificação',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -107,13 +104,12 @@ export const useNotificacao = () => {
         description: 'Notificação marcada como lida'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao marcar notificação como lida',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -126,13 +122,12 @@ export const useNotificacao = () => {
         description: 'Template criado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao criar template',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -146,13 +141,12 @@ export const useNotificacao = () => {
         description: 'Template atualizado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar template',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -165,13 +159,12 @@ export const useNotificacao = () => {
         description: 'Template excluído com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir template',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 

@@ -46,7 +46,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   const [localSugestoes, setLocalSugestoes] = useState<any[]>([]);
   const [localFocado, setLocalFocado] = useState(false);
   const [buscandoEndereco, setBuscandoEndereco] = useState(false);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Estados para "Mais Eventos" (roteiro)
   const [mostrarMaisEventos, setMostrarMaisEventos] = useState(false);
@@ -55,7 +55,6 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   // Buscar abrigos dos acolhidos
   useMemo(() => {
     async function fetchAbrigos() {
-      // ⚠️ CRÍTICO: Garantir que acolhidos seja sempre um array
       const acolhidosArray = Array.isArray(acolhidos) ? acolhidos : [];
       const ids = Array.from(new Set(acolhidosArray.map(a => a?.empresa_id).filter(Boolean)));
       if (ids.length === 0) return;
@@ -70,28 +69,23 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-      // Verificar se o clique foi fora do autocomplete E fora do input
-      // ⚠️ CRÍTICO: Não fechar se estiver clicando em um botão dentro da lista
-      const isClickOnButton = (target as HTMLElement)?.tagName === 'BUTTON' || 
+      const isClickOnButton = (target as HTMLElement)?.tagName === 'BUTTON' ||
                               (target as HTMLElement)?.closest('button') !== null;
-      
+
       if (isClickOnButton && autocompleteRef.current?.contains(target)) {
-        // Clicou em um botão dentro da lista, não fechar
         return;
       }
-      
+
       if (
-        autocompleteRef.current && 
+        autocompleteRef.current &&
         !autocompleteRef.current.contains(target) &&
         acolhidoInputRef.current &&
         !acolhidoInputRef.current.contains(target)
       ) {
-        // Fechar a lista quando clicar fora
         setAcolhidoSugestoes([]);
         setAcolhidoFocado(false);
       }
     }
-    // Usar um pequeno delay para evitar fechar imediatamente
     const timeoutId = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside);
     }, 100);
@@ -104,7 +98,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   useEffect(() => {
     function handleClickOutsideParticipante(event: MouseEvent) {
       if (
-        participanteAutocompleteRef.current && 
+        participanteAutocompleteRef.current &&
         !participanteAutocompleteRef.current.contains(event.target as Node) &&
         participanteInputRef.current &&
         !participanteInputRef.current.contains(event.target as Node)
@@ -135,23 +129,19 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
-    // ⚠️ CRÍTICO: Buscar endereços quando digitar no campo "local" com debounce
+
     if (name === 'local') {
-      // Limpar timer anterior
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-      
+
       if (value.length === 0) {
         setLocalSugestoes([]);
         setBuscandoEndereco(false);
       } else if (value.length >= 3) {
-        // Mostrar lista vazia enquanto busca (evitar piscar)
         setLocalSugestoes([]);
         setBuscandoEndereco(true);
-        
-        // Debounce: aguardar 500ms após parar de digitar
+
         debounceTimerRef.current = setTimeout(() => {
           buscarEnderecos(value);
         }, 500);
@@ -162,8 +152,6 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
     }
   };
 
-  // Função para buscar endereços usando Nominatim (OpenStreetMap)
-  // ⚠️ CRÍTICO: Buscar somente ruas no Brasil
   const buscarEnderecos = async (query: string) => {
     if (query.length < 3) {
       setLocalSugestoes([]);
@@ -173,35 +161,28 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
 
     setBuscandoEndereco(true);
     try {
-      // Usar Nominatim API (gratuita, sem chave necessária)
-      // countrycodes=br: limitar ao Brasil
-      // limit=10: buscar mais resultados para depois filtrar
-      // addressdetails=1: incluir detalhes do endereço
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=br&limit=10&addressdetails=1`,
         {
           headers: {
-            'User-Agent': 'SAICA-Agendamento/1.0' // Nominatim requer User-Agent
+            'User-Agent': 'SAICA-Agendamento/1.0'
           }
         }
       );
-      
+
       const data = await response.json();
-      console.log('[AgendaForm] Resultados da busca:', data.length, 'itens');
-      
+
       if (!data || data.length === 0) {
         setLocalSugestoes([]);
         setBuscandoEndereco(false);
         return;
       }
       
-      // Formatar os resultados - mostrar todos, priorizando ruas
       const enderecosFormatados = data
         .map((item: any) => {
           const address = item.address || {};
           let displayName = item.display_name;
-          
-          // Se tiver road/street no address, formatar melhor
+
           if (address.road || address.street) {
             const rua = address.road || address.street;
             const numero = address.house_number || '';
@@ -211,7 +192,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
             
             displayName = `${rua}${numero ? ', ' + numero : ''}${bairro ? ' - ' + bairro : ''}${cidade ? ', ' + cidade : ''}${estado ? ' - ' + estado : ''}`;
           }
-          
+
           return {
             display_name: displayName,
             lat: item.lat,
@@ -221,7 +202,6 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
             original: item.display_name
           };
         })
-        // Priorizar ruas, mas mostrar todos os resultados
         .sort((a: any, b: any) => {
           const aIsRua = a.address?.road || a.address?.street || a.original?.toLowerCase().includes('rua') || a.original?.toLowerCase().includes('avenida');
           const bIsRua = b.address?.road || b.address?.street || b.original?.toLowerCase().includes('rua') || b.original?.toLowerCase().includes('avenida');
@@ -229,12 +209,10 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
           if (!aIsRua && bIsRua) return 1;
           return 0;
         })
-        .slice(0, 5); // Limitar a 5 resultados
-      
-      console.log('[AgendaForm] Endereços formatados:', enderecosFormatados.length);
+        .slice(0, 5);
+
       setLocalSugestoes(enderecosFormatados);
-    } catch (error) {
-      console.error('[AgendaForm] Erro ao buscar endereços:', error);
+    } catch {
       setLocalSugestoes([]);
     } finally {
       setBuscandoEndereco(false);
@@ -244,7 +222,6 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   const handleLocalFocus = () => {
     setLocalFocado(true);
     if (form.local && form.local.length >= 3) {
-      // Limpar timer anterior
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
@@ -273,27 +250,20 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // ⚠️ CRÍTICO: Mostrar lista ao focar no campo
   const handleAcolhidoFocus = () => {
-    // ⚠️ CRÍTICO: Garantir que acolhidos seja sempre um array
     const acolhidosArray = Array.isArray(acolhidos) ? acolhidos : [];
-    console.log('[AgendaForm] handleAcolhidoFocus chamado - Total acolhidos:', acolhidosArray.length, 'Já adicionados:', form.acolhidos.length);
     setAcolhidoFocado(true);
-    // Mostrar todos os acolhidos disponíveis (não adicionados ainda)
     const acolhidosDisponiveis = acolhidosArray.filter(a => a && a.id && !form.acolhidos.includes(a.id));
-    console.log('[AgendaForm] Acolhidos disponíveis:', acolhidosDisponiveis.length);
     setAcolhidoSugestoes(acolhidosDisponiveis);
   };
 
   const handleAcolhidoBlur = () => {
-    // Delay maior para permitir clique nos itens da lista
     setTimeout(() => {
-      // ⚠️ CRÍTICO: Verificar se o foco ainda está no input ou na lista
       const activeElement = document.activeElement;
-      const isStillFocused = 
+      const isStillFocused =
         activeElement === acolhidoInputRef.current ||
         (autocompleteRef.current && autocompleteRef.current.contains(activeElement));
-      
+
       if (!isStillFocused) {
         setAcolhidoFocado(false);
         if (acolhidoInput.length === 0) {
@@ -306,9 +276,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   const handleAcolhidoInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setAcolhidoInput(value);
-    // ⚠️ CRÍTICO: Garantir que acolhidos seja sempre um array
     const acolhidosArray = Array.isArray(acolhidos) ? acolhidos : [];
-    // Se estiver digitando, filtrar a lista
     if (value.length > 0) {
       setAcolhidoSugestoes(
         acolhidosArray.filter(a =>
@@ -317,7 +285,6 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
         )
       );
     } else {
-      // Se apagou tudo, mostrar todos os disponíveis (se estiver focado)
       if (acolhidoFocado) {
         const acolhidosDisponiveis = acolhidosArray.filter(a => a && a.id && !form.acolhidos.includes(a.id));
         setAcolhidoSugestoes(acolhidosDisponiveis);
@@ -328,38 +295,32 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   };
 
   const handleAddAcolhido = (acolhido: any) => {
-    // ⚠️ CRÍTICO: Garantir que acolhidos seja sempre um array
     const acolhidosArray = Array.isArray(acolhidos) ? acolhidos : [];
-    
-    // Prevenir qualquer evento que possa fechar a lista
+
     setAcolhidoFocado(true);
-    
+
     setForm(prev => {
       const novosAcolhidos = [...prev.acolhidos, acolhido.id];
-      
-      // Manter lista aberta com acolhidos restantes
+
       const acolhidosDisponiveis = acolhidosArray.filter(a => a && a.id && !novosAcolhidos.includes(a.id));
-      
-      // Atualizar a lista imediatamente
+
       setTimeout(() => {
         setAcolhidoSugestoes(acolhidosDisponiveis);
         setAcolhidoFocado(true);
       }, 0);
-      
+
       return { ...prev, acolhidos: novosAcolhidos };
     });
-    
+
     setAcolhidoInput('');
-    
-    // Manter o foco no input para continuar adicionando
+
     setTimeout(() => {
       if (acolhidoInputRef.current) {
         acolhidoInputRef.current.focus();
-        // Forçar que a lista permaneça aberta
         setAcolhidoFocado(true);
-        const acolhidosArray = Array.isArray(acolhidos) ? acolhidos : [];
+        const arr = Array.isArray(acolhidos) ? acolhidos : [];
         setForm(currentForm => {
-          const acolhidosDisponiveis = acolhidosArray.filter(a => a && a.id && !currentForm.acolhidos.includes(a.id));
+          const acolhidosDisponiveis = arr.filter(a => a && a.id && !currentForm.acolhidos.includes(a.id));
           setAcolhidoSugestoes(acolhidosDisponiveis);
           return currentForm;
         });
@@ -373,16 +334,13 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
 
   const getUserNome = (u: any) => u.nome || u.nome_completo || u.displayName || u.email || '-';
 
-  // ⚠️ CRÍTICO: Mostrar lista ao focar no campo
   const handleParticipanteFocus = () => {
     setParticipanteFocado(true);
-    // Mostrar todos os participantes disponíveis (não adicionados ainda)
     const participantesDisponiveis = usuarios.filter(u => !form.participantes.includes(u.id));
     setParticipanteSugestoes(participantesDisponiveis);
   };
 
   const handleParticipanteBlur = () => {
-    // Delay para permitir clique nos itens da lista
     setTimeout(() => {
       setParticipanteFocado(false);
       if (participanteInput.length === 0) {
@@ -394,7 +352,6 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   const handleParticipanteInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setParticipanteInput(value);
-    // Se estiver digitando, filtrar a lista
     if (value.length > 0) {
       setParticipanteSugestoes(
         usuarios.filter(u =>
@@ -403,7 +360,6 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
         )
       );
     } else {
-      // Se apagou tudo, mostrar todos os disponíveis (se estiver focado)
       if (participanteFocado) {
         const participantesDisponiveis = usuarios.filter(u => !form.participantes.includes(u.id));
         setParticipanteSugestoes(participantesDisponiveis);
@@ -416,16 +372,8 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   const handleAddParticipante = (user: any) => {
     setForm(prev => ({ ...prev, participantes: [...prev.participantes, user.id] }));
     setParticipanteInput('');
-    // Manter lista aberta com participantes restantes (se estiver focado)
-    if (participanteFocado) {
-      const participantesDisponiveis = usuarios.filter(u => 
-        !form.participantes.includes(u.id) && u.id !== user.id
-      );
-      setParticipanteSugestoes(participantesDisponiveis);
-    } else {
-      setParticipanteSugestoes([]);
-    }
-    // Não fazer blur para manter o foco e a lista aberta
+    setParticipanteSugestoes([]);
+    if (participanteInputRef.current) participanteInputRef.current.blur();
   };
 
   const handleRemoveParticipante = (id: string) => {
@@ -440,7 +388,6 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
     const { data: { user } } = await supabase.auth.getUser();
     const criador_id = user?.id;
 
-    // Formatar eventos adicionais com data_hora
     const eventosFormatados = eventosAdicionais.map(evento => ({
       ...evento,
       data_hora: form.data && evento.hora ? `${form.data}T${evento.hora}` : null
@@ -458,8 +405,8 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <h2 className="text-xl font-bold mb-4">{safeInitialData.id ? 'Editar Agendamento' : 'Novo Agendamento'}</h2>
+    <form className="bg-white rounded-lg shadow p-6 space-y-4" onSubmit={handleSubmit}>
+      <h2 className="text-xl font-bold mb-2">{safeInitialData.id ? 'Editar Agendamento' : 'Novo Agendamento'}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">Título *</label>
@@ -468,15 +415,15 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
         <div>
           <label className="block text-sm font-medium">Local *</label>
           <div className="relative">
-            <input 
-              name="local" 
-              value={form.local} 
+            <input
+              name="local"
+              value={form.local}
               onChange={handleChange}
               onFocus={handleLocalFocus}
               onBlur={handleLocalBlur}
               ref={localInputRef}
-              required 
-              className="border rounded px-2 py-1 w-full" 
+              required
+              className="border rounded px-2 py-1 w-full"
               placeholder="Digite o endereço ou local"
               autoComplete="off"
             />
@@ -585,21 +532,25 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
             autoComplete="off"
           />
           {acolhidoSugestoes.length > 0 && (
-            <div ref={autocompleteRef} className="relative min-w-[400px]">
+            <div ref={autocompleteRef} className="relative min-w-[470px]">
               <div className="border rounded-t bg-gray-100 px-2 py-1 font-semibold flex gap-1 text-xs w-full">
-                <span className="w-56 text-center shrink-0">NOME</span>
-                <span className="w-16 text-center shrink-0">IDADE</span>
-                <span className="w-24 text-center shrink-0">&nbsp;</span>
+                <span className="w-44 text-center shrink-0">NOME</span>
+                <span className="w-10 text-center shrink-0">IDADE</span>
+                <span className="w-16 text-center shrink-0">ABRIGO</span>
+                <span className="w-16 text-center shrink-0">CIDADE</span>
+                <span className="w-14 text-center shrink-0">&nbsp;</span>
               </div>
               <ul className="border rounded-b bg-white shadow max-h-32 overflow-y-auto absolute z-10 w-full">
                 {acolhidoSugestoes.map(a => (
                   <li key={a.id} className="px-2 py-1 hover:bg-blue-100 cursor-pointer flex gap-1 items-center">
-                    <span className="w-56 font-semibold text-left shrink-0">{a.nome}</span>
-                    <span className="w-16 text-xs text-gray-500 text-center shrink-0">{calcularIdade(a.data_nascimento)}</span>
-                    <span className="w-24 text-center shrink-0">
-                      <button 
-                        type="button" 
-                        className="ml-1 text-blue-600 hover:underline text-xs" 
+                    <span className="w-44 font-semibold text-left shrink-0">{a.nome}</span>
+                    <span className="w-10 text-xs text-gray-500 text-center shrink-0">{calcularIdade(a.data_nascimento)}</span>
+                    <span className="w-16 text-xs text-gray-500 text-center shrink-0">{abrigos[a.empresa_id]?.nome || '-'}</span>
+                    <span className="w-16 text-xs text-gray-500 text-center shrink-0">{abrigos[a.empresa_id]?.cidade || '-'}</span>
+                    <span className="w-14 text-center shrink-0">
+                      <button
+                        type="button"
+                        className="ml-1 text-blue-600 hover:underline text-xs"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -616,7 +567,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
           )}
           <div className="flex flex-wrap gap-2 mt-2">
             {form.acolhidos.map((id: string) => {
-              const acolhido = acolhidos.find(a => a.id === id);
+              const acolhido = (Array.isArray(acolhidos) ? acolhidos : []).find(a => a.id === id);
               if (!acolhido) return null;
               return (
                 <span key={id} className="bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1">
@@ -627,7 +578,6 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
             })}
           </div>
         </div>
-        
         <div className="md:col-span-2 flex items-center gap-4">
           <input type="checkbox" name="recorrente" checked={form.recorrente} onChange={handleChange} />
           <span className="text-sm">Agendamento recorrente</span>
@@ -642,8 +592,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
             </>
           )}
         </div>
-        
-        {/* Opção "Mais Eventos" para criar roteiro */}
+
         <div className="md:col-span-2">
           <button
             type="button"
@@ -782,7 +731,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
                       <label className="block text-xs font-medium mb-1">Acolhidos</label>
                       <div className="flex flex-wrap gap-1">
                         {evento.acolhidos?.map((id: string) => {
-                          const acolhido = acolhidos.find(a => a.id === id);
+                          const acolhido = (Array.isArray(acolhidos) ? acolhidos : []).find(a => a.id === id);
                           if (!acolhido) return null;
                           return (
                             <span key={id} className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs flex items-center gap-1">

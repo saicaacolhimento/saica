@@ -51,8 +51,7 @@ export const Chat = () => {
         conversa_id: id
       })
       setMessage('')
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 
@@ -62,8 +61,7 @@ export const Chat = () => {
     try {
       await deleteConversa(id)
       navigate('/mensagens')
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,58 +10,78 @@ import { Login } from '@/features/auth/pages/Login';
 
 export default function AuthLayout() {
   const [showContact, setShowContact] = useState(false);
+  const [contactForm, setContactForm] = useState({ nome: '', email: '', mensagem: '' });
+  const [sending, setSending] = useState(false);
+  const { toast } = useToast();
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.nome || !contactForm.email || !contactForm.mensagem) {
+      toast({ title: 'Erro', description: 'Preencha todos os campos.', variant: 'destructive' });
+      return;
+    }
+    setSending(true);
+    try {
+      // TODO: Implementar envio real (ex: Supabase edge function ou backend endpoint)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      toast({ title: 'Mensagem enviada', description: 'Entraremos em contato em breve.' });
+      setContactForm({ nome: '', email: '', mensagem: '' });
+      setShowContact(false);
+    } catch {
+      toast({ title: 'Erro', description: 'Erro ao enviar mensagem. Tente novamente.', variant: 'destructive' });
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {/* Header */}
       <header className="w-full bg-white relative">
         <div className="w-full">
           <img 
             src={headerImage} 
             alt="Crianças desenhando" 
-            className="w-full h-auto object-cover max-h-[570px]"
+            className="w-full h-auto object-cover max-h-[400px] md:max-h-[570px]"
           />
         </div>
-        <div className="absolute top-[475px] left-[50%] transform -translate-x-1/2">
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
           <img
             src={logoSaica}
             alt="Logo SAICA"
-            className="w-32 h-auto"
+            className="w-20 md:w-32 h-auto"
           />
         </div>
-        <div className="absolute top-10 right-10">
+        <div className="absolute top-4 right-4 md:top-10 md:right-10">
           <Login />
         </div>
       </header>
 
-      {/* Title Bar */}
-      <div className="w-full bg-[#6366F1] text-white h-[80px] flex items-center mt-[50px]">
+      <div className="w-full bg-[#6366F1] text-white py-4 md:py-6 mt-12 md:mt-[50px]">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-[2.5em] font-semibold text-center mb-0">
+          <h1 className="text-lg md:text-[2.5em] font-semibold mb-0">
             Sistema de Acompanhamento Integrado de Crianças e Adolescentes
           </h1>
-          <p className="text-[1.5em] -mt-2">
+          <p className="text-sm md:text-[1.5em] mt-1 md:-mt-2">
             Uma plataforma para auxiliar na integração entre CRAS, CAPS, CREAS,
             Conselho Tutelar e Abrigos de uma forma rápida e segura
           </p>
         </div>
       </div>
 
-      {/* Diagrama SAICA e Card Informativo */}
       <div className="container mx-auto px-4 py-8">
-        <div className="flex gap-8">
-          <div className="w-1/2 pl-20">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="w-full md:w-1/2 flex justify-center md:pl-20">
             <img 
               src={diagramaSaica}
               alt="Diagrama de integração SAICA"
               className="w-full max-w-[500px] h-auto"
             />
           </div>
-          <div className="w-1/2">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-[500px]">
-              <h2 className="text-[#6366F1] text-2xl font-bold mb-4 text-center">O QUE É O SISTEMA SAICA?</h2>
-              <div className="space-y-4 text-gray-600 text-lg mb-8">
-                <p>É uma plataforma onde o Abrigo cadastro o acolhido com todas informações pessoais.</p>
+          <div className="w-full md:w-1/2 flex justify-center">
+            <div className="bg-white rounded-lg shadow-lg p-6 max-w-[500px] w-full">
+              <h2 className="text-[#6366F1] text-xl md:text-2xl font-bold mb-4 text-center">O QUE É O SISTEMA SAICA?</h2>
+              <div className="space-y-4 text-gray-600 text-base md:text-lg mb-8">
+                <p>É uma plataforma onde o Abrigo cadastra o acolhido com todas informações pessoais.</p>
                 <p>Os órgãos como CREAS, CRAS, CAPS, Conselho Tutelar acessam estas informações e podem também fazer a inserção de qualquer evolução por parte destas instituições no cadastro do respectivo acolhido.</p>
                 <p>Desta forma, as informações são unificadas, com segurança e facilidade, criando assim uma rede de informações com históricos a nível nacional.</p>
                 <p>Nossa plataforma tem além do cadastro completo do acolhido um sistema de agenda e mensagem integrado entre todos e um sistema único.</p>
@@ -77,35 +96,47 @@ export default function AuthLayout() {
                 </Button>
               </div>
 
-              {/* Formulário de Contato */}
               {showContact && (
-                <form className="space-y-4 mt-6">
+                <form className="space-y-4 mt-6" onSubmit={handleContactSubmit}>
                   <div>
                     <Input
                       placeholder="NOME"
+                      value={contactForm.nome}
+                      onChange={e => setContactForm(prev => ({ ...prev, nome: e.target.value }))}
                       className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                      required
+                      disabled={sending}
                     />
                   </div>
                   <div>
                     <Input
                       type="email"
                       placeholder="E-MAIL"
+                      value={contactForm.email}
+                      onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))}
                       className="w-full p-2 border border-gray-300 rounded bg-gray-50"
+                      required
+                      disabled={sending}
                     />
                   </div>
                   <div>
                     <Textarea
                       placeholder="MENSAGEM"
+                      value={contactForm.mensagem}
+                      onChange={e => setContactForm(prev => ({ ...prev, mensagem: e.target.value }))}
                       rows={4}
                       className="w-full p-2 border border-gray-300 rounded bg-gray-50 resize-none"
-                    ></Textarea>
+                      required
+                      disabled={sending}
+                    />
                   </div>
                   <div>
                     <Button
                       type="submit"
                       className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white py-2 px-4 rounded transition-colors"
+                      disabled={sending}
                     >
-                      ENVIAR MENSAGEM
+                      {sending ? 'ENVIANDO...' : 'ENVIAR MENSAGEM'}
                     </Button>
                   </div>
                 </form>
@@ -115,12 +146,11 @@ export default function AuthLayout() {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="w-full mt-auto bg-gray-100 py-8">
         <div className="container mx-auto px-4 text-center text-gray-600">
-          © 2024 SAICA - Sistema de Acompanhamento Integrado de Crianças e Adolescentes
+          &copy; {new Date().getFullYear()} SAICA - Sistema de Acompanhamento Integrado de Crianças e Adolescentes
         </div>
       </footer>
     </div>
   );
-} 
+}

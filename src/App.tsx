@@ -2,8 +2,6 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import AppRoutes from '@/routes';
 
-console.log('[App] App.tsx montado');
-
 export default function App() {
   return (
     <AuthProvider>

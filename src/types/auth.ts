@@ -18,7 +18,9 @@ export interface RegularUser extends BaseUser {
   role: 'admin' | 'padrao' | 'orgao';
   abrigo_id?: string;
   orgao_id?: string;
+  empresa_id?: string;
   funcao?: string;
+  cargo?: string;
 }
 
 export type User = MasterAdmin | RegularUser;
@@ -39,6 +41,9 @@ export interface CreateUserData {
   password: string;
   nome: string;
   role: UserRole;
+  status?: 'active' | 'blocked';
+  cargo?: string;
+  empresa_id?: string;
   abrigo_id?: string;
   orgao_id?: string;
   funcao?: string;
@@ -50,7 +55,9 @@ export interface UpdateUserData {
   password?: string;
   role?: Exclude<UserRole, 'master'>;
   status?: 'active' | 'blocked';
+  cargo?: string;
+  empresa_id?: string;
   abrigo_id?: string;
   orgao_id?: string;
   funcao?: string;
-} 
+}

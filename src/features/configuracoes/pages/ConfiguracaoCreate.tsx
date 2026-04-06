@@ -56,8 +56,7 @@ export const ConfiguracaoCreate = () => {
     try {
       await createConfiguracao(values)
       navigate('/configuracoes')
-    } catch (error) {
-      console.error(error)
+    } catch {
     } finally {
       setIsLoading(false)
     }

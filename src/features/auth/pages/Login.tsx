@@ -20,33 +20,24 @@ export function Login() {
     setLoading(true);
 
     try {
-      console.log('Tentando fazer login com:', { email });
-      
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
       if (authError) {
-        console.error('Erro na autenticação:', authError);
         setError('Email ou senha inválidos.');
         return;
       }
 
       if (!authData.user) {
-        console.error('Usuário não encontrado após autenticação');
         setError('Usuário não encontrado.');
         return;
       }
 
-      console.log('Login bem sucedido, buscando dados do usuário...');
       await authService.getCurrentUser();
-      
-      console.log('Redirecionando para dashboard...');
       navigate('/admin/dashboard');
-      
-    } catch (err) {
-      console.error('Erro inesperado ao fazer login:', err);
+    } catch {
       setError('Ocorreu um erro ao tentar fazer login. Tente novamente.');
     } finally {
       setLoading(false);

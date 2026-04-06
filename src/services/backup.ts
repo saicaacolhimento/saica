@@ -33,7 +33,7 @@ class BackupService {
     };
 
     await this.saveBackupMetadata(metadata);
-    this.processBackup(backupId).catch(console.error);
+    this.processBackup(backupId).catch(() => {});
     
     return backupId;
   }

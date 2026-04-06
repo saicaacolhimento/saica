@@ -111,31 +111,13 @@ export default function EditShelter() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: UpdateShelterData) => {
-      console.log('🔄 Iniciando mutation de atualização:', { shelterId: shelter!.id, data });
-      
-      try {
       if (selectedLogo) {
-          console.log('📤 Iniciando upload de nova logo...');
         const logoUrl = await shelterService.uploadLogo(selectedLogo, shelter!.id);
-          console.log('✅ Logo enviada com sucesso:', logoUrl);
         data.logo_url = logoUrl;
       }
-
-        console.log('📝 Dados finais para atualização:', data);
-        const result = await shelterService.updateShelter(shelter!.id, data, shelter?.created_by);
-        console.log('✅ Atualização concluída com sucesso:', result);
-        return result;
-      } catch (error) {
-        console.error('❌ Erro na mutation:', {
-          error,
-          errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
-          errorStack: error instanceof Error ? error.stack : undefined
-        });
-        throw error;
-      }
+      return shelterService.updateShelter(shelter!.id, data, shelter?.created_by);
     },
-    onSuccess: (data) => {
-      console.log('🎉 Mutation bem sucedida:', data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shelters'] });
       toast({
         title: 'Empresa atualizada',
@@ -144,16 +126,6 @@ export default function EditShelter() {
       navigate('/admin/empresas');
     },
     onError: (error: any) => {
-      console.error('❌ Erro na mutation:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
-        errorStack: error instanceof Error ? error.stack : undefined
-      });
-      if (error && typeof error === 'object') {
-        for (const [key, value] of Object.entries(error)) {
-          console.error(`Detalhe do erro [${key}]:`, value);
-        }
-      }
       toast({
         title: 'Erro ao atualizar empresa',
         description: error instanceof Error ? error.message : 'Ocorreu um erro ao atualizar a empresa.',
@@ -164,29 +136,15 @@ export default function EditShelter() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('📝 Iniciando submissão do formulário');
     setLoading(true);
 
     try {
-      console.log('📦 Dados do formulário:', formData);
-      console.log('🔗 Empresas vinculadas:', empresasVinculadas);
       await updateMutation.mutateAsync({
         ...formData,
         empresas_vinculadas: empresasVinculadas.filter(empId => !!empId && empId !== id),
       });
-    } catch (error) {
-      console.error('❌ Erro no handleSubmit:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
-        errorStack: error instanceof Error ? error.stack : undefined
-      });
-      if (error && typeof error === 'object') {
-        for (const [key, value] of Object.entries(error)) {
-          console.error(`Detalhe do erro [${key}]:`, value);
-        }
-      }
+    } catch {
     } finally {
-      console.log('🏁 Finalizando submissão do formulário');
       setLoading(false);
     }
   };

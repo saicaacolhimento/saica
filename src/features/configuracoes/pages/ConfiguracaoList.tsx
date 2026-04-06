@@ -41,8 +41,7 @@ export const ConfiguracaoList = () => {
     try {
       await deleteConfiguracao(configuracaoToDelete)
       setConfiguracaoToDelete(null)
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 

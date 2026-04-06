@@ -36,16 +36,15 @@ export const useRelatorio = () => {
       queryClient.invalidateQueries({ queryKey: ['relatorios'] })
       toast({
         title: 'Sucesso',
-        description: 'Relatório criado com sucesso'
+        description: 'Relat?rio criado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
-        description: 'Erro ao criar relatório',
+        description: 'Erro ao criar relat?rio',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -57,16 +56,15 @@ export const useRelatorio = () => {
       queryClient.invalidateQueries({ queryKey: ['relatorio', variables.id] })
       toast({
         title: 'Sucesso',
-        description: 'Relatório atualizado com sucesso'
+        description: 'Relat?rio atualizado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
-        description: 'Erro ao atualizar relatório',
+        description: 'Erro ao atualizar relat?rio',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -77,16 +75,15 @@ export const useRelatorio = () => {
       queryClient.invalidateQueries({ queryKey: ['relatorio', id] })
       toast({
         title: 'Sucesso',
-        description: 'Relatório excluído com sucesso'
+        description: 'Relat?rio exclu?do com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
-        description: 'Erro ao excluir relatório',
+        description: 'Erro ao excluir relat?rio',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -96,16 +93,15 @@ export const useRelatorio = () => {
       window.open(url, '_blank')
       toast({
         title: 'Sucesso',
-        description: 'Relatório PDF gerado com sucesso'
+        description: 'Relat?rio PDF gerado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
-        description: 'Erro ao gerar relatório PDF',
+        description: 'Erro ao gerar relat?rio PDF',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -115,16 +111,15 @@ export const useRelatorio = () => {
       window.open(url, '_blank')
       toast({
         title: 'Sucesso',
-        description: 'Relatório Excel gerado com sucesso'
+        description: 'Relat?rio Excel gerado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
-        description: 'Erro ao gerar relatório Excel',
+        description: 'Erro ao gerar relat?rio Excel',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -134,16 +129,15 @@ export const useRelatorio = () => {
       window.open(url, '_blank')
       toast({
         title: 'Sucesso',
-        description: 'Relatório CSV gerado com sucesso'
+        description: 'Relat?rio CSV gerado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
-        description: 'Erro ao gerar relatório CSV',
+        description: 'Erro ao gerar relat?rio CSV',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 

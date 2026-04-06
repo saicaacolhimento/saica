@@ -48,8 +48,7 @@ export function AcolhidoEdit() {
     try {
       await updateAcolhido({ id: id!, data: acolhido })
       navigate(`/acolhidos/${id}`)
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 

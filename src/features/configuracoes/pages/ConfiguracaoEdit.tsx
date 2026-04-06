@@ -75,8 +75,7 @@ export const ConfiguracaoEdit = () => {
     try {
       await updateConfiguracao({ id, data: values })
       navigate('/configuracoes')
-    } catch (error) {
-      console.error(error)
+    } catch {
     } finally {
       setIsLoading(false)
     }

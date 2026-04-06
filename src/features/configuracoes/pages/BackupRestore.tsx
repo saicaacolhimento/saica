@@ -39,8 +39,7 @@ export const BackupRestore = () => {
     try {
       await deleteBackup(backupToDelete)
       setBackupToDelete(null)
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 
@@ -50,16 +49,14 @@ export const BackupRestore = () => {
     try {
       await restaurarBackup(backupToRestore)
       setBackupToRestore(null)
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 
   const handleGerarBackup = async () => {
     try {
       await gerarBackup(tipoBackup)
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 

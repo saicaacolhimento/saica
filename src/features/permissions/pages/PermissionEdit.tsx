@@ -43,8 +43,7 @@ export function PermissionEdit() {
     try {
       await updatePermission({ id: id!, data: permission })
       navigate('/permissions')
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 

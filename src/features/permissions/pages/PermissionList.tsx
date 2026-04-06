@@ -43,8 +43,7 @@ export function PermissionList() {
       await createPermission(newPermission)
       setIsCreateDialogOpen(false)
       setNewPermission({ role: '', table: '', field: '', permission_type: '' })
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 
@@ -52,8 +51,7 @@ export function PermissionList() {
     if (window.confirm('Tem certeza que deseja excluir esta permissão?')) {
       try {
         await deletePermission(id)
-      } catch (error) {
-        console.error(error)
+      } catch {
       }
     }
   }

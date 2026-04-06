@@ -12,8 +12,7 @@ export function useAcolhido() {
         description: "Acolhido cadastrado com sucesso",
       });
     },
-    onError: (error) => {
-      console.error(error);
+    onError: () => {
       toast({
         title: "Erro",
         description: "Erro ao cadastrar acolhido",
@@ -31,8 +30,7 @@ export function useAcolhido() {
         description: "Foto enviada com sucesso",
       });
     },
-    onError: (error) => {
-      console.error(error);
+    onError: () => {
       toast({
         title: "Erro", 
         description: "Erro ao enviar foto",

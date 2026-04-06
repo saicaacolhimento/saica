@@ -44,13 +44,12 @@ export const useAgendamento = () => {
         description: 'Agendamento cadastrado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao cadastrar agendamento',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -64,13 +63,12 @@ export const useAgendamento = () => {
         description: 'Agendamento atualizado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar agendamento',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -83,13 +81,12 @@ export const useAgendamento = () => {
         description: 'Agendamento excluído com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir agendamento',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 

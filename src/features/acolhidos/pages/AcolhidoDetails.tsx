@@ -51,13 +51,12 @@ export function AcolhidoDetails() {
         title: 'Sucesso',
         description: 'Foto atualizada com sucesso'
       })
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar foto',
         variant: 'destructive'
       })
-      console.error(error)
     }
   }
 

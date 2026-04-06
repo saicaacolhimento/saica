@@ -86,13 +86,12 @@ export const useConfiguracao = () => {
         description: 'Configuração criada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao criar configuração',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -107,13 +106,12 @@ export const useConfiguracao = () => {
         description: 'Configuração atualizada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar configuração',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -127,13 +125,12 @@ export const useConfiguracao = () => {
         description: 'Configuração excluída com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir configuração',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -146,13 +143,12 @@ export const useConfiguracao = () => {
         description: 'Backup criado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao criar backup',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -167,13 +163,12 @@ export const useConfiguracao = () => {
         description: 'Backup atualizado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar backup',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -187,13 +182,12 @@ export const useConfiguracao = () => {
         description: 'Backup excluído com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir backup',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -206,13 +200,12 @@ export const useConfiguracao = () => {
         description: 'Backup gerado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao gerar backup',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -225,13 +218,12 @@ export const useConfiguracao = () => {
         description: 'Backup restaurado com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao restaurar backup',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 

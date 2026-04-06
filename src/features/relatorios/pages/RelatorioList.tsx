@@ -38,8 +38,7 @@ export const RelatorioList = () => {
     try {
       await deleteRelatorio(relatorioToDelete)
       setRelatorioToDelete(null)
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 
@@ -56,8 +55,7 @@ export const RelatorioList = () => {
           await gerarCSV(relatorio.id)
           break
       }
-    } catch (error) {
-      console.error(error)
+    } catch {
     }
   }
 

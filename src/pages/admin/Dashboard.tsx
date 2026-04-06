@@ -1,14 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/config/supabase';
 import {
   Users,
   Home,
-  FileText,
   Settings,
   Activity,
-  Building,
   FileBox,
   Baby,
   Calendar,
@@ -22,7 +19,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // ⚠️ CRÍTICO: Buscar role do usuário para filtrar cards
   useEffect(() => {
     async function fetchUserRole() {
       const currentUser = await authService.getCurrentUser();
@@ -33,8 +29,7 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  // ⚠️ CRÍTICO: Detecção de master
-  const isMaster = user?.email === 'saicaacolhimento2025@gmail.com' || userRole === 'master';
+  const isMaster = userRole === 'master';
 
   const modules = [
     {
@@ -44,7 +39,7 @@ export default function Dashboard() {
       icon: Home,
       bgColor: 'bg-blue-100',
       iconColor: 'text-blue-600',
-      masterOnly: true // ⚠️ CRÍTICO: Apenas master pode ver
+      masterOnly: true
     },
     {
       title: 'Gestão de Usuários',
@@ -120,21 +115,18 @@ export default function Dashboard() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-bold">
-            {user?.email === 'saicaacolhimento2025@gmail.com' ? 'Olá, Administrador' : `Olá, ${user?.user_metadata?.nome || user?.nome || ''}`}
+            {isMaster ? 'Olá, Administrador' : `Olá, ${user?.user_metadata?.nome || user?.nome || ''}`}
           </h1>
           <p className="text-gray-600">Acesso total ao sistema</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {/* ⚠️ CRÍTICO: Filtrar cards baseado em isMaster - "Gestão de Empresas" apenas para master */}
         {modules
           .filter(module => {
-            // Se o módulo tem masterOnly, só mostra para master
             if (module.masterOnly) {
               return isMaster;
             }
-            // Caso contrário, mostra para todos
             return true;
           })
           .map((module, index) => (
@@ -158,4 +150,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-} 
+}

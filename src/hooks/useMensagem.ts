@@ -47,13 +47,12 @@ export const useMensagem = () => {
         description: 'Mensagem enviada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao enviar mensagem',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -68,13 +67,12 @@ export const useMensagem = () => {
         description: 'Mensagem atualizada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar mensagem',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -88,13 +86,12 @@ export const useMensagem = () => {
         description: 'Mensagem excluída com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir mensagem',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -108,13 +105,12 @@ export const useMensagem = () => {
         description: 'Mensagem marcada como lida'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao marcar mensagem como lida',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -127,13 +123,12 @@ export const useMensagem = () => {
         description: 'Conversa criada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao criar conversa',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -147,13 +142,12 @@ export const useMensagem = () => {
         description: 'Conversa atualizada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar conversa',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -167,13 +161,12 @@ export const useMensagem = () => {
         description: 'Conversa excluída com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir conversa',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 

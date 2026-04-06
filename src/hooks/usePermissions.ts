@@ -31,13 +31,12 @@ export const usePermissions = () => {
         description: 'Permissão criada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao criar permissão',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -51,13 +50,12 @@ export const usePermissions = () => {
         description: 'Permissão atualizada com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar permissão',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -70,13 +68,12 @@ export const usePermissions = () => {
         description: 'Permissão excluída com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao excluir permissão',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 
@@ -90,13 +87,12 @@ export const usePermissions = () => {
         description: 'Permissões do usuário atualizadas com sucesso'
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar permissões do usuário',
         variant: 'destructive'
       })
-      console.error(error)
     }
   })
 

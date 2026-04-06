@@ -140,14 +140,9 @@ const AcolhidoCadastro: React.FC = () => {
 
   const onSubmit = (data: FormValues) => {
     try {
-      const formattedData = {
-        ...data,
-        dataNascimento: new Date(data.dataNascimento).toISOString(),
-        dataEntrada: new Date(data.dataEntrada).toISOString()
-      }
-      
-      console.log("Dados do formulário:", formattedData)
-      
+      void new Date(data.dataNascimento).toISOString();
+      void new Date(data.dataEntrada).toISOString();
+
       toast({
         title: "Acolhido cadastrado com sucesso!",
         variant: "success"
@@ -155,8 +150,7 @@ const AcolhidoCadastro: React.FC = () => {
       
       form.reset()
       
-    } catch (error) {
-      console.error("Erro ao cadastrar acolhido:", error)
+    } catch {
       toast({
         title: "Erro ao cadastrar acolhido",
         description: "Tente novamente mais tarde",
