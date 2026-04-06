@@ -9,7 +9,8 @@ import {
   FileBox,
   Baby,
   Calendar,
-  DollarSign
+  DollarSign,
+  MessageSquare
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { authService } from '@/services/auth';
@@ -31,6 +32,8 @@ export default function Dashboard() {
 
   const isMaster = userRole === 'master';
 
+  const isAdmin = userRole === 'admin' || isMaster;
+
   const modules = [
     {
       title: 'Gestão de Empresas',
@@ -47,7 +50,8 @@ export default function Dashboard() {
       route: '/admin/usuarios',
       icon: Users,
       bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600'
+      iconColor: 'text-purple-600',
+      adminOnly: true
     },
     {
       title: 'Gestão de Acolhido',
@@ -71,7 +75,8 @@ export default function Dashboard() {
       route: '/admin/financeiro',
       icon: DollarSign,
       bgColor: 'bg-pink-100',
-      iconColor: 'text-pink-600'
+      iconColor: 'text-pink-600',
+      adminOnly: true
     },
     {
       title: 'Documentos',
@@ -80,6 +85,14 @@ export default function Dashboard() {
       icon: FileBox,
       bgColor: 'bg-indigo-100',
       iconColor: 'text-indigo-600'
+    },
+    {
+      title: 'Mensagens',
+      description: 'Converse com os membros da sua equipe',
+      route: '/admin/mensagens',
+      icon: MessageSquare,
+      bgColor: 'bg-cyan-100',
+      iconColor: 'text-cyan-600'
     },
     {
       title: 'Atividades',
@@ -124,9 +137,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {modules
           .filter(module => {
-            if (module.masterOnly) {
-              return isMaster;
-            }
+            if (module.masterOnly) return isMaster;
+            if ((module as any).adminOnly) return isAdmin;
             return true;
           })
           .map((module, index) => (
