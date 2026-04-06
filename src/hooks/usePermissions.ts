@@ -125,7 +125,8 @@ export const usePermissions = () => {
       targetUserId: string,
       permissions: { module: string; can_read: boolean; can_write: boolean; can_delete: boolean; visible_fields?: Record<string, boolean> }[]
     }) => {
-      await supabase.from('user_module_permissions').delete().eq('user_id', targetUserId)
+      const { error: deleteError } = await supabase.from('user_module_permissions').delete().eq('user_id', targetUserId)
+      if (deleteError) throw deleteError
       const rows = permissions
         .filter(p => p.can_read || p.can_write || p.can_delete)
         .map(p => ({

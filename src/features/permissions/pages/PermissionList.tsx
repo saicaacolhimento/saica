@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -234,8 +234,8 @@ export function PermissionList() {
                   </thead>
                   <tbody>
                     {perms.map(p => (
-                      <>
-                        <tr key={p.module} className="border-b hover:bg-gray-50">
+                      <Fragment key={p.module}>
+                        <tr className="border-b hover:bg-gray-50">
                           <td className="py-3 text-sm font-medium">{MODULE_LABELS[p.module] || p.module}</td>
                           <td className="py-3 text-center">
                             <Switch checked={p.can_read} onCheckedChange={(v) => togglePerm(p.module, 'can_read', v)} />
@@ -263,7 +263,7 @@ export function PermissionList() {
                           </td>
                         </tr>
                         {p.module === 'acolhidos' && expandedModule === 'acolhidos' && p.can_read && (
-                          <tr key="acolhidos-fields">
+                          <tr>
                             <td colSpan={5} className="p-0">
                               <div className="bg-indigo-50/50 border-y px-4 py-3">
                                 <div className="flex items-center justify-between mb-3">
@@ -298,7 +298,7 @@ export function PermissionList() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
