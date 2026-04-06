@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { supabase } from '@/config/supabase';
-import { authService } from '@/services/auth';
 import { Eye, EyeOff, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -13,6 +11,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,25 +19,10 @@ export function Login() {
     setLoading(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (authError) {
-        setError('Email ou senha inválidos.');
-        return;
-      }
-
-      if (!authData.user) {
-        setError('Usuário não encontrado.');
-        return;
-      }
-
-      await authService.getCurrentUser();
+      await signIn(email.trim(), password);
       navigate('/admin/dashboard');
     } catch {
-      setError('Ocorreu um erro ao tentar fazer login. Tente novamente.');
+      setError('Email ou senha inválidos.');
     } finally {
       setLoading(false);
     }
