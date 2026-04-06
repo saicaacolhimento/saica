@@ -12,14 +12,14 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthLayout() {
   const { session } = useAuth();
-
-  if (session) {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
   const [showContact, setShowContact] = useState(false);
   const [contactForm, setContactForm] = useState({ nome: '', email: '', mensagem: '' });
   const [sending, setSending] = useState(false);
   const { toast } = useToast();
+
+  if (session) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
