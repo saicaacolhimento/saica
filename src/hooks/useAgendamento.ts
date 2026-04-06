@@ -44,10 +44,10 @@ export const useAgendamento = () => {
         description: 'Agendamento cadastrado com sucesso'
       })
     },
-    onError: () => {
+    onError: (err: any) => {
       toast({
         title: 'Erro',
-        description: 'Erro ao cadastrar agendamento',
+        description: err?.message || 'Erro ao cadastrar agendamento',
         variant: 'destructive'
       })
     }

@@ -138,7 +138,8 @@ export const authService = {
   async getAllUsuarios(): Promise<User[]> {
     const { data, error } = await supabase
       .from('usuarios')
-      .select('id, nome, email, cargo');
+      .select('id, nome, email, cargo, role')
+      .neq('role', 'master');
     if (error) throw error;
     return data as User[];
   },

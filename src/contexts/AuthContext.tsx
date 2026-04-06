@@ -8,6 +8,9 @@ interface UserFull {
   nome?: string;
   role?: string;
   empresa_id?: string;
+  cargo?: string;
+  telefone?: string;
+  status?: string;
   [key: string]: any;
 }
 
@@ -20,6 +23,16 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function fetchUserProfile(authUserId: string): Promise<UserFull | null> {
+  const { data, error } = await supabase
+    .from('usuarios')
+    .select('id, nome, email, role, status, empresa_id, cargo, telefone')
+    .eq('id', authUserId)
+    .single();
+  if (error || !data) return null;
+  return data;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -42,9 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setSession(data.session);
-      if (data.session.user) {
-        setUser(data.session.user);
-      }
+      const profile = await fetchUserProfile(data.session.user.id);
+      setUser(profile || data.session.user);
       setLoading(false);
     }
 
@@ -59,7 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(newSession);
-          setUser(newSession?.user ?? null);
+          if (newSession?.user) {
+            const profile = await fetchUserProfile(newSession.user.id);
+            setUser(profile || newSession.user);
+          } else {
+            setUser(null);
+          }
           setLoading(false);
         }
       }
@@ -74,7 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     setSession(data.session);
-    setUser(data.session?.user ?? null);
+    const profile = await fetchUserProfile(data.session!.user.id);
+    setUser(profile || (data.session?.user ?? null));
   }
 
   async function logout() {

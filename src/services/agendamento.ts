@@ -51,22 +51,35 @@ export const agendamentoService = {
     return data
   },
 
-  async createAgendamento(data: CreateAgendamentoData): Promise<Agendamento> {
-    // Tratamento para campos de data e outros sensíveis
-    const dadosTratados = {
-      ...data,
-      data: data.data === '' ? null : data.data,
-      data_hora: data.data_hora === '' ? null : data.data_hora,
-      dataFinalRecorrencia: (data as any).dataFinalRecorrencia === '' ? null : (data as any).dataFinalRecorrencia,
+  async createAgendamento(payload: CreateAgendamentoData): Promise<Agendamento> {
+    const row: Record<string, any> = {
+      titulo: payload.titulo || null,
+      descricao: payload.descricao || null,
+      local: (payload as any).local || null,
+      status: 'agendado',
     };
+
+    const p = payload as any;
+
+    if (p.data_hora) row.data_hora = p.data_hora;
+    if (p.criador_id) row.criador_id = p.criador_id;
+    if (Array.isArray(p.participantes) && p.participantes.length > 0) row.participantes = p.participantes;
+    if (Array.isArray(p.acolhidos) && p.acolhidos.length > 0) row.acolhidos = p.acolhidos;
+    if (p.recorrente != null) row.recorrente = p.recorrente;
+    if (p.tipoRecorrencia && p.tipoRecorrencia !== 'nenhuma') row.tipoRecorrencia = p.tipoRecorrencia;
+    if (p.dataFinalRecorrencia && p.dataFinalRecorrencia !== '') row.dataFinalRecorrencia = p.dataFinalRecorrencia;
+    if (p.eventos_adicionais) row.eventos_adicionais = p.eventos_adicionais;
+    if (p.tipo) row.tipo = p.tipo;
+    if (p.observacoes) row.observacoes = p.observacoes;
+
     const { data: agendamento, error } = await supabase
       .from('agendamentos')
-      .insert([{ ...dadosTratados, status: 'agendado' }])
+      .insert([row])
       .select()
-      .single()
+      .single();
 
-    if (error) throw error
-    return agendamento
+    if (error) throw error;
+    return agendamento;
   },
 
   async updateAgendamento(id: string, data: UpdateAgendamentoData): Promise<Agendamento> {

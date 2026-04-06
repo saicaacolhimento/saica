@@ -59,7 +59,7 @@ export default function AuthLayout() {
 
       <div className="w-full bg-[#6366F1] text-white py-4 md:py-6 mt-4 md:mt-6">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-lg md:text-[2.5em] font-semibold">
+          <h1 className="text-base md:text-[2em] font-semibold">
             Sistema de Acompanhamento Integrado de Crianças e Adolescentes
           </h1>
           <p className="text-sm md:text-[1.2em] mt-[12px] opacity-90">

@@ -6,8 +6,10 @@ import { AgendaForm } from '../components/AgendaForm'
 import { Modal } from '@/components/Modal'
 import { authService } from '@/services/auth'
 import { acolhidoService } from '@/services/acolhido'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function AgendamentoList() {
+  const { user } = useAuth()
   const {
     agendamentos = [],
     isLoadingAgendamentos,
@@ -23,7 +25,17 @@ export default function AgendamentoList() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const usuariosData = await authService.getAllUsuarios?.() || [];
+        let usuariosData: any[] = [];
+        const empresaId = (user as any)?.empresa_id;
+        const userRole = (user as any)?.role;
+
+        if (userRole === 'master') {
+          usuariosData = await authService.getAllUsuarios?.() || [];
+        } else if (empresaId) {
+          const result = await authService.getUsersByEmpresa(empresaId);
+          usuariosData = (result.data || []).filter((u: any) => u.role !== 'master');
+        }
+
         const acolhidosResponse = await acolhidoService.getAcolhidos(1, 1000);
         setUsuarios(usuariosData);
         setAcolhidos(acolhidosResponse?.data || []);
@@ -32,8 +44,8 @@ export default function AgendamentoList() {
         setAcolhidos([]);
       }
     }
-    fetchData();
-  }, []);
+    if (user) fetchData();
+  }, [user]);
 
   // Função para comparar datas em horário local
   const isSameDayLocal = (d1, d2) =>

@@ -51,6 +51,9 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
   // Estados para "Mais Eventos" (roteiro)
   const [mostrarMaisEventos, setMostrarMaisEventos] = useState(false);
   const [eventosAdicionais, setEventosAdicionais] = useState<any[]>([]);
+  const [eventoLocalSugestoes, setEventoLocalSugestoes] = useState<{ index: number; sugestoes: any[] }>({ index: -1, sugestoes: [] });
+  const [eventoLocalBuscando, setEventoLocalBuscando] = useState(-1);
+  const eventoLocalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Buscar abrigos dos acolhidos
   useMemo(() => {
@@ -472,111 +475,66 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
         </div>
         <div>
           <label className="block text-sm font-medium">Participantes *</label>
-          <input
-            type="text"
-            value={participanteInput}
-            onChange={handleParticipanteInput}
-            onFocus={handleParticipanteFocus}
-            onBlur={handleParticipanteBlur}
-            placeholder="Clique para ver participantes ou digite para filtrar"
-            className="border rounded px-2 py-1 w-full mb-1"
-            ref={participanteInputRef}
-            autoComplete="off"
-          />
-          {participanteSugestoes.length > 0 && (
-            <div ref={participanteAutocompleteRef} className="relative min-w-[600px]">
-              <div className="border rounded-t bg-gray-100 px-2 py-1 font-semibold flex gap-1 text-xs w-full min-w-[600px]">
-                <span className="w-44 text-center shrink-0">NOME</span>
-                <span className="w-24 text-center shrink-0">CARGO</span>
-                <span className="w-56 text-center shrink-0">E-MAIL</span>
-                <span className="w-16 text-center shrink-0">&nbsp;</span>
-              </div>
-              <ul className="border rounded-b bg-white shadow max-h-32 overflow-y-auto absolute z-10 w-full min-w-[600px]">
-                {participanteSugestoes.map(u => (
-                  <li key={u.id} className="px-2 py-1 hover:bg-blue-100 cursor-pointer flex gap-1 items-center">
-                    <span className="w-44 font-semibold text-left shrink-0">{getUserNome(u)}</span>
-                    <span className="w-24 text-xs text-gray-500 text-center shrink-0">{u.cargo ? u.cargo : '-'}</span>
-                    <span className="w-56 text-xs text-gray-500 text-center shrink-0">{u.email}</span>
-                    <span className="w-16 text-center shrink-0">
-                      <button type="button" className="ml-1 text-blue-600 hover:underline text-xs" onClick={() => handleAddParticipante(u)}>Adicionar</button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="flex flex-wrap gap-2 mt-2">
+          <div className="flex flex-wrap gap-1 mb-1">
             {form.participantes.map((id: string) => {
-              const user = usuarios.find(u => u.id === id);
-              if (!user) return null;
+              const u = usuarios.find(u => u.id === id);
+              if (!u) return null;
               return (
-                <span key={id} className="bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1">
-                  {getUserNome(user)}
-                  <button type="button" className="ml-1 text-red-500 hover:text-red-700" onClick={() => handleRemoveParticipante(id)}>×</button>
+                <span key={id} className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs flex items-center gap-1">
+                  {getUserNome(u)}
+                  <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleRemoveParticipante(id)}>×</button>
                 </span>
               );
             })}
           </div>
+          <select
+            value=""
+            onChange={(e) => {
+              if (e.target.value) {
+                handleAddParticipante(usuarios.find(u => u.id === e.target.value));
+              }
+            }}
+            className="border rounded px-2 py-1 w-full text-sm"
+          >
+            <option value="">Adicionar participante...</option>
+            {usuarios
+              .filter(u => !form.participantes.includes(u.id))
+              .map(u => (
+                <option key={u.id} value={u.id}>{getUserNome(u)}</option>
+              ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium">Acolhidos *</label>
-          <input
-            type="text"
-            value={acolhidoInput}
-            onChange={handleAcolhidoInput}
-            onFocus={handleAcolhidoFocus}
-            onBlur={handleAcolhidoBlur}
-            placeholder="Clique para ver acolhidos ou digite para filtrar"
-            className="border rounded px-2 py-1 w-full mb-1"
-            ref={acolhidoInputRef}
-            autoComplete="off"
-          />
-          {acolhidoSugestoes.length > 0 && (
-            <div ref={autocompleteRef} className="relative min-w-[470px]">
-              <div className="border rounded-t bg-gray-100 px-2 py-1 font-semibold flex gap-1 text-xs w-full">
-                <span className="w-44 text-center shrink-0">NOME</span>
-                <span className="w-10 text-center shrink-0">IDADE</span>
-                <span className="w-16 text-center shrink-0">ABRIGO</span>
-                <span className="w-16 text-center shrink-0">CIDADE</span>
-                <span className="w-14 text-center shrink-0">&nbsp;</span>
-              </div>
-              <ul className="border rounded-b bg-white shadow max-h-32 overflow-y-auto absolute z-10 w-full">
-                {acolhidoSugestoes.map(a => (
-                  <li key={a.id} className="px-2 py-1 hover:bg-blue-100 cursor-pointer flex gap-1 items-center">
-                    <span className="w-44 font-semibold text-left shrink-0">{a.nome}</span>
-                    <span className="w-10 text-xs text-gray-500 text-center shrink-0">{calcularIdade(a.data_nascimento)}</span>
-                    <span className="w-16 text-xs text-gray-500 text-center shrink-0">{abrigos[a.empresa_id]?.nome || '-'}</span>
-                    <span className="w-16 text-xs text-gray-500 text-center shrink-0">{abrigos[a.empresa_id]?.cidade || '-'}</span>
-                    <span className="w-14 text-center shrink-0">
-                      <button
-                        type="button"
-                        className="ml-1 text-blue-600 hover:underline text-xs"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleAddAcolhido(a);
-                        }}
-                      >
-                        Adicionar
-                      </button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="flex flex-wrap gap-2 mt-2">
+          <div className="flex flex-wrap gap-1 mb-1">
             {form.acolhidos.map((id: string) => {
               const acolhido = (Array.isArray(acolhidos) ? acolhidos : []).find(a => a.id === id);
               if (!acolhido) return null;
               return (
-                <span key={id} className="bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1">
+                <span key={id} className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs flex items-center gap-1">
                   {acolhido.nome}
-                  <button type="button" className="ml-1 text-red-500 hover:text-red-700" onClick={() => handleRemoveAcolhido(id)}>×</button>
+                  <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleRemoveAcolhido(id)}>×</button>
                 </span>
               );
             })}
           </div>
+          <select
+            value=""
+            onChange={(e) => {
+              if (e.target.value) {
+                const acolhido = (Array.isArray(acolhidos) ? acolhidos : []).find(a => a.id === e.target.value);
+                if (acolhido) handleAddAcolhido(acolhido);
+              }
+            }}
+            className="border rounded px-2 py-1 w-full text-sm"
+          >
+            <option value="">Adicionar acolhido...</option>
+            {(Array.isArray(acolhidos) ? acolhidos : [])
+              .filter(a => !form.acolhidos.includes(a.id))
+              .map(a => (
+                <option key={a.id} value={a.id}>{a.nome}</option>
+              ))}
+          </select>
         </div>
         <div className="md:col-span-2 flex items-center gap-4">
           <input type="checkbox" name="recorrente" checked={form.recorrente} onChange={handleChange} />
@@ -657,20 +615,69 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ initialData, onSave, onC
                       />
                     </div>
                     
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 relative">
                       <label className="block text-xs font-medium mb-1">Local *</label>
                       <input
                         type="text"
                         value={evento.local || ''}
                         onChange={(e) => {
+                          const value = e.target.value;
                           const novosEventos = [...eventosAdicionais];
-                          novosEventos[index] = { ...novosEventos[index], local: e.target.value };
+                          novosEventos[index] = { ...novosEventos[index], local: value };
                           setEventosAdicionais(novosEventos);
+                          if (eventoLocalTimerRef.current) clearTimeout(eventoLocalTimerRef.current);
+                          if (value.length >= 3) {
+                            setEventoLocalBuscando(index);
+                            eventoLocalTimerRef.current = setTimeout(async () => {
+                              try {
+                                const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&countrycodes=br&limit=5&addressdetails=1`, { headers: { 'User-Agent': 'SAICA-Agendamento/1.0' } });
+                                const data = await resp.json();
+                                setEventoLocalSugestoes({ index, sugestoes: (data || []).map((item: any) => ({ display_name: item.display_name, address: item.address })) });
+                              } catch { setEventoLocalSugestoes({ index: -1, sugestoes: [] }); }
+                              setEventoLocalBuscando(-1);
+                            }, 500);
+                          } else {
+                            setEventoLocalSugestoes({ index: -1, sugestoes: [] });
+                          }
                         }}
+                        onFocus={() => {
+                          if ((evento.local || '').length >= 3) {
+                            setEventoLocalBuscando(index);
+                            if (eventoLocalTimerRef.current) clearTimeout(eventoLocalTimerRef.current);
+                            eventoLocalTimerRef.current = setTimeout(async () => {
+                              try {
+                                const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(evento.local)}&countrycodes=br&limit=5&addressdetails=1`, { headers: { 'User-Agent': 'SAICA-Agendamento/1.0' } });
+                                const data = await resp.json();
+                                setEventoLocalSugestoes({ index, sugestoes: (data || []).map((item: any) => ({ display_name: item.display_name, address: item.address })) });
+                              } catch { setEventoLocalSugestoes({ index: -1, sugestoes: [] }); }
+                              setEventoLocalBuscando(-1);
+                            }, 300);
+                          }
+                        }}
+                        onBlur={() => setTimeout(() => setEventoLocalSugestoes({ index: -1, sugestoes: [] }), 200)}
                         className="border rounded px-2 py-1 w-full text-sm"
                         placeholder="Digite o endereço ou local"
+                        autoComplete="off"
                         required
                       />
+                      {eventoLocalBuscando === index && (
+                        <div className="absolute right-2 top-7 text-xs text-gray-500">Buscando...</div>
+                      )}
+                      {eventoLocalSugestoes.index === index && eventoLocalSugestoes.sugestoes.length > 0 && (
+                        <ul className="absolute z-20 w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto">
+                          {eventoLocalSugestoes.sugestoes.map((end: any, i: number) => (
+                            <li key={i} className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-xs" onMouseDown={(ev) => {
+                              ev.preventDefault();
+                              const novosEventos = [...eventosAdicionais];
+                              novosEventos[index] = { ...novosEventos[index], local: end.display_name };
+                              setEventosAdicionais(novosEventos);
+                              setEventoLocalSugestoes({ index: -1, sugestoes: [] });
+                            }}>
+                              {end.display_name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                     
                     <div>
