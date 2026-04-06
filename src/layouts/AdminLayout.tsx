@@ -11,41 +11,34 @@ import {
   FileBox,
   Baby,
   Calendar,
-  DollarSign
+  DollarSign,
+  Lock
 } from 'lucide-react';
 import logoSaica from '@/assets/images/logo-saica.png';
-import { useEffect, useState } from 'react';
-import { authService } from '@/services/auth';
 import { NotificationBell } from '@/components/NotificationBell';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function AdminLayout() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
-  const [userRole, setUserRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchUserRole() {
-      const currentUser = await authService.getCurrentUser();
-      setUserRole(currentUser?.role || null);
-    }
-    if (user) {
-      fetchUserRole();
-    }
-  }, [user]);
-
-  const isMaster = userRole === 'master';
+  const { canRead, isMaster } = usePermissions();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', route: '/admin/dashboard' },
-    { icon: Home, label: 'Empresas', route: '/admin/empresas', masterOnly: true },
-    { icon: Users, label: 'Usuários', route: '/admin/usuarios' },
-    { icon: Baby, label: 'Acolhidos', route: '/admin/criancas' },
-    { icon: Calendar, label: 'Agenda', route: '/admin/agenda' },
-    { icon: DollarSign, label: 'Financeiro', route: '/admin/financeiro' },
-    { icon: FileBox, label: 'Documentos', route: '/admin/documentos' },
-    { icon: Activity, label: 'Atividades', route: '/admin/atividades' },
-    { icon: Settings, label: 'Configurações', route: '/admin/configuracoes' }
+    { icon: LayoutDashboard, label: 'Dashboard', route: '/admin/dashboard', module: 'dashboard' },
+    { icon: Home, label: 'Empresas', route: '/admin/empresas', module: 'empresas', masterOnly: true },
+    { icon: Users, label: 'Usuários', route: '/admin/usuarios', module: 'usuarios' },
+    { icon: Baby, label: 'Acolhidos', route: '/admin/criancas', module: 'acolhidos' },
+    { icon: Calendar, label: 'Agenda', route: '/admin/agenda', module: 'agenda' },
+    { icon: DollarSign, label: 'Financeiro', route: '/admin/financeiro', module: 'financeiro' },
+    { icon: FileBox, label: 'Documentos', route: '/admin/documentos', module: 'documentos' },
+    { icon: Activity, label: 'Atividades', route: '/admin/atividades', module: 'atividades' },
+    { icon: Settings, label: 'Configurações', route: '/admin/configuracoes', module: 'configuracoes' }
   ];
+
+  const visibleItems = menuItems.filter(item => {
+    if (item.masterOnly) return isMaster;
+    return canRead(item.module);
+  });
 
   const handleLogout = async () => {
     await logout();
@@ -54,7 +47,6 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar */}
       <div className="w-64 bg-[#1E293B] text-white flex flex-col h-screen">
         <div className="p-4 flex flex-col items-center">
           <Link to="/admin/dashboard" className="flex items-center">
@@ -64,27 +56,26 @@ export default function AdminLayout() {
             <p className="text-sm opacity-70">Logado como</p>
             <p className="font-medium truncate">{user?.nome}</p>
             <p className="text-xs opacity-70">{user?.email}</p>
+            {user?.role && (
+              <p className="text-[10px] mt-1 opacity-50 uppercase flex items-center justify-center gap-1">
+                <Lock className="h-3 w-3" />
+                {user.role}
+              </p>
+            )}
           </div>
         </div>
         
         <nav className="space-y-1 px-2">
-          {menuItems
-            .filter(item => {
-              if (item.masterOnly) {
-                return isMaster;
-              }
-              return true;
-            })
-            .map((item, index) => (
-              <Link
-                key={index}
-                to={item.route}
-                className="flex items-center space-x-2 px-4 py-2 text-sm rounded-lg hover:bg-[#2D3B4E] transition-colors"
-              >
-                <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
+          {visibleItems.map((item, index) => (
+            <Link
+              key={index}
+              to={item.route}
+              className="flex items-center space-x-2 px-4 py-2 text-sm rounded-lg hover:bg-[#2D3B4E] transition-colors"
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
         </nav>
 
         <div className="mt-auto w-64 p-2">
@@ -99,7 +90,6 @@ export default function AdminLayout() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 bg-gray-50">
         <div className="h-16 bg-white border-b flex items-center justify-between px-6">
           <h1 className="text-xl font-semibold text-gray-800">

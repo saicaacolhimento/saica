@@ -29,6 +29,7 @@ import type { UserRole, PermissionType } from '@/types/permissions'
 
 const USER_ROLES: UserRole[] = ['master', 'admin', 'padrao', 'orgao']
 const PERMISSION_TYPES: PermissionType[] = ['read', 'write', 'delete', 'admin']
+const MODULES = ['dashboard', 'empresas', 'usuarios', 'acolhidos', 'agenda', 'financeiro', 'documentos', 'atividades', 'configuracoes', 'relatorios', 'mensagens']
 
 export function PermissionList() {
   const { toast } = useToast()
@@ -102,8 +103,7 @@ export function PermissionList() {
           <TableHeader>
             <TableRow>
               <TableHead>Role</TableHead>
-              <TableHead>Tabela</TableHead>
-              <TableHead>Campo</TableHead>
+              <TableHead>Módulo</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -112,8 +112,7 @@ export function PermissionList() {
             {filteredPermissions.map((permission) => (
               <TableRow key={permission.id}>
                 <TableCell>{permission.role}</TableCell>
-                <TableCell>{permission.table}</TableCell>
-                <TableCell>{permission.field}</TableCell>
+                <TableCell>{permission.table || (permission as any).table_name}</TableCell>
                 <TableCell>{permission.permission_type}</TableCell>
                 <TableCell className="text-right">
                   <Button
@@ -155,20 +154,22 @@ export function PermissionList() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Tabela</Label>
-              <Input
+              <Label>Módulo</Label>
+              <Select
                 value={newPermission.table}
-                onChange={(e) => setNewPermission({ ...newPermission, table: e.target.value })}
-                placeholder="Ex: acolhidos"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Campo</Label>
-              <Input
-                value={newPermission.field}
-                onChange={(e) => setNewPermission({ ...newPermission, field: e.target.value })}
-                placeholder="Ex: nome"
-              />
+                onValueChange={(value) => setNewPermission({ ...newPermission, table: value, field: '*' })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o módulo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MODULES.map((mod) => (
+                    <SelectItem key={mod} value={mod}>
+                      {mod}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Tipo de Permissão</Label>

@@ -27,9 +27,10 @@ export const permissionService = {
   },
 
   async createPermission(data: CreatePermissionData): Promise<Permission> {
+    const row = { ...data, table_name: data.table, field: data.field || '*' };
     const { data: permission, error } = await supabase
       .from('permissions')
-      .insert([data])
+      .insert([row])
       .select()
       .single()
 

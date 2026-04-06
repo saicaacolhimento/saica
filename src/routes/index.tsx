@@ -1,11 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Layouts
 import AuthLayout from '@/layouts/AuthLayout';
 import AdminLayout from '@/layouts/AdminLayout';
 
-// Páginas
 import { Login } from '@/features/auth/pages/Login';
 import Dashboard from '@/pages/admin/Dashboard';
 import ShelterList from '@/features/shelters/pages/ShelterList';
@@ -13,6 +11,7 @@ import ShelterDetails from '@/features/shelters/pages/ShelterDetails';
 import EditShelter from '@/features/shelters/pages/EditShelter';
 import { AcolhidoList } from '@/features/acolhidos/pages/AcolhidoList';
 import PrivateRoute from '@/components/PrivateRoute';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import UsuariosAdminList from '@/pages/admin/Usuarios';
 import AcolhidoCadastroEdicao from '../pages/admin/AcolhidoCadastroEdicao';
 import AgendamentoList from '@/features/agendamentos/pages/AgendamentoList';
@@ -34,42 +33,39 @@ export default function AppRoutes() {
           <Route path="/login" element={<AuthLayout />} />
           <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            {/* Rotas de Empresas */}
+            <Route path="dashboard" element={<ProtectedRoute module="dashboard"><Dashboard /></ProtectedRoute>} />
             <Route path="empresas">
-              <Route index element={<ShelterList />} />
-              <Route path=":id" element={<ShelterDetails />} />
-              <Route path=":id/editar" element={<EditShelter />} />
+              <Route index element={<ProtectedRoute module="empresas"><ShelterList /></ProtectedRoute>} />
+              <Route path=":id" element={<ProtectedRoute module="empresas"><ShelterDetails /></ProtectedRoute>} />
+              <Route path=":id/editar" element={<ProtectedRoute module="empresas" type="write"><EditShelter /></ProtectedRoute>} />
             </Route>
-            {/* Rotas de Crianças/Acolhidos */}
             <Route path="criancas">
-              <Route index element={<AcolhidoList />} />
-              <Route path="novo" element={<AcolhidoCadastroEdicao />} />
-              <Route path=":id" element={<AcolhidoCadastroEdicao />} />
-              <Route path=":id/visualizar" element={<AcolhidoDetails />} />
+              <Route index element={<ProtectedRoute module="acolhidos"><AcolhidoList /></ProtectedRoute>} />
+              <Route path="novo" element={<ProtectedRoute module="acolhidos" type="write"><AcolhidoCadastroEdicao /></ProtectedRoute>} />
+              <Route path=":id" element={<ProtectedRoute module="acolhidos" type="write"><AcolhidoCadastroEdicao /></ProtectedRoute>} />
+              <Route path=":id/visualizar" element={<ProtectedRoute module="acolhidos"><AcolhidoDetails /></ProtectedRoute>} />
             </Route>
-            <Route path="usuarios" element={<UsuariosAdminList />} />
-            <Route path="agenda" element={<AgendamentoList />} />
-            <Route path="relatorios" element={<div>Relatórios</div>} />
-            <Route path="documentos" element={<div>Documentos</div>} />
-            <Route path="atividades" element={<div>Atividades</div>} />
+            <Route path="usuarios" element={<ProtectedRoute module="usuarios"><UsuariosAdminList /></ProtectedRoute>} />
+            <Route path="agenda" element={<ProtectedRoute module="agenda"><AgendamentoList /></ProtectedRoute>} />
+            <Route path="relatorios" element={<ProtectedRoute module="relatorios"><div>Relatórios</div></ProtectedRoute>} />
+            <Route path="documentos" element={<ProtectedRoute module="documentos"><div>Documentos</div></ProtectedRoute>} />
+            <Route path="atividades" element={<ProtectedRoute module="atividades"><div>Atividades</div></ProtectedRoute>} />
             <Route path="configuracoes">
-              <Route index element={<ConfiguracaoList />} />
-              <Route path="nova" element={<ConfiguracaoCreate />} />
-              <Route path=":id/editar" element={<ConfiguracaoEdit />} />
+              <Route index element={<ProtectedRoute module="configuracoes"><ConfiguracaoList /></ProtectedRoute>} />
+              <Route path="nova" element={<ProtectedRoute module="configuracoes" type="write"><ConfiguracaoCreate /></ProtectedRoute>} />
+              <Route path=":id/editar" element={<ProtectedRoute module="configuracoes" type="write"><ConfiguracaoEdit /></ProtectedRoute>} />
             </Route>
             <Route path="financeiro">
-              <Route index element={<Financeiro />} />
-              <Route path="doacoes" element={<div>Doações</div>} />
-              <Route path="despesas" element={<div>Despesas</div>} />
-              <Route path="estoque" element={<div>Estoque</div>} />
-              <Route path="relatorios" element={<div>Relatórios Financeiros</div>} />
+              <Route index element={<ProtectedRoute module="financeiro"><Financeiro /></ProtectedRoute>} />
+              <Route path="doacoes" element={<ProtectedRoute module="financeiro"><div>Doações</div></ProtectedRoute>} />
+              <Route path="despesas" element={<ProtectedRoute module="financeiro"><div>Despesas</div></ProtectedRoute>} />
+              <Route path="estoque" element={<ProtectedRoute module="financeiro"><div>Estoque</div></ProtectedRoute>} />
+              <Route path="relatorios" element={<ProtectedRoute module="financeiro"><div>Relatórios Financeiros</div></ProtectedRoute>} />
             </Route>
           </Route>
-          {/* Fallback para rotas não encontradas */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
   );
-} 
+}
