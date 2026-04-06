@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { acolhidoService } from '@/services/acolhido'
+import { usePermissions } from '@/hooks/usePermissions'
 
 export function AcolhidoDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
   const { toast } = useToast()
+  const { canSeeField } = usePermissions()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [fotosSalvas, setFotosSalvas] = useState([])
@@ -68,6 +70,18 @@ export function AcolhidoDetails() {
     return <div>Acolhido não encontrado</div>
   }
 
+  const sf = (field: string) => canSeeField('acolhidos', field)
+
+  const Field = ({ label, value, field }: { label: string; value: any; field: string }) => {
+    if (!sf(field)) return null
+    return (
+      <div className="space-y-2">
+        <Label className="text-base font-bold">{label}</Label>
+        <div className="text-lg font-medium text-left">{value || '—'}</div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -82,7 +96,7 @@ export function AcolhidoDetails() {
         </div>
       </div>
 
-      {fotosSalvas.length > 0 && (
+      {sf('foto_url') && fotosSalvas.length > 0 && (
         <div className="flex flex-wrap gap-4 mb-4 justify-center items-center">
           {fotosSalvas.map((foto, idx) => (
             <img
@@ -97,66 +111,21 @@ export function AcolhidoDetails() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 print:gap-8 gap-4 w-full max-w-3xl mx-auto justify-center">
         <div className="space-y-4 flex flex-col items-start text-left ml-20">
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Nome</Label>
-            <div className="text-lg font-medium text-left">{acolhido.nome}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Data de Nascimento</Label>
-            <div className="text-lg font-medium text-left">{new Date(acolhido.data_nascimento).toLocaleDateString()}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Gênero</Label>
-            <div className="text-lg font-medium text-left">{acolhido.genero}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Tipo Sanguíneo</Label>
-            <div className="text-lg font-medium text-left">{acolhido.tipo_sanguineo}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Nome da Mãe</Label>
-            <div className="text-lg font-medium text-left">{acolhido.nome_mae}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Nome do Pai</Label>
-            <div className="text-lg font-medium text-left">{acolhido.nome_pai}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Nome do Responsável</Label>
-            <div className="text-lg font-medium text-left">{acolhido.nome_responsavel}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Parentesco do Responsável</Label>
-            <div className="text-lg font-medium text-left">{acolhido.parentesco_responsavel}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">CPF do Responsável</Label>
-            <div className="text-lg font-medium text-left">{acolhido.cpf_responsavel}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Telefone do Responsável</Label>
-            <div className="text-lg font-medium text-left">{acolhido.telefone_responsavel}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Endereço do Responsável</Label>
-            <div className="text-lg font-medium text-left">{acolhido.endereco_responsavel}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Endereço</Label>
-            <div className="text-lg font-medium text-left">{acolhido.endereco}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Telefone</Label>
-            <div className="text-lg font-medium text-left">{acolhido.telefone}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">CPF</Label>
-            <div className="text-lg font-medium text-left">{acolhido.cpf}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">RG</Label>
-            <div className="text-lg font-medium text-left">{acolhido.rg}</div>
-          </div>
+          <Field label="Nome" value={acolhido.nome} field="nome" />
+          <Field label="Data de Nascimento" value={acolhido.data_nascimento && new Date(acolhido.data_nascimento).toLocaleDateString()} field="data_nascimento" />
+          <Field label="Gênero" value={acolhido.genero} field="genero" />
+          <Field label="Tipo Sanguíneo" value={acolhido.tipo_sanguineo} field="tipo_sanguineo" />
+          <Field label="Nome da Mãe" value={acolhido.nome_mae} field="nome_mae" />
+          <Field label="Nome do Pai" value={acolhido.nome_pai} field="nome_mae" />
+          <Field label="Nome do Responsável" value={acolhido.nome_responsavel} field="nome_responsavel" />
+          <Field label="Parentesco do Responsável" value={acolhido.parentesco_responsavel} field="parentesco_responsavel" />
+          <Field label="CPF do Responsável" value={acolhido.cpf_responsavel} field="cpf_responsavel" />
+          <Field label="Telefone do Responsável" value={acolhido.telefone_responsavel} field="telefone_responsavel" />
+          <Field label="Endereço do Responsável" value={acolhido.endereco_responsavel} field="endereco_responsavel" />
+          <Field label="Endereço" value={acolhido.endereco} field="endereco" />
+          <Field label="Telefone" value={acolhido.telefone} field="telefone" />
+          <Field label="CPF" value={acolhido.cpf} field="cpf" />
+          <Field label="RG" value={acolhido.rg} field="rg" />
           <div className="space-y-2">
             <Label className="text-base font-bold">Status</Label>
             <div>
@@ -170,72 +139,23 @@ export function AcolhidoDetails() {
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Alergias</Label>
-            <div className="text-lg font-medium text-left">{acolhido.alergias}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Medicamentos</Label>
-            <div className="text-lg font-medium text-left">{acolhido.medicamentos}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Deficiências</Label>
-            <div className="text-lg font-medium text-left">{acolhido.deficiencias}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Diagnóstico Médico</Label>
-            <div className="text-lg font-medium text-left">{acolhido.diagnostico_medico}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Uso de Medicação</Label>
-            <div className="text-lg font-medium text-left">{acolhido.uso_medicacao}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Uso de Drogas</Label>
-            <div className="text-lg font-medium text-left">{acolhido.uso_drogas}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Escola</Label>
-            <div className="text-lg font-medium text-left">{acolhido.escola}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Série</Label>
-            <div className="text-lg font-medium text-left">{acolhido.serie}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Turno</Label>
-            <div className="text-lg font-medium text-left">{acolhido.turno}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Observações Educacionais</Label>
-            <div className="text-lg font-medium text-left">{acolhido.observacoes_educacionais}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Escola Atual</Label>
-            <div className="text-lg font-medium text-left">{acolhido.escola_atual}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Telefone da Escola</Label>
-            <div className="text-lg font-medium text-left">{acolhido.telefone_escola}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Data de Entrada</Label>
-            <div className="text-lg font-medium text-left">{acolhido.data_entrada && new Date(acolhido.data_entrada).toLocaleDateString()}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Motivo do Acolhimento</Label>
-            <div className="text-lg font-medium text-left">{acolhido.motivo_acolhimento}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Motivo de Inativação</Label>
-            <div className="text-lg font-medium text-left">{acolhido.motivo_inativacao}</div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base font-bold">Observações</Label>
-            <div className="text-lg font-medium text-left">{acolhido.observacoes_educacionais}</div>
-          </div>
+          <Field label="Alergias" value={acolhido.alergias} field="alergias" />
+          <Field label="Medicamentos" value={acolhido.medicamentos} field="medicamentos" />
+          <Field label="Deficiências" value={acolhido.deficiencias} field="deficiencias" />
+          <Field label="Diagnóstico Médico" value={acolhido.diagnostico_medico} field="deficiencias" />
+          <Field label="Uso de Medicação" value={acolhido.uso_medicacao} field="medicamentos" />
+          <Field label="Uso de Drogas" value={acolhido.uso_drogas} field="alergias" />
+          <Field label="Escola" value={acolhido.escola} field="escola" />
+          <Field label="Série" value={acolhido.serie} field="serie" />
+          <Field label="Turno" value={acolhido.turno} field="turno" />
+          <Field label="Observações Educacionais" value={acolhido.observacoes_educacionais} field="observacoes_educacionais" />
+          <Field label="Escola Atual" value={acolhido.escola_atual} field="escola" />
+          <Field label="Telefone da Escola" value={acolhido.telefone_escola} field="escola" />
+          <Field label="Data de Entrada" value={acolhido.data_entrada && new Date(acolhido.data_entrada).toLocaleDateString()} field="data_entrada" />
+          <Field label="Motivo do Acolhimento" value={acolhido.motivo_acolhimento} field="motivo_acolhimento" />
+          <Field label="Motivo de Inativação" value={acolhido.motivo_inativacao} field="motivo_acolhimento" />
         </div>
       </div>
     </div>
   )
-} 
+}

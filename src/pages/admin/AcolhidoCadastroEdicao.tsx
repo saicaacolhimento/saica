@@ -11,6 +11,7 @@ import { documentoService } from '@/services/documento';
 import { AcolhimentoSection } from '@/components/AcolhimentoSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService } from '@/services/auth';
+import { usePermissions } from '@/hooks/usePermissions';
 
 // Exemplo de dados iniciais (edição)
 const dadosIniciais = {
@@ -124,9 +125,10 @@ const turnoOptions = [
 ];
 
 export default function AcolhidoCadastroEdicao() {
-  const { id } = useParams(); // se existir, é edição
+  const { id } = useParams();
   const navigate = useNavigate();
   const { user: sessionUser } = useAuth();
+  const { canSeeField } = usePermissions();
   const [isMaster, setIsMaster] = useState(false);
   const [tab, setTab] = useState('dados');
   const [form, setForm] = useState(dadosIniciais);
@@ -183,8 +185,10 @@ export default function AcolhidoCadastroEdicao() {
     fetchData();
   }, [id]);
 
-  // Função para renderizar campo com edição inline
+  const sf = (field: string) => canSeeField('acolhidos', field);
+
   const renderEditableField = (label: string, name: string, type = 'text', required = false) => {
+    if (!sf(name)) return null;
     if (name === 'genero') {
       required = true;
       return (

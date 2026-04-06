@@ -16,6 +16,7 @@ import { Pencil, Trash2, Loader2, Eye } from 'lucide-react'
 import { acolhidoService } from '@/services/acolhido'
 import { Acolhido } from '@/types/acolhido'
 import { shelterService } from '@/services/shelter'
+import { usePermissions } from '@/hooks/usePermissions'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +43,7 @@ export function AcolhidoList() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { canSeeField } = usePermissions()
   const [searchTerm, setSearchTerm] = useState('')
   const [fotosMap, setFotosMap] = useState<{ [acolhidoId: string]: string | null }>({});
   const [loadingFotos, setLoadingFotos] = useState(false);
@@ -181,10 +183,10 @@ export function AcolhidoList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-center">Foto</TableHead>
-                <TableHead className="text-center">Nome</TableHead>
-                <TableHead className="text-center">Data de Nascimento</TableHead>
-                <TableHead className="text-center">Idade</TableHead>
+                {canSeeField('acolhidos', 'foto_url') && <TableHead className="text-center">Foto</TableHead>}
+                {canSeeField('acolhidos', 'nome') && <TableHead className="text-center">Nome</TableHead>}
+                {canSeeField('acolhidos', 'data_nascimento') && <TableHead className="text-center">Data de Nascimento</TableHead>}
+                {canSeeField('acolhidos', 'data_nascimento') && <TableHead className="text-center">Idade</TableHead>}
                 <TableHead className="text-center">Abrigo</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -193,35 +195,43 @@ export function AcolhidoList() {
             <TableBody>
               {loadingFotos ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                     Carregando fotos...
                   </TableCell>
                 </TableRow>
               ) : filteredAcolhidos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                     Nenhum acolhido encontrado com os critérios de busca.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredAcolhidos.map((acolhido) => (
                   <TableRow key={acolhido.id}>
-                    <TableCell className="text-center">
-                      {fotosMap[acolhido.id] ? (
-                        <img
-                          src={fotosMap[acolhido.id]!}
-                          alt={acolhido.nome}
-                          className="w-[80px] h-[80px] object-cover border"
-                        />
-                      ) : (
-                        <div className="w-[80px] h-[80px] bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                          {acolhido.nome.charAt(0)}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center font-medium">{acolhido.nome}</TableCell>
-                    <TableCell className="text-center">{new Date(acolhido.data_nascimento).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-center">{calcularIdade(acolhido.data_nascimento)}</TableCell>
+                    {canSeeField('acolhidos', 'foto_url') && (
+                      <TableCell className="text-center">
+                        {fotosMap[acolhido.id] ? (
+                          <img
+                            src={fotosMap[acolhido.id]!}
+                            alt={acolhido.nome}
+                            className="w-[80px] h-[80px] object-cover border"
+                          />
+                        ) : (
+                          <div className="w-[80px] h-[80px] bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                            {acolhido.nome.charAt(0)}
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
+                    {canSeeField('acolhidos', 'nome') && (
+                      <TableCell className="text-center font-medium">{acolhido.nome}</TableCell>
+                    )}
+                    {canSeeField('acolhidos', 'data_nascimento') && (
+                      <TableCell className="text-center">{new Date(acolhido.data_nascimento).toLocaleDateString()}</TableCell>
+                    )}
+                    {canSeeField('acolhidos', 'data_nascimento') && (
+                      <TableCell className="text-center">{calcularIdade(acolhido.data_nascimento)}</TableCell>
+                    )}
                     <TableCell className="text-center">{abrigosMap[acolhido.empresa_id] || '-'}</TableCell>
                     <TableCell className="text-center">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
