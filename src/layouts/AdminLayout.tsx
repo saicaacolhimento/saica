@@ -16,6 +16,7 @@ import {
 import logoSaica from '@/assets/images/logo-saica.png';
 import { useEffect, useState } from 'react';
 import { authService } from '@/services/auth';
+import { NotificationBell } from '@/components/NotificationBell';
 
 export default function AdminLayout() {
   const { logout, user } = useAuth();
@@ -104,6 +105,7 @@ export default function AdminLayout() {
           <h1 className="text-xl font-semibold text-gray-800">
             Sistema de Acompanhamento Integrado de Crianças e Adolescentes
           </h1>
+          <NotificationBell />
         </div>
         
         <main className="p-6">

@@ -84,6 +84,30 @@ export const agendamentoService = {
       .single();
 
     if (error) throw error;
+
+    // Notificar cada participante (exceto o criador)
+    const participantes: string[] = row.participantes || [];
+    const criadorId = row.criador_id;
+    const destinatarios = participantes.filter(uid => uid !== criadorId);
+
+    if (destinatarios.length > 0) {
+      const dataFormatada = row.data_hora
+        ? new Date(row.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        : '';
+
+      const notificacoes = destinatarios.map(uid => ({
+        titulo: `Novo agendamento: ${row.titulo || 'Sem título'}`,
+        mensagem: `Você foi incluído no agendamento "${row.titulo}"${dataFormatada ? ` em ${dataFormatada}` : ''}${row.local ? ` - ${row.local}` : ''}.`,
+        tipo: 'agendamento',
+        destinatario_id: uid,
+        remetente_id: criadorId || null,
+        lida: false,
+        agendamento_id: agendamento.id,
+      }));
+
+      await supabase.from('notificacoes').insert(notificacoes);
+    }
+
     return agendamento;
   },
 
