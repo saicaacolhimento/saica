@@ -104,14 +104,6 @@ export const authService = {
   },
 
   async getUsersByEmpresa(empresa_id: string): Promise<{ data: User[]; error: unknown }> {
-    const { data: rpcData, error: rpcError } = await supabase.rpc('get_users_by_empresa_rpc', {
-      empresa_id_param: empresa_id,
-    });
-
-    if (!rpcError && rpcData) {
-      return { data: (rpcData as User[]) || [], error: null };
-    }
-
     const { data, error } = await supabase
       .from('usuarios')
       .select('id, nome, email, telefone, cargo, role, status, empresa_id, created_at, updated_at')
