@@ -74,7 +74,7 @@ export default function Dashboard() {
     },
     {
       title: 'Mensagens',
-      description: 'Converse com os membros da sua equipe',
+      description: 'Envie e receba mensagens',
       route: '/admin/mensagens',
       icon: MessageSquare,
       bgColor: 'bg-cyan-100',
