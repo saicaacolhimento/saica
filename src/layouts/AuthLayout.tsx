@@ -62,7 +62,7 @@ export default function AuthLayout() {
           <h1 className="text-lg md:text-[2.5em] font-semibold">
             Sistema de Acompanhamento Integrado de Crianças e Adolescentes
           </h1>
-          <p className="text-sm md:text-[1.2em] mt-1 opacity-90">
+          <p className="text-sm md:text-[1.2em] mt-[12px] opacity-90">
             Uma plataforma para auxiliar na integração entre CRAS, CAPS, CREAS,
             Conselho Tutelar e Abrigos de uma forma rápida e segura
           </p>
@@ -70,12 +70,12 @@ export default function AuthLayout() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-1/2 flex justify-center md:pl-20">
+        <div className="flex flex-col md:flex-row items-start gap-8">
+          <div className="w-full md:w-1/2 flex justify-center md:pl-20 md:sticky md:top-8">
             <img 
               src={diagramaSaica}
               alt="Diagrama de integração SAICA"
-              className="w-full max-w-[500px] h-auto"
+              className="w-full max-w-[500px] h-auto object-contain"
             />
           </div>
           <div className="w-full md:w-1/2 flex justify-center">
