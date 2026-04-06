@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { permissionService } from '@/services/permissions'
 import { usePermissions } from '@/hooks/usePermissions'
-import { UserRole, PermissionType } from '@/types/permissions'
+import type { UserRole, PermissionType } from '@/types/permissions'
 
 export function PermissionList() {
   const navigate = useNavigate()

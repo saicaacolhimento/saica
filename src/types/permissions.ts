@@ -1,4 +1,5 @@
-import { UserRole } from './auth'
+import type { UserRole } from './auth'
+export type { UserRole }
 
 export type PermissionType = 'read' | 'write' | 'delete' | 'admin'
 

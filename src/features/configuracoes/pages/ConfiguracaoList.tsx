@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import PermissoesEmpresa from '../../../../../src/pages/admin/PermissoesEmpresa'
+import { PermissionList } from '@/features/permissions/pages/PermissionList'
 
 export const ConfiguracaoList = () => {
   const navigate = useNavigate()
@@ -75,7 +75,7 @@ export const ConfiguracaoList = () => {
       </div>
       <div className="flex-1 space-y-4">
         {showPermissoes ? (
-          <PermissoesEmpresa />
+          <PermissionList />
         ) : (
           <div className="grid gap-4">
             {filteredConfiguracoes?.map((configuracao) => (
