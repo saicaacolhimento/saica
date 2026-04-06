@@ -319,32 +319,21 @@ export function PermissionList() {
                   </div>
 
                   {FIELD_GROUPS.map(group => (
-                    <div key={group} className="mb-5">
-                      <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2 pb-1 border-b border-indigo-100">
-                        {group}
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div key={group} className="mb-3">
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">{group}</p>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                         {ACOLHIDO_FIELDS.filter(f => f.group === group).map(f => {
                           const visible = getFieldState(f.key)
                           return (
-                            <label
-                              key={f.key}
-                              className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all ${visible ? 'bg-white border-gray-200 hover:border-indigo-300' : 'bg-red-50/50 border-red-200 hover:border-red-300'}`}
-                            >
+                            <label key={f.key} className="flex items-center gap-2 cursor-pointer py-0.5">
                               <Switch
                                 checked={visible}
                                 onCheckedChange={(v) => toggleFieldVisibility(f.key, v)}
+                                className="scale-75"
                               />
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                {visible ? (
-                                  <Eye className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                                ) : (
-                                  <EyeOff className="h-3.5 w-3.5 text-red-400 shrink-0" />
-                                )}
-                                <span className={`text-sm truncate ${visible ? 'text-gray-700' : 'text-red-500 line-through'}`}>
-                                  {f.label}
-                                </span>
-                              </div>
+                              <span className={`text-xs ${visible ? 'text-gray-700' : 'text-red-400 line-through'}`}>
+                                {f.label}
+                              </span>
                             </label>
                           )
                         })}
