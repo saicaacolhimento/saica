@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Search, Send, MessageSquare, Check, CheckCheck } from 'lucide-react'
+import { Search, Send, MessageSquare, Check, CheckCheck, UserPlus, ArrowLeft } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
@@ -14,6 +14,7 @@ export default function MensagensPage() {
   const [activeContact, setActiveContact] = useState<ContatoInfo | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [message, setMessage] = useState('')
+  const [showContacts, setShowContacts] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { toast } = useToast()
@@ -32,27 +33,21 @@ export default function MensagensPage() {
     return map
   }, [conversasList, contatosList, userId])
 
-  const filteredContatos = contatosList.filter(c =>
-    c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const conversasWithContact = conversasList
+  const conversasComMensagem = conversasList
+    .filter(c => c.ultima_mensagem)
     .map(c => ({ conversa: c, contato: conversaContactMap[c.id] }))
     .filter(item => {
-      if (!searchTerm) return true
+      if (!searchTerm || showContacts) return true
       const name = item.contato?.nome?.toLowerCase() || ''
       const email = item.contato?.email?.toLowerCase() || ''
       const term = searchTerm.toLowerCase()
       return name.includes(term) || email.includes(term)
     })
 
-  const contatosSemConversa = filteredContatos.filter(c => {
-    return !conversasList.some(conv => {
-      const otherId = conv.participante1_id === userId ? conv.participante2_id : conv.participante1_id
-      return otherId === c.id
-    })
-  })
+  const filteredContatos = contatosList.filter(c =>
+    c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -60,6 +55,8 @@ export default function MensagensPage() {
 
   const handleSelectContact = async (contato: ContatoInfo) => {
     setActiveContact(contato)
+    setShowContacts(false)
+    setSearchTerm('')
     const existing = conversasList.find(c => {
       const otherId = c.participante1_id === userId ? c.participante2_id : c.participante1_id
       return otherId === contato.id
@@ -104,17 +101,38 @@ export default function MensagensPage() {
 
   return (
     <div className="flex h-[calc(100vh-7rem)] rounded-xl overflow-hidden border shadow-lg bg-white">
-      {/* Painel esquerdo - Contatos/Conversas */}
+      {/* Painel esquerdo */}
       <div className="w-80 flex flex-col border-r bg-gray-50 shrink-0">
+        {/* Header */}
         <div className="p-3 border-b bg-white">
-          <h2 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-indigo-600" />
-            Mensagens
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            {showContacts ? (
+              <>
+                <button onClick={() => { setShowContacts(false); setSearchTerm('') }} className="flex items-center gap-2 text-gray-600 hover:text-gray-800">
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="text-sm font-semibold">Contatos da Empresa</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-indigo-600" />
+                  Mensagens
+                </h2>
+                <button
+                  onClick={() => { setShowContacts(true); setSearchTerm('') }}
+                  className="h-8 w-8 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                  title="Nova conversa"
+                >
+                  <UserPlus className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Buscar por nome ou email..."
+              placeholder={showContacts ? 'Buscar contato...' : 'Buscar conversa...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8 h-9 text-sm bg-gray-100 border-0"
@@ -123,46 +141,16 @@ export default function MensagensPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Conversas existentes */}
-          {conversasWithContact.map(({ conversa, contato }) => {
-            const isActive = activeConversaId === conversa.id
-            return (
-              <button
-                key={conversa.id}
-                onClick={() => handleSelectConversa(conversa)}
-                className={`w-full flex items-center gap-3 px-3 py-3 border-b border-gray-100 hover:bg-gray-100 transition-colors text-left ${isActive ? 'bg-indigo-50' : ''}`}
-              >
-                <div className="h-10 w-10 rounded-full bg-indigo-500 text-white flex items-center justify-center text-sm font-bold shrink-0 uppercase">
-                  {contato ? getInitials(contato.nome) : '?'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold truncate">{contato?.nome || 'Desconhecido'}</p>
-                    {conversa.data_ultima_mensagem && (
-                      <span className="text-[10px] text-gray-400 shrink-0 ml-2">
-                        {format(new Date(conversa.data_ultima_mensagem), 'HH:mm', { locale: ptBR })}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 truncate">{conversa.ultima_mensagem || 'Nenhuma mensagem'}</p>
-                </div>
-              </button>
-            )
-          })}
-
-          {/* Contatos sem conversa */}
-          {contatosSemConversa.length > 0 && (
-            <>
-              <div className="px-3 py-2 bg-gray-100 border-b">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Contatos da empresa</p>
-              </div>
-              {contatosSemConversa.map(c => (
+          {showContacts ? (
+            /* Lista de contatos da empresa */
+            filteredContatos.length > 0 ? (
+              filteredContatos.map(c => (
                 <button
                   key={c.id}
                   onClick={() => handleSelectContact(c)}
                   className="w-full flex items-center gap-3 px-3 py-3 border-b border-gray-100 hover:bg-gray-100 transition-colors text-left"
                 >
-                  <div className="h-10 w-10 rounded-full bg-gray-300 text-white flex items-center justify-center text-sm font-bold shrink-0 uppercase">
+                  <div className="h-10 w-10 rounded-full bg-indigo-400 text-white flex items-center justify-center text-sm font-bold shrink-0 uppercase">
                     {getInitials(c.nome)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -170,14 +158,52 @@ export default function MensagensPage() {
                     <p className="text-xs text-gray-400 truncate">{c.email}</p>
                   </div>
                 </button>
-              ))}
-            </>
-          )}
-
-          {contatosList.length === 0 && !contatos.isLoading && (
-            <div className="p-6 text-center text-sm text-gray-400">
-              Nenhum contato encontrado na sua empresa
-            </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-sm text-gray-400">
+                {contatos.isLoading ? 'Carregando...' : 'Nenhum contato encontrado'}
+              </div>
+            )
+          ) : (
+            /* Lista de conversas com mensagens */
+            conversasComMensagem.length > 0 ? (
+              conversasComMensagem.map(({ conversa, contato }) => {
+                const isActive = activeConversaId === conversa.id
+                return (
+                  <button
+                    key={conversa.id}
+                    onClick={() => handleSelectConversa(conversa)}
+                    className={`w-full flex items-center gap-3 px-3 py-3 border-b border-gray-100 hover:bg-gray-100 transition-colors text-left ${isActive ? 'bg-indigo-50' : ''}`}
+                  >
+                    <div className="h-10 w-10 rounded-full bg-indigo-500 text-white flex items-center justify-center text-sm font-bold shrink-0 uppercase">
+                      {contato ? getInitials(contato.nome) : '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold truncate">{contato?.nome || 'Desconhecido'}</p>
+                        {conversa.data_ultima_mensagem && (
+                          <span className="text-[10px] text-gray-400 shrink-0 ml-2">
+                            {format(new Date(conversa.data_ultima_mensagem), 'HH:mm', { locale: ptBR })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">{conversa.ultima_mensagem}</p>
+                    </div>
+                  </button>
+                )
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 p-6">
+                <MessageSquare className="h-10 w-10 mb-3 opacity-20" />
+                <p className="text-sm text-center">Nenhuma conversa ainda</p>
+                <button
+                  onClick={() => setShowContacts(true)}
+                  className="mt-3 text-sm text-indigo-600 hover:underline font-medium"
+                >
+                  Iniciar nova conversa
+                </button>
+              </div>
+            )
           )}
         </div>
       </div>
