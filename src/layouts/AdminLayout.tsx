@@ -12,7 +12,8 @@ import {
   Baby,
   Calendar,
   DollarSign,
-  Lock
+  Lock,
+  MessageSquare
 } from 'lucide-react';
 import logoSaica from '@/assets/images/logo-saica.png';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -32,6 +33,7 @@ export default function AdminLayout() {
     { icon: DollarSign, label: 'Financeiro', route: '/admin/financeiro', module: 'financeiro' },
     { icon: FileBox, label: 'Documentos', route: '/admin/documentos', module: 'documentos' },
     { icon: Activity, label: 'Atividades', route: '/admin/atividades', module: 'atividades' },
+    { icon: MessageSquare, label: 'Mensagens', route: '/admin/mensagens', module: 'mensagens' },
     { icon: Settings, label: 'Configurações', route: '/admin/configuracoes', module: 'configuracoes' }
   ];
 

@@ -20,6 +20,7 @@ import { ConfiguracaoList } from '@/features/configuracoes/pages/ConfiguracaoLis
 import { ConfiguracaoCreate } from '@/features/configuracoes/pages/ConfiguracaoCreate';
 import { ConfiguracaoEdit } from '@/features/configuracoes/pages/ConfiguracaoEdit';
 import Financeiro from '@/pages/admin/Financeiro';
+import MensagensPage from '@/features/mensagens/pages/MensagensPage';
 import Index from '@/pages/Index';
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ export default function AppRoutes() {
             <Route path="relatorios" element={<ProtectedRoute module="relatorios"><div>Relatórios</div></ProtectedRoute>} />
             <Route path="documentos" element={<ProtectedRoute module="documentos"><div>Documentos</div></ProtectedRoute>} />
             <Route path="atividades" element={<ProtectedRoute module="atividades"><div>Atividades</div></ProtectedRoute>} />
+            <Route path="mensagens" element={<ProtectedRoute module="mensagens"><MensagensPage /></ProtectedRoute>} />
             <Route path="configuracoes">
               <Route index element={<ProtectedRoute module="configuracoes"><ConfiguracaoList /></ProtectedRoute>} />
               <Route path="nova" element={<ProtectedRoute module="configuracoes" type="write"><ConfiguracaoCreate /></ProtectedRoute>} />

@@ -1,186 +1,95 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { mensagemService } from '@/services/mensagem'
-import { useToast } from '@/components/ui/use-toast'
-import { CreateMensagemData, UpdateMensagemData, CreateConversaData, UpdateConversaData } from '@/types/mensagem'
+import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/config/supabase'
 
-export const useMensagem = () => {
+export function useMensagem() {
   const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const { user } = useAuth()
+  const userId = user?.id || ''
+  const empresaId = (user as any)?.empresa_id || ''
 
-  // Queries
-  const getMensagens = (conversaId: string) => {
-    return useQuery({
-      queryKey: ['mensagens', conversaId],
-      queryFn: () => mensagemService.getMensagens(conversaId)
-    })
-  }
-
-  const getMensagemById = (id: string) => {
-    return useQuery({
-      queryKey: ['mensagem', id],
-      queryFn: () => mensagemService.getMensagemById(id)
-    })
-  }
-
-  const getConversas = (usuarioId: string) => {
-    return useQuery({
-      queryKey: ['conversas', usuarioId],
-      queryFn: () => mensagemService.getConversas(usuarioId)
-    })
-  }
-
-  const getConversaById = (id: string) => {
-    return useQuery({
-      queryKey: ['conversa', id],
-      queryFn: () => mensagemService.getConversaById(id)
-    })
-  }
-
-  // Mutations
-  const createMensagemMutation = useMutation({
-    mutationFn: mensagemService.createMensagem,
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['mensagens', variables.conversa_id] })
-      queryClient.invalidateQueries({ queryKey: ['conversas'] })
-      toast({
-        title: 'Sucesso',
-        description: 'Mensagem enviada com sucesso'
-      })
-    },
-    onError: () => {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao enviar mensagem',
-        variant: 'destructive'
-      })
-    }
+  const contatos = useQuery({
+    queryKey: ['contatos-mensagens', empresaId],
+    queryFn: () => mensagemService.getContatos(empresaId, userId),
+    enabled: !!empresaId && !!userId,
   })
 
-  const updateMensagemMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateMensagemData }) =>
-      mensagemService.updateMensagem(id, data),
-    onSuccess: (mensagem) => {
-      queryClient.invalidateQueries({ queryKey: ['mensagens', mensagem.conversa_id] })
-      queryClient.invalidateQueries({ queryKey: ['conversas'] })
-      toast({
-        title: 'Sucesso',
-        description: 'Mensagem atualizada com sucesso'
-      })
-    },
-    onError: () => {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao atualizar mensagem',
-        variant: 'destructive'
-      })
-    }
+  const conversas = useQuery({
+    queryKey: ['conversas', userId],
+    queryFn: () => mensagemService.getConversas(userId),
+    enabled: !!userId,
+    refetchInterval: 10000,
   })
 
-  const deleteMensagemMutation = useMutation({
-    mutationFn: mensagemService.deleteMensagem,
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['mensagens'] })
-      queryClient.invalidateQueries({ queryKey: ['conversas'] })
-      toast({
-        title: 'Sucesso',
-        description: 'Mensagem excluída com sucesso'
-      })
-    },
-    onError: () => {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao excluir mensagem',
-        variant: 'destructive'
-      })
-    }
+  const unreadCount = useQuery({
+    queryKey: ['unread-count', userId],
+    queryFn: () => mensagemService.getUnreadCount(userId),
+    enabled: !!userId,
+    refetchInterval: 15000,
   })
 
-  const marcarComoLidaMutation = useMutation({
-    mutationFn: mensagemService.marcarComoLida,
-    onSuccess: (mensagem) => {
-      queryClient.invalidateQueries({ queryKey: ['mensagens', mensagem.conversa_id] })
+  const sendMensagem = useMutation({
+    mutationFn: (params: { conversaId: string; destinatarioId: string; conteudo: string }) =>
+      mensagemService.sendMensagem(params.conversaId, userId, params.destinatarioId, params.conteudo),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['mensagens', vars.conversaId] })
       queryClient.invalidateQueries({ queryKey: ['conversas'] })
-      toast({
-        title: 'Sucesso',
-        description: 'Mensagem marcada como lida'
-      })
+      queryClient.invalidateQueries({ queryKey: ['unread-count'] })
     },
-    onError: () => {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao marcar mensagem como lida',
-        variant: 'destructive'
-      })
-    }
   })
 
-  const createConversaMutation = useMutation({
-    mutationFn: mensagemService.createConversa,
+  const startConversa = useMutation({
+    mutationFn: (otherUserId: string) => mensagemService.getOrCreateConversa(userId, otherUserId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversas'] })
-      toast({
-        title: 'Sucesso',
-        description: 'Conversa criada com sucesso'
-      })
     },
-    onError: () => {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao criar conversa',
-        variant: 'destructive'
-      })
-    }
-  })
-
-  const updateConversaMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateConversaData }) =>
-      mensagemService.updateConversa(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversas'] })
-      toast({
-        title: 'Sucesso',
-        description: 'Conversa atualizada com sucesso'
-      })
-    },
-    onError: () => {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao atualizar conversa',
-        variant: 'destructive'
-      })
-    }
-  })
-
-  const deleteConversaMutation = useMutation({
-    mutationFn: mensagemService.deleteConversa,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversas'] })
-      queryClient.invalidateQueries({ queryKey: ['mensagens'] })
-      toast({
-        title: 'Sucesso',
-        description: 'Conversa excluída com sucesso'
-      })
-    },
-    onError: () => {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao excluir conversa',
-        variant: 'destructive'
-      })
-    }
   })
 
   return {
-    getMensagens,
-    getMensagemById,
-    getConversas,
-    getConversaById,
-    createMensagem: createMensagemMutation.mutate,
-    updateMensagem: updateMensagemMutation.mutate,
-    deleteMensagem: deleteMensagemMutation.mutate,
-    marcarComoLida: marcarComoLidaMutation.mutate,
-    createConversa: createConversaMutation.mutate,
-    updateConversa: updateConversaMutation.mutate,
-    deleteConversa: deleteConversaMutation.mutate
+    userId,
+    contatos,
+    conversas,
+    unreadCount,
+    sendMensagem,
+    startConversa,
   }
-} 
+}
+
+export function useMensagensConversa(conversaId: string | null) {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const userId = user?.id || ''
+
+  const mensagens = useQuery({
+    queryKey: ['mensagens', conversaId],
+    queryFn: () => mensagemService.getMensagens(conversaId!),
+    enabled: !!conversaId,
+    refetchInterval: 5000,
+  })
+
+  useEffect(() => {
+    if (!conversaId) return
+
+    const channel = supabase
+      .channel(`mensagens:${conversaId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens', filter: `conversa_id=eq.${conversaId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['mensagens', conversaId] })
+        queryClient.invalidateQueries({ queryKey: ['conversas'] })
+        queryClient.invalidateQueries({ queryKey: ['unread-count'] })
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [conversaId, queryClient])
+
+  useEffect(() => {
+    if (!conversaId || !userId) return
+    mensagemService.marcarComoLida(conversaId, userId).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['unread-count'] })
+    })
+  }, [conversaId, userId, mensagens.data, queryClient])
+
+  return mensagens
+}
