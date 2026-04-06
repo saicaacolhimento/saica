@@ -1,19 +1,36 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
-import { Table } from '@/components/ui/table'
-import { Dialog } from '@/components/ui/dialog'
+import {
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
-import { permissionService } from '@/services/permissions'
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from '@/components/ui/select'
 import { usePermissions } from '@/hooks/usePermissions'
 import type { UserRole, PermissionType } from '@/types/permissions'
 
+const USER_ROLES: UserRole[] = ['master', 'admin', 'padrao', 'orgao']
+const PERMISSION_TYPES: PermissionType[] = ['read', 'write', 'delete', 'admin']
+
 export function PermissionList() {
-  const navigate = useNavigate()
   const { toast } = useToast()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -28,14 +45,13 @@ export function PermissionList() {
     permissions,
     isLoadingPermissions,
     createPermission,
-    updatePermission,
     deletePermission
   } = usePermissions()
 
   const filteredPermissions = permissions?.filter(permission =>
-    permission.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    permission.table.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    permission.field.toLowerCase().includes(searchTerm.toLowerCase())
+    permission.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    permission.table?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    permission.field?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const handleCreatePermission = async () => {
@@ -44,6 +60,7 @@ export function PermissionList() {
       setIsCreateDialogOpen(false)
       setNewPermission({ role: '', table: '', field: '', permission_type: '' })
     } catch {
+      // handled by hook
     }
   }
 
@@ -52,12 +69,13 @@ export function PermissionList() {
       try {
         await deletePermission(id)
       } catch {
+        // handled by hook
       }
     }
   }
 
   if (isLoadingPermissions) {
-    return <div>Carregando...</div>
+    return <div className="text-center py-8">Carregando...</div>
   }
 
   return (
@@ -69,117 +87,118 @@ export function PermissionList() {
         </Button>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Input
-          placeholder="Buscar permissões..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+      <Input
+        placeholder="Buscar permissões..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
 
-      {filteredPermissions?.length === 0 ? (
-        <div className="text-center py-4">
+      {!filteredPermissions || filteredPermissions.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
           Nenhuma permissão encontrada
         </div>
       ) : (
         <Table>
-          <thead>
-            <tr>
-              <th>Role</th>
-              <th>Tabela</th>
-              <th>Campo</th>
-              <th>Tipo de Permissão</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPermissions?.map((permission) => (
-              <tr key={permission.id}>
-                <td>{permission.role}</td>
-                <td>{permission.table}</td>
-                <td>{permission.field}</td>
-                <td>{permission.permission_type}</td>
-                <td>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/permissions/${permission.id}`)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeletePermission(permission.id)}
-                    >
-                      Excluir
-                    </Button>
-                  </div>
-                </td>
-              </tr>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Role</TableHead>
+              <TableHead>Tabela</TableHead>
+              <TableHead>Campo</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredPermissions.map((permission) => (
+              <TableRow key={permission.id}>
+                <TableCell>{permission.role}</TableCell>
+                <TableCell>{permission.table}</TableCell>
+                <TableCell>{permission.field}</TableCell>
+                <TableCell>{permission.permission_type}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeletePermission(permission.id)}
+                  >
+                    Excluir
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
+          </TableBody>
         </Table>
       )}
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Nova Permissão</h2>
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select
-              id="role"
-              value={newPermission.role}
-              onValueChange={(value) => setNewPermission({ ...newPermission, role: value })}
-            >
-              {Object.values(UserRole).map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </Select>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Permissão</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select
+                value={newPermission.role}
+                onValueChange={(value) => setNewPermission({ ...newPermission, role: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {USER_ROLES.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Tabela</Label>
+              <Input
+                value={newPermission.table}
+                onChange={(e) => setNewPermission({ ...newPermission, table: e.target.value })}
+                placeholder="Ex: acolhidos"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Campo</Label>
+              <Input
+                value={newPermission.field}
+                onChange={(e) => setNewPermission({ ...newPermission, field: e.target.value })}
+                placeholder="Ex: nome"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de Permissão</Label>
+              <Select
+                value={newPermission.permission_type}
+                onValueChange={(value) => setNewPermission({ ...newPermission, permission_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERMISSION_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleCreatePermission}>
+                Criar
+              </Button>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="table">Tabela</Label>
-            <Input
-              id="table"
-              value={newPermission.table}
-              onChange={(e) => setNewPermission({ ...newPermission, table: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="field">Campo</Label>
-            <Input
-              id="field"
-              value={newPermission.field}
-              onChange={(e) => setNewPermission({ ...newPermission, field: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="permission_type">Tipo de Permissão</Label>
-            <Select
-              id="permission_type"
-              value={newPermission.permission_type}
-              onValueChange={(value) => setNewPermission({ ...newPermission, permission_type: value })}
-            >
-              {Object.values(PermissionType).map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreatePermission}>
-              Criar
-            </Button>
-          </div>
-        </div>
+        </DialogContent>
       </Dialog>
     </div>
   )
-} 
+}
