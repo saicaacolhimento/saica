@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +8,14 @@ import headerImage from '@/assets/images/header-kids.png';
 import logoSaica from '@/assets/images/logo-saica.png';
 import diagramaSaica from '@/assets/images/diagrama-saica.png';
 import { Login } from '@/features/auth/pages/Login';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthLayout() {
+  const { session } = useAuth();
+
+  if (session) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
   const [showContact, setShowContact] = useState(false);
   const [contactForm, setContactForm] = useState({ nome: '', email: '', mensagem: '' });
   const [sending, setSending] = useState(false);

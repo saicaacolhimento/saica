@@ -1,18 +1,17 @@
 import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Lock } from 'lucide-react';
 
 interface ProtectedRouteProps {
   module: string;
-  type?: 'read' | 'write' | 'delete' | 'admin';
+  type?: 'read' | 'write' | 'delete';
   children: ReactNode;
 }
 
 export function ProtectedRoute({ module, type = 'read', children }: ProtectedRouteProps) {
-  const { canAccess, isLoadingRolePermissions, isMaster } = usePermissions();
+  const { canAccess, isLoadingPermissions, isMaster } = usePermissions();
 
-  if (isLoadingRolePermissions) return null;
+  if (isLoadingPermissions) return null;
 
   if (isMaster || canAccess(module, type)) {
     return <>{children}</>;
