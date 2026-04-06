@@ -2,14 +2,22 @@ import { supabase } from '@/config/supabase'
 import { Mensagem, Conversa, ContatoInfo } from '@/types/mensagem'
 
 export const mensagemService = {
-  async getContatos(empresaId: string, currentUserId: string): Promise<ContatoInfo[]> {
-    const { data, error } = await supabase
+  async getContatos(empresaId: string | null, currentUserId: string, isMaster: boolean): Promise<ContatoInfo[]> {
+    let query = supabase
       .from('usuarios')
       .select('id, nome, email, role, empresa_id')
-      .eq('empresa_id', empresaId)
       .neq('id', currentUserId)
-      .neq('role', 'master')
       .order('nome')
+
+    if (isMaster) {
+      query = query.neq('role', 'master')
+    } else if (empresaId) {
+      query = query.eq('empresa_id', empresaId).neq('role', 'master')
+    } else {
+      return []
+    }
+
+    const { data, error } = await query
     if (error) throw error
     return data || []
   },

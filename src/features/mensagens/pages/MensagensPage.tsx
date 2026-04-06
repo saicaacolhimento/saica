@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Search, Send, MessageSquare, User, Check, CheckCheck } from 'lucide-react'
+import { Search, Send, MessageSquare, Check, CheckCheck } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/ui/use-toast'
 import { useMensagem, useMensagensConversa } from '@/hooks/useMensagem'
 import type { Conversa, ContatoInfo } from '@/types/mensagem'
 
@@ -15,6 +16,7 @@ export default function MensagensPage() {
   const [message, setMessage] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const { toast } = useToast()
 
   const { data: mensagens, isLoading: loadingMsgs } = useMensagensConversa(activeConversaId)
 
@@ -79,7 +81,12 @@ export default function MensagensPage() {
     if (!message.trim() || !activeConversaId || !activeContact) return
     const text = message.trim()
     setMessage('')
-    await sendMensagem.mutateAsync({ conversaId: activeConversaId, destinatarioId: activeContact.id, conteudo: text })
+    try {
+      await sendMensagem.mutateAsync({ conversaId: activeConversaId, destinatarioId: activeContact.id, conteudo: text })
+    } catch (err: any) {
+      toast({ title: 'Erro ao enviar', description: err?.message || 'Tente novamente', variant: 'destructive' })
+      setMessage(text)
+    }
     textareaRef.current?.focus()
   }
 

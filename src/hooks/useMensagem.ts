@@ -8,12 +8,13 @@ export function useMensagem() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const userId = user?.id || ''
-  const empresaId = (user as any)?.empresa_id || ''
+  const empresaId = (user as any)?.empresa_id || null
+  const isMaster = (user as any)?.role === 'master'
 
   const contatos = useQuery({
-    queryKey: ['contatos-mensagens', empresaId],
-    queryFn: () => mensagemService.getContatos(empresaId, userId),
-    enabled: !!empresaId && !!userId,
+    queryKey: ['contatos-mensagens', empresaId, isMaster],
+    queryFn: () => mensagemService.getContatos(empresaId, userId, isMaster),
+    enabled: !!userId && (!!empresaId || isMaster),
   })
 
   const conversas = useQuery({
