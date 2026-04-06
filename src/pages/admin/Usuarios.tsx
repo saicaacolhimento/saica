@@ -306,7 +306,7 @@ export default function UsuariosAdminList() {
                                         <TableCell>{u.cargo || '-'}</TableCell>
                                         <TableCell>{u.status}</TableCell>
                                         <TableCell className="text-center">
-                                          {u.role === 'admin' ? (
+                                          {u.role === 'admin' && !isMaster ? (
                                             <span className="text-gray-400 text-sm">Apenas master pode gerenciar</span>
                                           ) : (
                                             <>
@@ -372,7 +372,7 @@ export default function UsuariosAdminList() {
                     <TableCell className="text-center">{u.cargo || '-'}</TableCell>
                     <TableCell className="text-center">{u.status}</TableCell>
                     <TableCell className="text-center">
-                      {u.role === 'admin' ? (
+                      {u.role === 'admin' && !isMaster ? (
                         <span className="text-gray-400 text-sm">Apenas master pode gerenciar</span>
                       ) : (
                         <>
