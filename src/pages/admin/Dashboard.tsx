@@ -12,26 +12,12 @@ import {
   DollarSign,
   MessageSquare
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { authService } from '@/services/auth';
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [userRole, setUserRole] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchUserRole() {
-      const currentUser = await authService.getCurrentUser();
-      setUserRole(currentUser?.role || null);
-    }
-    if (user) {
-      fetchUserRole();
-    }
-  }, [user]);
-
+  const userRole = (user as any)?.role as string | undefined;
   const isMaster = userRole === 'master';
-
   const isAdmin = userRole === 'admin' || isMaster;
 
   const modules = [
