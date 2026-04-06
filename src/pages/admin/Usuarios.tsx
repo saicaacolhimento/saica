@@ -185,16 +185,7 @@ export default function UsuariosAdminList() {
       );
 
       if (editForm.senha && editForm.senha === editForm.confirmarSenha) {
-        const resp = await fetch('http://localhost:3333/admin/alterar-senha', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: editUserModal.user.id,
-            novaSenha: editForm.senha,
-          }),
-        });
-        const result = await resp.json();
-        if (!result.success) throw new Error(result.error || 'Erro ao alterar senha');
+        await authService.resetPassword(editUserModal.user.id, editForm.senha);
       }
 
       toast({ title: 'Usuário atualizado com sucesso!' });
