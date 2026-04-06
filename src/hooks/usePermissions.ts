@@ -1,103 +1,120 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { permissionService } from '@/services/permissions'
 import { useToast } from '@/components/ui/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCallback, useMemo } from 'react'
+import { supabase } from '@/config/supabase'
+
+const MODULES = ['dashboard', 'empresas', 'usuarios', 'acolhidos', 'agenda', 'financeiro', 'documentos', 'atividades', 'configuracoes', 'relatorios', 'mensagens'] as const
+export type AppModule = typeof MODULES[number]
+export { MODULES }
+
+interface UserModulePermission {
+  id: string
+  user_id: string
+  module: string
+  can_read: boolean
+  can_write: boolean
+  can_delete: boolean
+}
 
 export const usePermissions = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user } = useAuth()
 
+  const userId = user?.id
   const userRole = (user as any)?.role as string | undefined
+  const isMaster = userRole === 'master'
+  const isAdmin = userRole === 'admin' || isMaster
 
-  const { data: permissions, isLoading: isLoadingPermissions } = useQuery({
-    queryKey: ['permissions'],
-    queryFn: permissionService.getPermissions,
-    enabled: !!user
-  })
-
-  const { data: rolePermissions, isLoading: isLoadingRolePermissions } = useQuery({
-    queryKey: ['rolePermissions', userRole],
+  const { data: myPermissions, isLoading: isLoadingPermissions } = useQuery({
+    queryKey: ['userModulePermissions', userId],
     queryFn: async () => {
-      if (!userRole || userRole === 'master') return null
-      const { data, error } = await (await import('@/config/supabase')).supabase
-        .from('permissions')
+      if (!userId || isMaster) return null
+      const { data, error } = await supabase
+        .from('user_module_permissions')
         .select('*')
-        .eq('role', userRole)
+        .eq('user_id', userId)
       if (error) throw error
-      return data
+      return data as UserModulePermission[]
     },
-    enabled: !!userRole && userRole !== 'master',
+    enabled: !!userId && !isMaster,
   })
 
-  const permissionSet = useMemo(() => {
-    if (!rolePermissions) return new Set<string>()
-    return new Set(
-      rolePermissions.map((p: any) => `${p.table || p.table_name}:${p.permission_type}`)
-    )
-  }, [rolePermissions])
+  const permMap = useMemo(() => {
+    const map: Record<string, { read: boolean; write: boolean; delete: boolean }> = {}
+    if (myPermissions) {
+      for (const p of myPermissions) {
+        map[p.module] = { read: p.can_read, write: p.can_write, delete: p.can_delete }
+      }
+    }
+    return map
+  }, [myPermissions])
 
-  const canAccess = useCallback((module: string, type: 'read' | 'write' | 'delete' | 'admin' = 'read'): boolean => {
+  const hasAnyPermissions = myPermissions != null && myPermissions.length > 0
+
+  const canAccess = useCallback((module: string, type: 'read' | 'write' | 'delete' = 'read'): boolean => {
     if (!user) return false
-    if (userRole === 'master') return true
-    return permissionSet.has(`${module}:${type}`)
-  }, [user, userRole, permissionSet])
+    if (isMaster) return true
+    if (!hasAnyPermissions) {
+      // Default: admin can access everything except empresas; others only dashboard
+      if (isAdmin) return module !== 'empresas'
+      return module === 'dashboard'
+    }
+    const perm = permMap[module]
+    if (!perm) return false
+    return perm[type]
+  }, [user, isMaster, isAdmin, hasAnyPermissions, permMap])
 
   const canRead = useCallback((module: string) => canAccess(module, 'read'), [canAccess])
   const canWrite = useCallback((module: string) => canAccess(module, 'write'), [canAccess])
   const canDelete = useCallback((module: string) => canAccess(module, 'delete'), [canAccess])
 
-  const createPermissionMutation = useMutation({
-    mutationFn: permissionService.createPermission,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions'] })
-      queryClient.invalidateQueries({ queryKey: ['rolePermissions'] })
-      toast({ title: 'Sucesso', description: 'Permissão criada com sucesso' })
-    },
-    onError: () => {
-      toast({ title: 'Erro', description: 'Erro ao criar permissão', variant: 'destructive' })
-    }
-  })
+  // --- Admin functions: manage permissions of other users ---
 
-  const updatePermissionMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      permissionService.updatePermission(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions'] })
-      queryClient.invalidateQueries({ queryKey: ['rolePermissions'] })
-      toast({ title: 'Sucesso', description: 'Permissão atualizada com sucesso' })
-    },
-    onError: () => {
-      toast({ title: 'Erro', description: 'Erro ao atualizar permissão', variant: 'destructive' })
-    }
-  })
+  const getUserPermissions = useCallback(async (targetUserId: string): Promise<UserModulePermission[]> => {
+    const { data, error } = await supabase
+      .from('user_module_permissions')
+      .select('*')
+      .eq('user_id', targetUserId)
+    if (error) throw error
+    return data || []
+  }, [])
 
-  const deletePermissionMutation = useMutation({
-    mutationFn: permissionService.deletePermission,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions'] })
-      queryClient.invalidateQueries({ queryKey: ['rolePermissions'] })
-      toast({ title: 'Sucesso', description: 'Permissão excluída com sucesso' })
+  const saveUserPermissions = useMutation({
+    mutationFn: async ({ targetUserId, permissions }: { targetUserId: string, permissions: { module: string; can_read: boolean; can_write: boolean; can_delete: boolean }[] }) => {
+      // Delete existing
+      await supabase.from('user_module_permissions').delete().eq('user_id', targetUserId)
+      // Insert new (only those with at least one true)
+      const rows = permissions
+        .filter(p => p.can_read || p.can_write || p.can_delete)
+        .map(p => ({ user_id: targetUserId, module: p.module, can_read: p.can_read, can_write: p.can_write, can_delete: p.can_delete }))
+      if (rows.length > 0) {
+        const { error } = await supabase.from('user_module_permissions').insert(rows)
+        if (error) throw error
+      }
     },
-    onError: () => {
-      toast({ title: 'Erro', description: 'Erro ao excluir permissão', variant: 'destructive' })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userModulePermissions'] })
+      toast({ title: 'Sucesso', description: 'Permissões salvas com sucesso' })
+    },
+    onError: (err: any) => {
+      toast({ title: 'Erro', description: err?.message || 'Erro ao salvar permissões', variant: 'destructive' })
     }
   })
 
   return {
-    permissions,
-    rolePermissions,
+    myPermissions,
     isLoadingPermissions,
-    isLoadingRolePermissions,
     canAccess,
     canRead,
     canWrite,
     canDelete,
-    isMaster: userRole === 'master',
+    isMaster,
+    isAdmin,
     userRole,
-    createPermission: createPermissionMutation.mutate,
-    updatePermission: updatePermissionMutation.mutate,
-    deletePermission: deletePermissionMutation.mutate,
+    getUserPermissions,
+    saveUserPermissions: saveUserPermissions.mutateAsync,
+    isSaving: saveUserPermissions.isPending,
   }
 }
