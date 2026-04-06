@@ -44,24 +44,25 @@ export default function AuthLayout() {
             className="w-full h-auto object-cover max-h-[400px] md:max-h-[570px]"
           />
         </div>
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
-          <img
-            src={logoSaica}
-            alt="Logo SAICA"
-            className="w-20 md:w-32 h-auto"
-          />
-        </div>
         <div className="absolute top-4 right-4 md:top-10 md:right-10">
           <Login />
         </div>
       </header>
 
-      <div className="w-full bg-[#6366F1] text-white py-4 md:py-6 mt-12 md:mt-[50px]">
+      <div className="flex justify-center -mt-10 md:-mt-16 relative z-10">
+        <img
+          src={logoSaica}
+          alt="Logo SAICA"
+          className="w-20 md:w-32 h-auto drop-shadow-md"
+        />
+      </div>
+
+      <div className="w-full bg-[#6366F1] text-white py-4 md:py-6 mt-4 md:mt-6">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-lg md:text-[2.5em] font-semibold mb-0">
+          <h1 className="text-lg md:text-[2.5em] font-semibold">
             Sistema de Acompanhamento Integrado de Crianças e Adolescentes
           </h1>
-          <p className="text-sm md:text-[1.5em] mt-1 md:-mt-2">
+          <p className="text-sm md:text-[1.2em] mt-1 opacity-90">
             Uma plataforma para auxiliar na integração entre CRAS, CAPS, CREAS,
             Conselho Tutelar e Abrigos de uma forma rápida e segura
           </p>
